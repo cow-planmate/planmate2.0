@@ -1,8 +1,10 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { LayoutGrid, List, SlidersHorizontal } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { MAIN_FEED_MOCK_POSTS } from '../../../../data/mainFeedMockData';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApiClient } from '../../../../hooks/useApiClient';
 import useKakaoLoader from '../../../../hooks/useKakaoLoader';
+import { mapFeedPost, reactToPost } from '../../community/api/communityApi';
+import { useFeedPosts, useFeedRegionCounts } from '../../community/hooks/queries';
 import { useMainFeedFilters } from '../hooks/useMainFeedLogic';
 import { SearchBar } from '../molecules/SearchBar';
 import { DetailFilterPanel } from '../organisms/DetailFilterPanel';
@@ -18,9 +20,24 @@ interface MainFeedProps {
 export default function MainFeed({ initialRegion = '전체', onNavigate }: MainFeedProps) {
   useKakaoLoader();
   const { isAuthenticated } = useApiClient();
-  const { filters, setters, filteredPosts } = useMainFeedFilters(MAIN_FEED_MOCK_POSTS, initialRegion, onNavigate);
+  const queryClient = useQueryClient();
+  const { filters, setters, serverParams } = useMainFeedFilters(initialRegion, onNavigate);
+
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useFeedPosts(serverParams);
+  const { data: regionCountList } = useFeedRegionCounts();
+
+  const posts = useMemo(
+    () => (data?.pages ?? []).flatMap(page => page.items.map(mapFeedPost)),
+    [data],
+  );
+  const totalElements = data?.pages[0]?.totalElements ?? 0;
+  const regionCounts = useMemo(
+    () => Object.fromEntries((regionCountList ?? []).map(rc => [rc.region, rc.count])),
+    [regionCountList],
+  );
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // 눌림 표시는 세션 로컬 (목록 요약에는 myReaction이 없음) — 카운트는 서버 값 그대로 표시
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
   const [dislikedPosts, setDislikedPosts] = useState<Set<number>>(new Set());
   const [mapState, setMapState] = useState({
@@ -48,8 +65,21 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
     }
   }, [filters.selectedRegion]);
 
+  const react = async (postId: number, type: 'like' | 'dislike') => {
+    try {
+      await reactToPost(postId, type);
+      queryClient.invalidateQueries({ queryKey: ['community', 'posts'] });
+    } catch (error) {
+      alert(`반응 처리에 실패했습니다: ${(error as Error).message}`);
+    }
+  };
+
   const handleLike = (postId: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isAuthenticated()) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
     if (dislikedPosts.has(postId)) {
       setDislikedPosts(prev => {
         const newSet = new Set(prev);
@@ -63,10 +93,15 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
       else newSet.add(postId);
       return newSet;
     });
+    react(postId, 'like');
   };
 
   const handleDislike = (postId: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isAuthenticated()) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
     if (likedPosts.has(postId)) {
       setLikedPosts(prev => {
         const newSet = new Set(prev);
@@ -80,6 +115,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
       else newSet.add(postId);
       return newSet;
     });
+    react(postId, 'dislike');
   };
 
   return (
@@ -187,23 +223,42 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
       {(filters.searchQuery || filters.activeFilterCount > 0) && (
         <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-[#666666]">
-            <span className="font-bold text-[#1344FF]">{filteredPosts.length}개</span>의 여행기를 찾았습니다
+            <span className="font-bold text-[#1344FF]">{totalElements}개</span>의 여행기를 찾았습니다
           </p>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <MainPostsGrid
-            posts={filteredPosts}
-            viewMode={viewMode}
-            onNavigate={onNavigate}
-            likedPosts={likedPosts}
-            dislikedPosts={dislikedPosts}
-            onLike={handleLike}
-            onDislike={handleDislike}
-            onClearFilters={setters.clearFilters}
-          />
+          {isLoading ? (
+            <div className="bg-white rounded-xl shadow-md p-12 text-center text-[#666666]">
+              여행기를 불러오는 중...
+            </div>
+          ) : (
+            <>
+              <MainPostsGrid
+                posts={posts}
+                viewMode={viewMode}
+                onNavigate={onNavigate}
+                likedPosts={likedPosts}
+                dislikedPosts={dislikedPosts}
+                onLike={handleLike}
+                onDislike={handleDislike}
+                onClearFilters={setters.clearFilters}
+              />
+              {hasNextPage && (
+                <div className="mt-8 text-center">
+                  <button
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="px-8 py-3 bg-white border border-[#e5e7eb] rounded-xl text-[#1344FF] font-bold hover:border-[#1344FF] transition-all shadow-sm disabled:opacity-50"
+                  >
+                    {isFetchingNextPage ? '불러오는 중...' : '더 보기'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <MainFeedSidebar
@@ -211,7 +266,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
           onRegionSelect={setters.handleRegionSelect}
           selectedRegion={filters.selectedRegion}
           onNavigate={onNavigate}
-          posts={MAIN_FEED_MOCK_POSTS}
+          regionCounts={regionCounts}
         />
       </div>
     </div>

@@ -36,7 +36,7 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({
 
                 <div className="flex items-center gap-3 text-[12px] text-gray-400 mt-1">
                     <span className="font-bold text-gray-700">{post.author}</span>
-                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold">LV.2</span>
+                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold">LV.{post.level ?? 1}</span>
                     <span>•</span>
                     <span>{post.createdAt || '방금 전'}</span>
                     <span>•</span>

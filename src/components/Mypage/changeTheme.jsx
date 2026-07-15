@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
-import { X, ChevronRight, ChevronLeft, Check, Compass, Utensils, Bed } from 'lucide-react';
+import {
+  X,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Compass,
+  Utensils,
+  Bed,
+} from "lucide-react";
 
 export default function Theme({
   isOpen,
@@ -17,11 +25,15 @@ export default function Theme({
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   const getCategoryIcon = (catId) => {
-    switch(catId) {
-      case 0: return <Compass className="w-5 h-5" />;
-      case 1: return <Bed className="w-5 h-5" />;
-      case 2: return <Utensils className="w-5 h-5" />;
-      default: return <Compass className="w-5 h-5" />;
+    switch (catId) {
+      case 0:
+        return <Compass className="w-5 h-5" />;
+      case 1:
+        return <Bed className="w-5 h-5" />;
+      case 2:
+        return <Utensils className="w-5 h-5" />;
+      default:
+        return <Compass className="w-5 h-5" />;
     }
   };
 
@@ -101,7 +113,7 @@ export default function Theme({
       const restoredIndexes = [];
       previousSelections.forEach((selectedItem) => {
         const index = keywordsByStep[currentStep].findIndex(
-          (item) => item.preferredThemeId === selectedItem.preferredThemeId
+          (item) => item.preferredThemeId === selectedItem.preferredThemeId,
         );
         if (index !== -1) {
           restoredIndexes.push(index);
@@ -119,8 +131,8 @@ export default function Theme({
       prev.includes(index)
         ? prev.filter((i) => i !== index)
         : prev.length < 5
-        ? [...prev, index]
-        : prev
+          ? [...prev, index]
+          : prev,
     );
   };
 
@@ -185,7 +197,8 @@ export default function Theme({
   };
 
   const currentKeywords = keywordsByStep[currentStep];
-  const progress = categories.length > 0 ? ((currentStep + 1) / categories.length) * 100 : 0;
+  const progress =
+    categories.length > 0 ? ((currentStep + 1) / categories.length) * 100 : 0;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[120] font-pretendard">
@@ -198,7 +211,8 @@ export default function Theme({
           <div className="p-6 pb-4 flex justify-between items-center bg-white">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-50 text-[#1344FF] rounded-lg">
-                {categories[currentStep] && getCategoryIcon(categories[currentStep].id)}
+                {categories[currentStep] &&
+                  getCategoryIcon(categories[currentStep].id)}
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900 leading-tight">
@@ -206,10 +220,15 @@ export default function Theme({
                     ? `${categories[currentStep].name} 취향`
                     : "로딩 중..."}
                 </h1>
-                <p className="text-xs text-gray-400 mt-0.5 font-medium">최대 5개까지 선택 가능</p>
+                <p className="text-xs text-gray-400 mt-0.5 font-medium">
+                  최대 5개까지 선택 가능
+                </p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -225,7 +244,11 @@ export default function Theme({
         <div className="p-8 flex-1 overflow-y-auto">
           <div className="mb-6">
             <p className="text-[#1a1a1a] font-medium text-lg text-center">
-              어떤 <span className="text-[#1344FF] underline underline-offset-4 decoration-2">키워드</span>를 좋아하시나요?
+              어떤{" "}
+              <span className="text-[#1344FF] underline underline-offset-4 decoration-2">
+                키워드
+              </span>
+              를 좋아하시나요?
             </p>
           </div>
 
@@ -240,9 +263,11 @@ export default function Theme({
                     className={`
                       relative group py-4 px-3 rounded-xl text-sm font-bold transition-all duration-200 border-2
                       flex flex-col items-center justify-center gap-2
-                      ${isSelected
-                        ? "bg-[#1344FF] border-[#1344FF] text-white shadow-lg scale-105"
-                        : "bg-white border-gray-100 text-gray-600 hover:border-[#1344FF] hover:text-[#1344FF] hover:bg-blue-50/30"}
+                      ${
+                        isSelected
+                          ? "bg-[#1344FF] border-[#1344FF] text-white shadow-lg scale-105"
+                          : "bg-white border-gray-100 text-gray-600 hover:border-[#1344FF] hover:text-[#1344FF] hover:bg-blue-50/30"
+                      }
                     `}
                   >
                     {isSelected && (
@@ -250,14 +275,16 @@ export default function Theme({
                         <Check className="w-3.5 h-3.5" />
                       </div>
                     )}
-                    <span className="truncate w-full text-center">#{keyword.preferredThemeName}</span>
+                    <span className="truncate w-full text-center">
+                      #{keyword.preferredThemeName}
+                    </span>
                   </button>
                 );
               })
             ) : (
               <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400 gap-3">
-                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#1344FF] border-t-transparent"></div>
-                 <p className="text-sm">키워드를 불러오고 있어요...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#1344FF] border-t-transparent"></div>
+                <p className="text-sm">키워드를 불러오고 있어요...</p>
               </div>
             )}
           </div>
@@ -285,7 +312,9 @@ export default function Theme({
               disabled={!currentKeywords}
               className="px-8 py-3 bg-[#1344FF] text-white font-bold rounded-xl hover:bg-[#0d34cc] transition-all shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {currentStep === categories.length - 1 ? "선택 완료" : "다음 단계"}
+              {currentStep === categories.length - 1
+                ? "선택 완료"
+                : "다음 단계"}
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

@@ -1,6 +1,21 @@
 import { ko } from "@blocknote/core/locales";
 import { useCreateBlockNote } from "@blocknote/react";
 import { useMemo, useState } from 'react';
+import { uploadImage } from '../api/communityApi';
+import { blocksToText } from '../utils/blocksToText';
+import { useCreatePost } from './queries';
+
+/** 첫 번째 이미지 블록의 URL → 썸네일 */
+const firstImageUrl = (blocks: any[]): string | null => {
+  for (const block of blocks) {
+    if (block.type === 'image' && block.props?.url) return block.props.url;
+    if (Array.isArray(block.children)) {
+      const nested = firstImageUrl(block.children);
+      if (nested) return nested;
+    }
+  }
+  return null;
+};
 
 export const useCommunityCreateLogic = (
   type: 'free' | 'qna' | 'mate' | 'recommend',
@@ -10,7 +25,9 @@ export const useCommunityCreateLogic = (
   const [location, setLocation] = useState('');
   const [rating, setRating] = useState('5.0');
   const [mateCount, setMateCount] = useState('2');
-  
+
+  const createPostMutation = useCreatePost();
+
   const initialContent = useMemo(() => [
     {
       type: "paragraph",
@@ -21,6 +38,8 @@ export const useCommunityCreateLogic = (
   const editor = useCreateBlockNote({
     dictionary: ko,
     initialContent,
+    // '/' 명령 이미지 업로드 → 커뮤니티 이미지 API (MinIO)
+    uploadFile: uploadImage,
   });
 
   const getTips = () => {
@@ -53,21 +72,39 @@ export const useCommunityCreateLogic = (
   };
 
   const handleSubmit = async () => {
-    if (!title.trim() || editor.document.length === 0) {
+    const blocks = editor.document;
+    const contentText = blocksToText(blocks as any[]);
+
+    if (!title.trim() || contentText.trim().length === 0) {
       alert('제목과 내용을 모두 입력해주세요.');
       return;
     }
-    
-    const blocks = editor.document;
-    
-    console.log('Post submitted:', { 
-      type, 
-      title, 
-      blocks, 
-      ...(type === 'recommend' && { location, rating }),
-      ...(type === 'mate' && { location, mateCount })
-    });
-    onSubmit();
+    if (type === 'recommend' && !location.trim()) {
+      alert('위치를 입력해주세요.');
+      return;
+    }
+    if (type === 'mate' && !location.trim()) {
+      alert('여행 희망 지역을 입력해주세요.');
+      return;
+    }
+
+    try {
+      await createPostMutation.mutateAsync({
+        category: type,
+        title: title.trim(),
+        content: blocks,
+        contentText,
+        thumbnailUrl: firstImageUrl(blocks as any[]),
+        ...(type === 'recommend' && { location: location.trim(), rating: Number(rating) }),
+        ...(type === 'mate' && {
+          region: location.trim(),
+          maxParticipants: mateCount === 'unlimited' ? null : Number(mateCount),
+        }),
+      });
+      onSubmit();
+    } catch (error) {
+      alert(`게시글 등록에 실패했습니다: ${(error as Error).message}`);
+    }
   };
 
   return {
@@ -81,6 +118,7 @@ export const useCommunityCreateLogic = (
     setMateCount,
     editor,
     handleSubmit,
+    isSubmitting: createPostMutation.isPending,
     getTips
   };
 };

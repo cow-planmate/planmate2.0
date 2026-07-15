@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CommunityCreatePage as CommunityCreate } from '../components/planmate2/community/pages/CommunityCreatePage';
 import { CommunityPage as BoardList } from '../components/planmate2/community/pages/CommunityPage';
+import { PostDetailPage as CommunityPostDetail } from '../components/planmate2/community/pages/PostDetailPage';
 import { RecommendDetailPage as RecommendDetail } from '../components/planmate2/community/pages/RecommendDetailPage';
 import CreatePost from '../components/planmate2/create-feed/pages/CreatePostPage';
 import PostDetail from '../components/planmate2/feed/pages/FeedDetailPage';
@@ -137,11 +138,11 @@ export default function PlanmateV2() {
       setSelectedPost(data.post);
       if (data.post.category === 'recommend') {
         navigate(`/community/recommend/${data.post.id}`);
-      } else if (data.post.category) {
+      } else if (data.post.category && data.post.category !== 'feed') {
         // 커뮤니티 게시글
         navigate(`/community/${data.post.category}/${data.post.id}`);
       } else {
-        // 여행 피드 게시글
+        // 여행 피드 게시글 (category === 'feed' 또는 미지정)
         navigate(`/travel/${data.post.id}`);
       }
     }
@@ -177,16 +178,26 @@ export default function PlanmateV2() {
           />
         )}
         {currentView === 'recommend-detail' && (
-          <RecommendDetail 
+          <RecommendDetail
             post={selectedPost}
+            postId={id}
             onBack={() => handleViewChange('board-list', { boardType: 'recommend' })}
             onNavigate={handleViewChange}
           />
         )}
-        {currentView === 'detail' && selectedPost && (
-          <PostDetail 
-            post={selectedPost} 
-            onBack={() => navigate(-1)} 
+        {/* 커뮤니티 게시글 상세 (자유/QnA/메이트) — 딥링크 안전 (URL id로 직접 조회) */}
+        {currentView === 'detail' && category && id && ['free', 'qna', 'mate'].includes(category) && (
+          <CommunityPostDetail
+            postId={id}
+            onBack={() => handleViewChange('board-list', { boardType: category as any })}
+            onNavigate={handleViewChange}
+          />
+        )}
+        {/* 여행 피드 상세 — 딥링크 안전 (URL id로 직접 조회) */}
+        {currentView === 'detail' && !(category && id && ['free', 'qna', 'mate'].includes(category)) && id && (
+          <PostDetail
+            postId={id}
+            onBack={() => navigate(-1)}
             onNavigate={handleViewChange}
           />
         )}

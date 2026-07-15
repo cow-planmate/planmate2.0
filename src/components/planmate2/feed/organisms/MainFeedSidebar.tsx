@@ -7,7 +7,8 @@ interface MainFeedSidebarProps {
   onRegionSelect: (region: string) => void;
   selectedRegion: string;
   onNavigate: (view: any, data?: any) => void;
-  posts: any[];
+  /** 지역별 게시글 수 (GET /posts/regions 집계) */
+  regionCounts: Record<string, number>;
 }
 
 export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
@@ -15,7 +16,7 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
   onRegionSelect,
   selectedRegion,
   onNavigate,
-  posts
+  regionCounts
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -52,7 +53,7 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
             zoomable={true}
           >
             {regions.map((loc) => {
-              const count = posts.filter(p => p.destination === loc.name).length;
+              const count = regionCounts[loc.name] ?? 0;
               return (
                 <CustomOverlayMap
                   key={loc.name}
@@ -101,7 +102,7 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
                 <span className={`font-medium ${selectedRegion === loc.name ? 'text-[#1344FF]' : 'text-[#1a1a1a]'}`}>{loc.name}</span>
               </div>
               <span className={`text-sm ${selectedRegion === loc.name ? 'text-[#1344FF] font-bold' : 'text-[#666666]'}`}>
-                {posts.filter(p => p.destination === loc.name).length}개
+                {regionCounts[loc.name] ?? 0}개
               </span>
             </div>
           ))}
@@ -190,7 +191,7 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
                 style={{ width: '100%', height: '100%' }}
               >
                 {regions.map((loc) => {
-                  const count = posts.filter(p => p.destination === loc.name).length;
+                  const count = regionCounts[loc.name] ?? 0;
                   return (
                     <CustomOverlayMap
                       key={`modal-${loc.name}`}

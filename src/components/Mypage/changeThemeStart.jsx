@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { useApiClient } from "../../hooks/useApiClient";
-import { X, Heart, Check, ChevronRight } from 'lucide-react';
+import { X, Heart, Check, ChevronRight } from "lucide-react";
 
 export default function Themestart({
   isOpen,
@@ -87,11 +87,12 @@ export default function Themestart({
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-[#1344FF] fill-current" />
-            <h1 className="text-xl font-bold text-gray-900">
-              선호 테마 변경
-            </h1>
+            <h1 className="text-xl font-bold text-gray-900">선호 테마 변경</h1>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
@@ -110,14 +111,20 @@ export default function Themestart({
                   {Object.entries(selectedThemeKeywords).map(
                     ([categoryId, keywords]) =>
                       keywords.length > 0 ? (
-                        <div key={categoryId} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <div
+                          key={categoryId}
+                          className="bg-gray-50 rounded-xl p-4 border border-gray-100"
+                        >
                           <div className="text-xs font-bold text-gray-400 mb-2 flex items-center gap-1">
-                             <Check className="w-3 h-3" />
-                             {categoryMap[categoryId]}
+                            <Check className="w-3 h-3" />
+                            {categoryMap[categoryId]}
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {keywords.map((k) => (
-                              <span key={k.preferredThemeId} className="px-3 py-1 bg-white text-[#1344FF] text-xs font-bold rounded-lg border border-blue-50 shadow-sm">
+                              <span
+                                key={k.preferredThemeId}
+                                className="px-3 py-1 bg-white text-[#1344FF] text-xs font-bold rounded-lg border border-blue-50 shadow-sm"
+                              >
                                 #{k.preferredThemeName}
                               </span>
                             ))}
@@ -134,8 +141,13 @@ export default function Themestart({
                 <Heart className="w-10 h-10" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-bold text-gray-900">설정된 테마가 없어요!</h3>
-                <p className="text-gray-500 text-sm">나만의 여행 취향을 설정하고<br/>더 나은 추천을 받아보세요.</p>
+                <h3 className="text-lg font-bold text-gray-900">
+                  설정된 테마가 없어요!
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  나만의 여행 취향을 설정하고
+                  <br />더 나은 추천을 받아보세요.
+                </p>
               </div>
             </div>
           )}
