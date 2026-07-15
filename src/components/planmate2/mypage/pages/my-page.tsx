@@ -9,13 +9,12 @@ import { usePlanChecklists } from '../hooks/usePlanChecklists';
 import { useUserStats } from '../hooks/useUserStats';
 import {
   FORKED_TRAVEL_POSTS,
-  LIKED_COMMUNITY_POSTS,
   LIKED_TRAVEL_POSTS,
-  MY_COMMUNITY_POSTS,
   MY_TRAVEL_POSTS,
   FRIENDS_LIST,
   CHAT_ROOMS
 } from '../mockData';
+import { useMyActivity } from '../../community/hooks/queries';
 import { CalendarSection } from '../organisms/CalendarSection';
 import { CommunityActivitySection } from '../organisms/CommunityActivitySection';
 import { MapSection } from '../organisms/MapSection';
@@ -48,7 +47,12 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
 
   // Tabs State
   const [travelTab, setTravelTab] = useState<'created' | 'forked' | 'liked'>('created');
-  const [communityTab, setCommunityTab] = useState<'my_posts' | 'liked_posts'>('my_posts');
+  const [communityTab, setCommunityTab] = useState<'my_posts' | 'liked_posts' | 'comments'>('my_posts');
+
+  // 커뮤니티 활동 (본인 프로필에서만 의미 있음 — me 엔드포인트)
+  const { data: myCommunityPostsPage } = useMyActivity('posts');
+  const { data: likedCommunityPostsPage } = useMyActivity('liked');
+  const { data: myCommunityCommentsPage } = useMyActivity('comments');
   
   const [date, setDate] = useState<Date>(new Date());
   
@@ -677,13 +681,15 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           onNavigateDetail={(post) => onNavigate('detail', { post })}
         />
 
-        <CommunityActivitySection
-          communityTab={communityTab === 'my_posts' ? 'written' : 'liked'}
-          setCommunityTab={(tab) => setCommunityTab(tab === 'written' ? 'my_posts' : 'liked_posts')}
-          myCommunityPosts={MY_COMMUNITY_POSTS}
-          likedCommunityPosts={LIKED_COMMUNITY_POSTS}
-          myComments={[]}
-        />
+        {!isOtherUser && (
+          <CommunityActivitySection
+            communityTab={communityTab === 'my_posts' ? 'written' : communityTab === 'liked_posts' ? 'liked' : 'comments'}
+            setCommunityTab={(tab) => setCommunityTab(tab === 'written' ? 'my_posts' : tab === 'liked' ? 'liked_posts' : 'comments')}
+            myCommunityPosts={(myCommunityPostsPage as any)?.items ?? []}
+            likedCommunityPosts={(likedCommunityPostsPage as any)?.items ?? []}
+            myComments={(myCommunityCommentsPage as any)?.items ?? []}
+          />
+        )}
       </div>
 
       <MyPageModals

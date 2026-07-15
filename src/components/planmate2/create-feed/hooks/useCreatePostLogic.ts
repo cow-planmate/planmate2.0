@@ -2,6 +2,10 @@ import { ko } from "@blocknote/core/locales";
 import { useCreateBlockNote } from "@blocknote/react";
 import { useEffect, useMemo, useState } from 'react';
 import { useApiClient } from '../../../../hooks/useApiClient';
+import { uploadImage, type ItineraryDay } from '../../community/api/communityApi';
+import { useCreatePost } from '../../community/hooks/queries';
+import { blocksToText } from '../../community/utils/blocksToText';
+import { normalizeRegion } from '../../feed/utils/region';
 
 // --- Mock Data ---
 const MY_PLANS = [
@@ -91,6 +95,8 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
   const [plans, setPlans] = useState<any[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [schedule, setSchedule] = useState<any[]>([]);
+  const [sourcePlanId, setSourcePlanId] = useState<string | null>(null);
+  const createPost = useCreatePost();
 
   const tags = ['#뚜벅이최적화', '#극한의J', '#여유로운P', '#동선낭비없는'];
 
@@ -167,6 +173,7 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
   const handlePlanSelect = async (plan: any) => {
     if (plan.planId) {
       try {
+        setSourcePlanId(plan.planId);
         const details = await apiRequest(`${BASE_URL}/api/plan/${plan.planId}/complete`);
         const { planFrame, timetables, placeBlocks } = details;
         
@@ -219,16 +226,57 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
     (plan.destination || '').toLowerCase().includes(planSearch.toLowerCase())
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 커버 이미지가 data URL이면 MinIO에 업로드해 공개 URL로 교체
+  const resolveThumbnailUrl = async (): Promise<string | undefined> => {
+    if (!coverImage) return undefined;
+    if (!coverImage.startsWith('data:')) return coverImage;
+    const blob = await (await fetch(coverImage)).blob();
+    const ext = blob.type.split('/')[1] || 'png';
+    const file = new File([blob], `cover.${ext}`, { type: blob.type });
+    return uploadImage(file);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !destination || !duration) {
       alert('필수 항목을 모두 입력해주세요.');
       return;
     }
-    console.log('Submitted Blocks:', editor.document);
-    
-    alert('여행기가 성공적으로 작성되었습니다!');
-    onSubmitCallback();
+
+    try {
+      const thumbnailUrl = await resolveThumbnailUrl();
+      const blocks = editor.document as any[];
+      const contentText = [description, blocksToText(blocks)].filter(Boolean).join('\n').trim();
+
+      const itineraryDays: ItineraryDay[] = schedule.map((d: any) => ({
+        day: d.day,
+        date: d.date ?? null,
+        items: (d.items ?? []).map((item: any) => ({
+          time: item.time,
+          place: item.place,
+          description: item.description ?? null,
+        })),
+      }));
+
+      await createPost.mutateAsync({
+        category: 'feed',
+        title,
+        content: blocks,
+        contentText,
+        thumbnailUrl,
+        region: normalizeRegion(destination),
+        location: destination,
+        durationDays: days,
+        itinerary: itineraryDays.length > 0 ? { days: itineraryDays } : undefined,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
+        sourcePlanId: sourcePlanId ?? undefined,
+      });
+
+      alert('여행기가 성공적으로 작성되었습니다!');
+      onSubmitCallback();
+    } catch (err) {
+      alert(`여행기 등록에 실패했습니다: ${(err as Error).message}`);
+    }
   };
 
   return {

@@ -1,14 +1,43 @@
 import { useEffect, useState } from "react";
 import { Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
 import useKakaoLoader from "../../hooks/useKakaoLoader";
+import { useApiClient } from "../../hooks/useApiClient";
+import SegmentInfoPanel, { SUBWAY_COLORS, BUS_COLOR } from "./SegmentInfoPanel";
 
 export default function MapComponent({ schedule }) {
   useKakaoLoader()
+  const { post } = useApiClient();
 
   const [map, setMap] = useState();
   const [currentLocation, setCurrentLocation] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
+  const [routePath, setRoutePath] = useState([]);
+  const [transitLanes, setTransitLanes] = useState([]); // [{ color, path:[{lat,lng}] }]
+  const [activeTransitKey, setActiveTransitKey] = useState(null);
+
+  // 선택한 대중교통 경로(mapObj)의 폴리라인을 지도에 그린다. 같은 카드를 다시 누르면 지운다.
+  const showTransitRoute = async (mapObj, key) => {
+    if (key === activeTransitKey) {
+      setTransitLanes([]);
+      setActiveTransitKey(null);
+      return;
+    }
+    try {
+      const res = await post(`${import.meta.env.VITE_API_URL}/api/route/transit/lane`, { mapObj });
+      const lanes = (res?.lanes ?? []).map((lane) => ({
+        color:
+          lane.trafficClass === 1
+            ? BUS_COLOR
+            : SUBWAY_COLORS[lane.type] || "#3B82F6",
+        path: (lane.path ?? []).map((p) => ({ lat: p.lat, lng: p.lng })),
+      }));
+      setTransitLanes(lanes);
+      setActiveTransitKey(key);
+    } catch {
+      // 폴리라인 조회 실패 시 조용히 무시(기존 지도 상태 유지)
+    }
+  };
 
   const isValidPosition = (place) =>
     (place?.yLocation != null || place?.ylocation != null) && (place?.xLocation != null || place?.xlocation != null);
@@ -42,6 +71,36 @@ export default function MapComponent({ schedule }) {
     // 계산된 bounds를 지도에 적용합니다.
     map.setBounds(bounds);
   }, [map, positionsKey]);
+
+  // 도로를 따라가는 실제 경로를 백엔드(OSRM 길찾기)에서 받아온다.
+  // 실패 시 routePath는 빈 배열로 남아 직선(positions)으로 대체된다.
+  useEffect(() => {
+    setRoutePath([]); // 좌표가 바뀌면 이전 경로 잔상을 지운다
+
+    if (positions.length < 2) {
+      return;
+    }
+
+    let cancelled = false;
+
+    post(`${import.meta.env.VITE_API_URL}/api/route/directions`, {
+      waypoints: positions.map((pos) => ({ lat: pos.lat, lng: pos.lng })),
+    })
+      .then((res) => {
+        // 백엔드는 경로 탐색 실패 시 입력 좌표를 그대로(거리/시간 0) 돌려준다 → 직선 폴백 유지
+        const isFallback = !res || (res.distance === 0 && res.duration === 0);
+        if (!cancelled && !isFallback && res?.path?.length > 0) {
+          setRoutePath(res.path);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRoutePath([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [positionsKey]);
 
   const handleMoveToCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -83,6 +142,16 @@ export default function MapComponent({ schedule }) {
   return (
     sortedSchedule && sortedSchedule.length > 0 ? (
       <div className="relative w-full h-full">
+        {positions.length >= 2 && (
+          <SegmentInfoPanel
+            sortedSchedule={sortedSchedule}
+            positions={positions}
+            positionsKey={positionsKey}
+            onShowTransitRoute={showTransitRoute}
+            activeTransitKey={activeTransitKey}
+          />
+        )}
+
         <button
           type="button"
           onClick={handleMoveToCurrentLocation}
@@ -157,16 +226,26 @@ export default function MapComponent({ schedule }) {
           )}
           {positions.length > 1 && (
             <Polyline
-              path={positions.map(pos => ({
-                lat: pos.lat,
-                lng: pos.lng,
-              }))}
+              path={
+                routePath.length > 0
+                  ? routePath.map(pos => ({ lat: pos.lat, lng: pos.lng }))
+                  : positions.map(pos => ({ lat: pos.lat, lng: pos.lng }))
+              }
               strokeWeight={4}
               strokeColor="#1344FF"
               strokeOpacity={0.5}
-              strokeStyle="dash"
+              strokeStyle={routePath.length > 0 ? "solid" : "dash"}
             />
           )}
+          {transitLanes.map((lane, i) => (
+            <Polyline
+              key={i}
+              path={lane.path}
+              strokeColor={lane.color}
+              strokeWeight={5}
+              strokeOpacity={0.85}
+            />
+          ))}
         </Map>
       </div>
     ) : (

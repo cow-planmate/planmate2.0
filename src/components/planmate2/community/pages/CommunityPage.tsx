@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { MOCK_POSTS } from '../constants/mockData';
+import { useEffect, useState } from 'react';
 import { ViewToggle } from '../../feed/atoms/ViewToggle';
 import { FeedMapView } from '../../feed/organisms/FeedMapView';
+import { useHotPosts, usePosts } from '../hooks/queries';
 import { SearchBar } from '../molecules/SearchBar';
 import { BoardHeader } from '../organisms/BoardHeader';
 import { HotPostsGrid } from '../organisms/HotPostsGrid';
@@ -16,7 +16,28 @@ interface CommunityPageProps {
 
 export const CommunityPage = ({ type, onBack, onNavigate }: CommunityPageProps) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [page, setPage] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+
+  // 검색어 디바운스 (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // 게시판 전환 시 초기화
+  useEffect(() => {
+    setSearchQuery('');
+    setDebouncedQuery('');
+    setPage(0);
+  }, [type]);
+
+  const { data: postsPage, isLoading, error } = usePosts(type, page, 'latest', debouncedQuery);
+  const { data: hotPosts } = useHotPosts(type);
 
   const getTitle = () => {
     switch (type) {
@@ -38,26 +59,25 @@ export const CommunityPage = ({ type, onBack, onNavigate }: CommunityPageProps) 
     }
   };
 
-  const posts = MOCK_POSTS[type] || [];
-  const hotPosts = [...posts].sort((a, b) => b.likes - a.likes).slice(0, 3);
+  const posts = postsPage?.items ?? [];
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 min-h-screen">
-      <BoardHeader 
+      <BoardHeader
         type={type}
         title={getTitle()}
         description={getDescription()}
         onBack={onBack}
       />
 
-      <NavigationTabs 
+      <NavigationTabs
         currentType={type}
         onNavigate={onNavigate}
       />
 
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-4">
         <div className="flex-1 w-full">
-          <SearchBar 
+          <SearchBar
             title={getTitle()}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -69,23 +89,42 @@ export const CommunityPage = ({ type, onBack, onNavigate }: CommunityPageProps) 
         )}
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-100 text-red-500 rounded-xl p-4 mb-4 text-sm font-medium">
+          게시글을 불러오지 못했습니다: {(error as Error).message}
+        </div>
+      )}
+
       {viewMode === 'grid' ? (
         <>
-          <HotPostsGrid 
-            hotPosts={hotPosts}
+          <HotPostsGrid
+            hotPosts={hotPosts ?? []}
             type={type}
             onNavigate={onNavigate}
           />
 
-          <PostListTable 
-            posts={posts}
-            type={type}
-            onNavigate={onNavigate}
-          />
+          {isLoading ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center text-gray-400 font-medium">
+              게시글을 불러오는 중...
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center text-gray-400 font-medium">
+              {debouncedQuery ? '검색 결과가 없습니다.' : '아직 게시글이 없어요. 첫 글을 작성해보세요!'}
+            </div>
+          ) : (
+            <PostListTable
+              posts={posts}
+              type={type}
+              onNavigate={onNavigate}
+              page={postsPage?.page ?? 0}
+              totalPages={postsPage?.totalPages ?? 1}
+              onPageChange={setPage}
+            />
+          )}
         </>
       ) : (
         <div className="mt-6">
-          <FeedMapView 
+          <FeedMapView
             posts={posts}
             mapState={{ center: { lat: 35.95, lng: 128.25 }, level: 13 }}
             onNavigate={onNavigate}
@@ -96,4 +135,3 @@ export const CommunityPage = ({ type, onBack, onNavigate }: CommunityPageProps) 
     </div>
   );
 };
-
