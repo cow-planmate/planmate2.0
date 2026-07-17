@@ -101,20 +101,29 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
   const tags = ['#뚜벅이최적화', '#극한의J', '#여유로운P', '#동선낭비없는'];
 
   useEffect(() => {
-    const fetchTravels = async () => {
+    const fetchDestinations = async () => {
       try {
-        const res = await apiRequest(`${BASE_URL}/api/travel`);
-        if (res && res.travels) {
-          setAvailableTravels(res.travels);
-          const categories = Array.from(new Set(res.travels.map((t: any) => t.travelCategoryName))) as string[];
-          setTravelCategories(categories);
-          if (categories.length > 0) setSelectedCategory(categories[0]);
-        }
+        // Backend-v2: 여행지 목록은 /api/destination (구 /api/travel). 평면 목록 {destinations:[{destinationId, destinationName}]}
+        const res = await apiRequest(`${BASE_URL}/api/destination`);
+        // 구 Backend(/api/travel) 응답(res.travels)과도 호환
+        const list = res?.destinations ?? res?.travels ?? [];
+        const travels = list.map((d: any) => ({
+          travelId: d.destinationId ?? d.travelId,
+          travelName: d.destinationName ?? d.travelName,
+          travelCategoryName: d.travelCategoryName, // v2엔 없음(평면) → undefined
+        }));
+        setAvailableTravels(travels);
+        // 카테고리(시/도) 계층이 있으면 유지(레거시), 없으면 평면 목록으로 노출(v2)
+        const categories = Array.from(
+          new Set(travels.map((t: any) => t.travelCategoryName).filter(Boolean))
+        ) as string[];
+        setTravelCategories(categories);
+        setSelectedCategory(categories.length > 0 ? categories[0] : '');
       } catch (err) {
-        console.error('Failed to fetch travels:', err);
+        console.error('Failed to fetch destinations:', err);
       }
     };
-    fetchTravels();
+    fetchDestinations();
   }, []);
   
   useEffect(() => {
