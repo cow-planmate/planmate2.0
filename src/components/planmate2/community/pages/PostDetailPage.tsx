@@ -1,5 +1,5 @@
 import {
-  ArrowLeft, CheckCircle2, Eye, MapPin, ThumbsDown, ThumbsUp, Trash2, Users,
+  ArrowLeft, CheckCircle2, Eye, MapPin, Pencil, ThumbsDown, ThumbsUp, Trash2, Users,
 } from 'lucide-react';
 import { LevelBadge } from '../atoms/LevelBadge';
 import {
@@ -15,7 +15,7 @@ interface PostDetailPageProps {
 }
 
 /** 자유/QnA/메이트 게시글 상세 (딥링크 안전 — id로 직접 조회) */
-export const PostDetailPage = ({ postId, onBack }: PostDetailPageProps) => {
+export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPageProps) => {
   const { data: post, isLoading, error } = usePost(postId);
   const react = useReactToPost(postId);
   const joinMate = useJoinMate(postId);
@@ -106,6 +106,12 @@ export const PostDetailPage = ({ postId, onBack }: PostDetailPageProps) => {
                     {post.status === 'recruiting' ? '모집 마감하기' : '다시 모집하기'}
                   </button>
                 )}
+                <button
+                  onClick={() => onNavigate?.('community-edit', { post })}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />수정
+                </button>
                 <button
                   onClick={handleDelete}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-500 hover:bg-red-100 transition-colors"

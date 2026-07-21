@@ -20,6 +20,7 @@ import {
   leaveMate,
   reactToPost,
   updateAnswered,
+  updateComment,
   updatePost,
   type CreatePostPayload,
   type FeedFilterParams,
@@ -156,6 +157,15 @@ export const useCreateComment = (postId: number | string) => {
     mutationFn: ({ content, parentId }: { content: string; parentId?: number }) =>
       createComment(Number(postId), content, parentId),
     onSuccess: () => { invalidate.comments(postId); invalidate.post(postId); invalidate.lists(); },
+  });
+};
+
+export const useUpdateComment = (postId: number | string) => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({ commentId, content }: { commentId: number; content: string }) =>
+      updateComment(commentId, content),
+    onSuccess: () => { invalidate.comments(postId); },
   });
 };
 

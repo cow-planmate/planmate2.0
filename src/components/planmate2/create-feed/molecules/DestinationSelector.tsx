@@ -66,43 +66,54 @@ export const DestinationSelector: React.FC<DestinationSelectorProps> = ({
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-2 mb-6 pb-4 border-b border-gray-100">
-                {travelCategories.slice(0, 10).map(cat => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-2 rounded-2xl text-sm font-bold transition-all duration-200 ${
-                      selectedCategory === cat 
-                      ? 'bg-[#1344FF] text-white shadow-lg shadow-blue-100' 
-                      : 'bg-white text-[#666666] border border-[#e5e7eb] hover:border-[#1344FF] hover:text-[#1344FF]'
-                    }`}
-                  >
-                    {cat.replace('특별시', '').replace('광역시', '').replace('특별자치도', '').replace('특별자치시', '')}
-                  </button>
-                ))}
-              </div>
+              {/* 카테고리(시/도) 계층은 레거시 응답에만 존재. Backend-v2 평면 목록에선 숨김 */}
+              {travelCategories.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-6 pb-4 border-b border-gray-100">
+                  {travelCategories.slice(0, 10).map(cat => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-4 py-2 rounded-2xl text-sm font-bold transition-all duration-200 ${
+                        selectedCategory === cat
+                        ? 'bg-[#1344FF] text-white shadow-lg shadow-blue-100'
+                        : 'bg-white text-[#666666] border border-[#e5e7eb] hover:border-[#1344FF] hover:text-[#1344FF]'
+                      }`}
+                    >
+                      {cat.replace('특별시', '').replace('광역시', '').replace('특별자치도', '').replace('특별자치시', '')}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDestination(selectedCategory);
-                      setShowDestinationSelector(false);
-                    }}
-                    className={`px-3 py-3 rounded-2xl text-[13px] font-bold transition-all border ${
-                      destination === selectedCategory
-                      ? 'bg-[#1344FF] border-[#1344FF] text-white shadow-md'
-                      : 'bg-white border-[#f3f4f6] text-[#444444] hover:bg-blue-50 hover:border-blue-100 hover:text-[#1344FF]'
-                    }`}
-                  >
-                    {selectedCategory.replace('특별시', '').replace('광역시', '')} 전체
-                  </button>
-                  {availableTravels
-                    .filter(t => t.travelCategoryName === selectedCategory)
+                  {/* 레거시(계층) 모드에서만 "{시/도} 전체" 노출 */}
+                  {travelCategories.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDestination(selectedCategory);
+                        setShowDestinationSelector(false);
+                      }}
+                      className={`px-3 py-3 rounded-2xl text-[13px] font-bold transition-all border ${
+                        destination === selectedCategory
+                        ? 'bg-[#1344FF] border-[#1344FF] text-white shadow-md'
+                        : 'bg-white border-[#f3f4f6] text-[#444444] hover:bg-blue-50 hover:border-blue-100 hover:text-[#1344FF]'
+                      }`}
+                    >
+                      {selectedCategory.replace('특별시', '').replace('광역시', '')} 전체
+                    </button>
+                  )}
+                  {(travelCategories.length > 0
+                    ? availableTravels.filter(t => t.travelCategoryName === selectedCategory)
+                    : availableTravels
+                  )
                     .map(t => {
-                      const fullDest = `${selectedCategory} ${t.travelName}`;
+                      // 레거시: "{시/도} {세부지역}", v2 평면: destinationName 그대로
+                      const fullDest = t.travelCategoryName
+                        ? `${t.travelCategoryName} ${t.travelName}`
+                        : t.travelName;
                       const isSelected = destination === fullDest;
                       return (
                         <button

@@ -29,6 +29,7 @@ const Router = () => {
         <Route path="community" element={<PlanmateV2 />} />
         <Route path="community/create" element={<PlanmateV2 />} />
         <Route path="community/create/:type" element={<PlanmateV2 />} />
+        <Route path="community/edit/:category/:id" element={<PlanmateV2 />} />
         <Route path="community/:category" element={<PlanmateV2 />} />
         <Route path="community/:category/:id" element={<PlanmateV2 />} />
         <Route path="travel/:id" element={<PlanmateV2 />} />

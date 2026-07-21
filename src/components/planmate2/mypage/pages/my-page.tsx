@@ -688,6 +688,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
             myCommunityPosts={(myCommunityPostsPage as any)?.items ?? []}
             likedCommunityPosts={(likedCommunityPostsPage as any)?.items ?? []}
             myComments={(myCommunityCommentsPage as any)?.items ?? []}
+            onNavigateDetail={(post) => onNavigate('detail', { post })}
           />
         )}
       </div>
