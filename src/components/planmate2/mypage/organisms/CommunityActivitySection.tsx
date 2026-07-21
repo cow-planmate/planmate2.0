@@ -7,6 +7,7 @@ interface CommunityActivitySectionProps {
   myCommunityPosts: any[];
   likedCommunityPosts: any[];
   myComments: any[];
+  onNavigateDetail: (post: { id: number; category: string }) => void;
 }
 
 export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> = ({
@@ -15,6 +16,7 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
   myCommunityPosts,
   likedCommunityPosts,
   myComments,
+  onNavigateDetail,
 }) => {
   return (
     <>
@@ -60,7 +62,11 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
 
         <div className="space-y-4">
           {communityTab === 'written' && myCommunityPosts.map(post => (
-            <div key={post.id} className="group p-4 rounded-xl border border-[#e5e7eb] hover:border-[#1344FF] hover:bg-blue-50/30 transition-all cursor-pointer">
+            <div
+              key={post.id}
+              onClick={() => onNavigateDetail(post)}
+              className="group p-4 rounded-xl border border-[#e5e7eb] hover:border-[#1344FF] hover:bg-blue-50/30 transition-all cursor-pointer"
+            >
               <div className="flex justify-between items-start mb-2">
                 <span className="text-xs font-bold text-[#1344FF] uppercase tracking-wider">{post.category}</span>
                 <span className="text-xs text-gray-400 font-medium">{post.createdAt}</span>
@@ -84,7 +90,11 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
           ))}
 
           {communityTab === 'liked' && likedCommunityPosts.map(post => (
-            <div key={post.id} className="group p-4 rounded-xl border border-[#e5e7eb] hover:border-[#1344FF] hover:bg-blue-50/30 transition-all cursor-pointer">
+            <div
+              key={post.id}
+              onClick={() => onNavigateDetail(post)}
+              className="group p-4 rounded-xl border border-[#e5e7eb] hover:border-[#1344FF] hover:bg-blue-50/30 transition-all cursor-pointer"
+            >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-[#1344FF] uppercase tracking-wider">{post.category}</span>
@@ -103,7 +113,11 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
           ))}
 
           {communityTab === 'comments' && myComments.map(comment => (
-            <div key={comment.id} className="p-4 rounded-xl border border-[#e5e7eb] hover:bg-gray-50 transition-all cursor-pointer">
+            <div
+              key={comment.id}
+              onClick={() => onNavigateDetail({ id: comment.postId, category: comment.postCategory })}
+              className="p-4 rounded-xl border border-[#e5e7eb] hover:bg-gray-50 transition-all cursor-pointer"
+            >
               <div className="flex items-start gap-3">
                 <div className="bg-blue-50 p-2 rounded-lg">
                   <MessageSquare className="w-4 h-4 text-[#1344FF]" />

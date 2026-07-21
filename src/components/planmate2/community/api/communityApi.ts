@@ -1,14 +1,14 @@
+import { getAccessToken, getRefreshToken, refreshTokens } from '../../../../shared/auth/tokenStore';
 import { timeAgo } from '../utils/timeAgo';
 
 /**
  * 커뮤니티 마이크로서비스 API 클라이언트.
  * - prod: nginx ingress 경로 라우팅으로 메인 API와 같은 도메인 (/api/community/*)
  * - dev:  VITE_COMMUNITY_API_URL로 별도 포트 지정 가능 (기본 VITE_API_URL)
- * 인증/토큰 갱신 규약은 useApiClient.jsx와 동일 (Bearer accessToken, 401 시 메인 API로 refresh 후 1회 재시도)
+ * 인증/토큰 갱신은 shared/auth/tokenStore를 공유한다 (Bearer accessToken, 401 시 refresh 후 1회 재시도)
  */
 const COMMUNITY_BASE_URL: string =
   import.meta.env.VITE_COMMUNITY_API_URL || import.meta.env.VITE_API_URL;
-const MAIN_BASE_URL: string = import.meta.env.VITE_API_URL;
 
 // ── 응답 타입 (백엔드 DTO와 1:1) ─────────────────────────────────────────
 export interface ItineraryItem {
@@ -75,6 +75,9 @@ export interface CommunityComment {
   author: string;
   level: number;
   content: string;
+  // 내 활동 목록에서만 내려온다 (원문 표시 + 원문으로 이동)
+  postTitle?: string | null;
+  postCategory?: string | null;
   createdAt: string;
   createdAtIso: string;
 }
@@ -116,22 +119,6 @@ export interface MyStats {
   level: number;
 }
 
-// ── 인증 유틸 (useApiClient.jsx 규약 동일) ──────────────────────────────
-const getAccessToken = () => localStorage.getItem('accessToken');
-
-const refreshTokens = async (): Promise<string> => {
-  const refreshToken = localStorage.getItem('refreshToken');
-  if (!refreshToken) throw new Error('리프레시 토큰이 없습니다.');
-  const res = await fetch(`${MAIN_BASE_URL}/api/auth/token?refreshToken=${refreshToken}`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!res.ok) throw new Error('토큰 갱신 실패');
-  const data = await res.json();
-  localStorage.setItem('accessToken', data.accessToken);
-  return data.accessToken as string;
-};
-
 const request = async <T>(path: string, options: RequestInit = {}, retried = false): Promise<T> => {
   const token = getAccessToken();
   const headers: Record<string, string> = {
@@ -142,7 +129,7 @@ const request = async <T>(path: string, options: RequestInit = {}, retried = fal
 
   const res = await fetch(`${COMMUNITY_BASE_URL}${path}`, { ...options, headers });
 
-  if (res.status === 401 && !retried && localStorage.getItem('refreshToken')) {
+  if (res.status === 401 && !retried && getRefreshToken()) {
     await refreshTokens();
     return request<T>(path, options, true);
   }
@@ -283,6 +270,12 @@ export const createComment = async (postId: number, content: string, parentId?: 
   mapPost(await request<CommunityComment>(`/api/community/posts/${postId}/comments`, {
     method: 'POST',
     body: JSON.stringify(parentId != null ? { content, parentId } : { content }),
+  }));
+
+export const updateComment = async (commentId: number, content: string): Promise<CommunityComment> =>
+  mapPost(await request<CommunityComment>(`/api/community/comments/${commentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content }),
   }));
 
 export const deleteComment = async (commentId: number): Promise<void> =>

@@ -8,9 +8,11 @@ interface CommunityCreatePageProps {
   type: 'free' | 'qna' | 'mate' | 'recommend';
   onBack: () => void;
   onSubmit: () => void;
+  /** 지정하면 해당 게시글의 수정 모드로 연다 */
+  editPostId?: number | string;
 }
 
-export const CommunityCreatePage = ({ type, onBack, onSubmit }: CommunityCreatePageProps) => {
+export const CommunityCreatePage = ({ type, onBack, onSubmit, editPostId }: CommunityCreatePageProps) => {
   const {
     title,
     setTitle,
@@ -22,10 +24,12 @@ export const CommunityCreatePage = ({ type, onBack, onSubmit }: CommunityCreateP
     setMateCount,
     editor,
     handleSubmit,
+    isEditMode,
     getTips
-  } = useCommunityCreateLogic(type, onSubmit);
+  } = useCommunityCreateLogic(type, onSubmit, editPostId);
 
   const getPageTitle = () => {
+    if (isEditMode) return '게시글 수정';
     switch (type) {
       case 'free': return '자유게시판 글쓰기';
       case 'qna': return 'Q&A 질문하기';

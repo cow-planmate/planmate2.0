@@ -1,6 +1,6 @@
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 interface PostContentViewerProps {
   content: unknown; // BlockNote 블록 JSON
@@ -27,5 +27,11 @@ export const PostContentViewer = ({ content, contentText }: PostContentViewerPro
 
 const BlockNoteReadOnly = ({ blocks }: { blocks: any[] }) => {
   const editor = useCreateBlockNote({ initialContent: blocks });
+
+  // initialContent는 에디터 생성 시점에만 적용되므로, 게시글 수정 후 갱신된 블록을 반영한다
+  useEffect(() => {
+    editor.replaceBlocks(editor.document, blocks);
+  }, [blocks, editor]);
+
   return <BlockNoteView editor={editor} editable={false} theme="light" />;
 };

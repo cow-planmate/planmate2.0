@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import useKakaoLoader from '../../../../hooks/useKakaoLoader';
 import { ViewToggle } from '../../feed/atoms/ViewToggle';
 import { FeedMapView } from '../../feed/organisms/FeedMapView';
 import { useHotPosts, usePosts } from '../hooks/queries';
@@ -14,10 +15,23 @@ interface CommunityPageProps {
   onNavigate: (view: any, data?: any) => void;
 }
 
+// 백엔드 SortType과 1:1 (forks는 피드 전용이라 게시판에서는 노출하지 않는다)
+type SortOption = 'latest' | 'likes' | 'views';
+
+const SORT_LABELS: { value: SortOption; label: string }[] = [
+  { value: 'latest', label: '최신순' },
+  { value: 'likes', label: '추천순' },
+  { value: 'views', label: '조회순' },
+];
+
 export const CommunityPage = ({ type, onBack, onNavigate }: CommunityPageProps) => {
+  // 지도 보기(FeedMapView)가 카카오 SDK를 필요로 하므로 피드 페이지들과 동일하게 로드한다
+  useKakaoLoader();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<SortOption>('latest');
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
   // 검색어 디바운스 (300ms)
@@ -34,9 +48,10 @@ export const CommunityPage = ({ type, onBack, onNavigate }: CommunityPageProps) 
     setSearchQuery('');
     setDebouncedQuery('');
     setPage(0);
+    setSort('latest');
   }, [type]);
 
-  const { data: postsPage, isLoading, error } = usePosts(type, page, 'latest', debouncedQuery);
+  const { data: postsPage, isLoading, error } = usePosts(type, page, sort, debouncedQuery);
   const { data: hotPosts } = useHotPosts(type);
 
   const getTitle = () => {
@@ -102,6 +117,22 @@ export const CommunityPage = ({ type, onBack, onNavigate }: CommunityPageProps) 
             type={type}
             onNavigate={onNavigate}
           />
+
+          <div className="flex items-center gap-1 mb-3">
+            {SORT_LABELS.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => { setSort(value); setPage(0); }}
+                className={
+                  sort === value
+                    ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-[#1344FF] text-white'
+                    : 'px-3 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:bg-gray-100 transition-colors'
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
           {isLoading ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center text-gray-400 font-medium">

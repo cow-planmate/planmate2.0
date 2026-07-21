@@ -23,7 +23,7 @@ export const MainFeedHeader: React.FC<MainFeedHeaderProps> = ({ onNavigate, isAu
           className="flex items-center gap-2 bg-[#1344FF] text-white px-6 py-3 rounded-xl hover:bg-[#0d34cc] transition-all shadow-md font-bold whitespace-nowrap"
         >
           <PlusCircle className="w-5 h-5" />
-          여행 계획하기
+          피드 생성하기
         </button>
       )}
     </div>

@@ -1,8 +1,8 @@
-import { CornerDownRight, MessageCircle, Send, Trash2 } from 'lucide-react';
+import { CornerDownRight, MessageCircle, Pencil, Send, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CommunityComment } from '../api/communityApi';
 import { LevelBadge } from '../atoms/LevelBadge';
-import { useComments, useCreateComment, useDeleteComment } from '../hooks/queries';
+import { useComments, useCreateComment, useDeleteComment, useUpdateComment } from '../hooks/queries';
 
 interface CommentSectionProps {
   postId: number | string;
@@ -13,9 +13,12 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
   const [page, setPage] = useState(0);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState('');
 
   const { data: commentsPage, isLoading } = useComments(postId, page);
   const createComment = useCreateComment(postId);
+  const updateComment = useUpdateComment(postId);
   const deleteComment = useDeleteComment(postId);
 
   const myUserId = localStorage.getItem('userId');
@@ -60,6 +63,23 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
     }
   };
 
+  const startEdit = (comment: CommunityComment) => {
+    setEditingId(comment.id);
+    setEditContent(comment.content);
+    setReplyingTo(null);
+  };
+
+  const handleEditSubmit = async (commentId: number) => {
+    if (!editContent.trim()) return;
+    try {
+      await updateComment.mutateAsync({ commentId, content: editContent.trim() });
+      setEditingId(null);
+      setEditContent('');
+    } catch (error) {
+      alert(`댓글 수정에 실패했습니다: ${(error as Error).message}`);
+    }
+  };
+
   const handleDelete = async (commentId: number, hasReplies: boolean) => {
     const message = hasReplies ? '댓글을 삭제할까요? 대댓글도 함께 삭제됩니다.' : '댓글을 삭제할까요?';
     if (!confirm(message)) return;
@@ -79,17 +99,55 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           <span className="text-xs text-gray-400">{comment.createdAt}</span>
         </div>
         {myUserId === comment.userId && (
-          <button
-            onClick={() => handleDelete(comment.id, !isReply && (repliesByParent.get(comment.id)?.length ?? 0) > 0)}
-            className="text-gray-300 hover:text-red-400 transition-colors"
-            aria-label="댓글 삭제"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => startEdit(comment)}
+              className="text-gray-300 hover:text-[#1344FF] transition-colors"
+              aria-label="댓글 수정"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleDelete(comment.id, !isReply && (repliesByParent.get(comment.id)?.length ?? 0) > 0)}
+              className="text-gray-300 hover:text-red-400 transition-colors"
+              aria-label="댓글 삭제"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         )}
       </div>
-      <p className="text-sm text-gray-600 whitespace-pre-wrap">{comment.content}</p>
-      {!isReply && isLoggedIn && (
+      {editingId === comment.id ? (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleEditSubmit(comment.id);
+              if (e.key === 'Escape') setEditingId(null);
+            }}
+            className="flex-1 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#1344FF]"
+            autoFocus
+          />
+          <button
+            onClick={() => handleEditSubmit(comment.id)}
+            disabled={updateComment.isPending || !editContent.trim()}
+            className="px-3 py-2 rounded-xl bg-[#1344FF] text-white text-xs font-bold disabled:opacity-40 hover:bg-blue-700 transition-colors"
+          >
+            저장
+          </button>
+          <button
+            onClick={() => setEditingId(null)}
+            className="px-3 py-2 rounded-xl text-gray-500 text-xs font-bold hover:bg-gray-100 transition-colors"
+          >
+            취소
+          </button>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-600 whitespace-pre-wrap">{comment.content}</p>
+      )}
+      {!isReply && isLoggedIn && editingId !== comment.id && (
         <button
           onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
           className="mt-2 text-[11px] text-gray-400 hover:text-[#1344FF] font-bold transition-colors"

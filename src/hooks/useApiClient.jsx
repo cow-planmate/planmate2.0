@@ -2,6 +2,13 @@
 import { useState, useCallback } from "react";
 import useServerStatusStore from "../store/ServerStatus";
 import useNicknameStore from "../store/Nickname";
+import {
+  clearAuth,
+  getAccessToken,
+  getRefreshToken,
+  refreshTokens,
+  setTokens,
+} from "../shared/auth/tokenStore";
 
 /**
  * API 클라이언트 훅
@@ -16,62 +23,7 @@ export const useApiClient = () => {
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  // 1. 토큰 관련 유틸리티 함수들
-  const getAccessToken = useCallback(() => {
-    return localStorage.getItem("accessToken");
-  }, []);
-
-  const getRefreshToken = useCallback(() => {
-    return localStorage.getItem("refreshToken");
-  }, []);
-
-  const setTokens = useCallback((accessToken, refreshToken) => {
-    if (accessToken && refreshToken) {
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-    }
-  }, []);
-  
-
-  const clearAuth = useCallback(() => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("nickname");
-  }, []);
-
-  const refreshTokens = useCallback(async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      throw new Error("리프레시 토큰이 없습니다.");
-    }
-
-    try {
-      const response = await fetch(
-        `${BASE_URL}/api/auth/token?refreshToken=${refreshToken}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("토큰 갱신 실패");
-      }
-
-      const data = await response.json();
-
-      setTokens(data.accessToken, refreshToken);
-
-      return data.accessToken;
-    } catch (error) {
-      console.error("토큰 갱신 실패:", error.message);
-      clearAuth();
-      throw error;
-    }
-  }, [getRefreshToken, setTokens, clearAuth, BASE_URL]);
+  // 1. 토큰 유틸리티는 shared/auth/tokenStore에서 가져온다 (커뮤니티 API 클라이언트와 공유)
 
   // 3. 인증 헤더 생성 함수
   const getAuthHeaders = useCallback(() => {

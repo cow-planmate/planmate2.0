@@ -1,4 +1,5 @@
-import { ArrowLeft, Camera, ThumbsUp, Trash2 } from 'lucide-react';
+import { ArrowLeft, Camera, Pencil, ThumbsUp, Trash2 } from 'lucide-react';
+import useKakaoLoader from '../../../../hooks/useKakaoLoader';
 import { useDeletePost, usePost, useReactToPost } from '../hooks/queries';
 import { RecommendHero } from '../molecules/RecommendHero';
 import { RecommendInfo } from '../molecules/RecommendInfo';
@@ -14,6 +15,9 @@ interface RecommendDetailPageProps {
 }
 
 export const RecommendDetailPage = ({ post: initialPost, postId, onBack, onNavigate }: RecommendDetailPageProps) => {
+  // 사이드바 위치 정보 지도가 카카오 SDK를 필요로 한다
+  useKakaoLoader();
+
   const id = postId ?? initialPost?.id;
   const { data, isLoading, error } = usePost(id);
   const react = useReactToPost(id ?? 0);
@@ -60,12 +64,20 @@ export const RecommendDetailPage = ({ post: initialPost, postId, onBack, onNavig
           <span className="font-bold">목록으로 돌아가기</span>
         </button>
         {isAuthor && (
-          <button
-            onClick={handleDelete}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />삭제
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigate?.('community-edit', { post })}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+            >
+              <Pencil className="w-4 h-4" />수정
+            </button>
+            <button
+              onClick={handleDelete}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />삭제
+            </button>
+          </div>
         )}
       </div>
 
@@ -101,6 +113,8 @@ export const RecommendDetailPage = ({ post: initialPost, postId, onBack, onNavig
               <RecommendSidebar
                 author={post.author}
                 likes={post.likes}
+                location={post.location}
+                coords={post.coords}
               />
             </div>
           </div>

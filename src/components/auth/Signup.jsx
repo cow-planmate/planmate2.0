@@ -20,7 +20,7 @@ export default function Signup({
     password: "",
     confirmPassword: "",
     nickname: "",
-    age: "",
+    birthdate: "",
     gender: "male",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -57,7 +57,7 @@ export default function Signup({
         password: "",
         confirmPassword: "",
         nickname: "",
-        age: "",
+        birthdate: "",
         gender: "male",
       });
 
@@ -185,29 +185,18 @@ export default function Signup({
         }),
       });
 
+      // 실패 응답만 본문({code, message})을 가진다
       if (!response.ok) {
-        throw new Error("이메일 전송 실패");
+        const error = await response.json().catch(() => null);
+        ErrorToast(error?.message || "이메일 전송에 실패했습니다.");
+        return;
       }
 
-      const data = await response.json();
-      console.log("서버 응답:", data);
-      console.log("서버 응답:", data);
-      console.log("message 값:", data.message);
-      console.log("message 타입:", typeof data.message);
-      console.log("verificationSent 값:", data.verificationSent);
-
-      if (data.verificationSent === true) {
-        SuccessToast("인증번호가 이메일로 전송되었습니다!");
-        setTimeLeft(300);
-        setIsTimerRunning(true);
-        setShowVerification(true);
-      } else if (data.message === "Email already in use") {
-        ErrorToast("이미 사용중인 이메일입니다.");
-      } else if (data.message === "Email not found") {
-        ErrorToast("이메일을 찾을 수 없습니다.");
-      } else {
-        ErrorToast(data.message || "발송 실패");
-      }
+      // 발송 성공은 204 No Content (본문 없음)
+      SuccessToast("인증번호가 이메일로 전송되었습니다!");
+      setTimeLeft(300);
+      setIsTimerRunning(true);
+      setShowVerification(true);
     } catch (error) {
       console.error("에러 발생:", error);
       ErrorToast("이메일 전송에 실패했습니다. 다시 시도해주세요");
@@ -230,23 +219,18 @@ export default function Signup({
         },
       );
 
-      const data = await response.json();
-      console.log("서버 응답:", data);
-
-      if (data.emailVerified) {
-        SuccessToast("인증 성공!");
-        setIsEmailVerified(true);
-        setIsTimerRunning(false);
-        setEmailVerificationToken(data.token);
-      } else {
-        if (data.message === "Verification request not found or expired") {
-          ErrorToast("만료된 인증번호 : 다시 인증번호를 발송해주세요");
-        } else if (data.message === "Invalid verification code") {
-          ErrorToast("인증번호가 일치하지 않습니다.");
-        } else {
-          ErrorToast(data.message || "인증 실패");
-        }
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        ErrorToast(error?.message || "인증에 실패했습니다.");
+        return;
       }
+
+      // 성공 시 이후 회원가입 요청에 쓸 signupToken을 받는다
+      const data = await response.json();
+      SuccessToast("인증 성공!");
+      setIsEmailVerified(true);
+      setIsTimerRunning(false);
+      setEmailVerificationToken(data.verificationToken);
     } catch (error) {
       console.error("에러 발생:", error);
       ErrorToast("오류 발생 : 잘못된 인증번호 형식일 수 있습니다");
@@ -283,57 +267,38 @@ export default function Signup({
 
   const handleRegisterAndLogin = async () => {
     try {
-      const headers = {
-        "Content-Type": "application/json",
-      };
-
-      // 이메일 인증 토큰을 Authorization 헤더에 포함
-      if (emailVerificationToken) {
-        console.log("토큰전송 :", emailVerificationToken);
-        headers["Authorization"] = `Bearer ${emailVerificationToken}`;
-      }
-
+      // 이메일 인증으로 받은 signupToken이 이메일을 증명하므로 email은 보내지 않는다
       const registerResponse = await fetch(`${BASE_URL}/api/auth/register`, {
         method: "POST",
-        headers: headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
+          signupToken: emailVerificationToken,
           nickname: formData.nickname,
-          gender: formData.gender === "male" ? 0 : 1,
-          age: Number(formData.age),
+          password: formData.password,
+          gender: formData.gender === "male" ? "MALE" : "FEMALE",
+          birthdate: formData.birthdate,
         }),
       });
 
-      const registerData = await registerResponse.json();
-      console.log("회원가입 응답:", registerData);
-      console.log(registerData.isRegistered, registerData.message);
+      if (!registerResponse.ok) {
+        const error = await registerResponse.json().catch(() => null);
+        ErrorToast(error?.message || "회원가입 실패. 다시 시도해주세요.");
+        return;
+      }
 
-      if (
-        registerData.registered === true ||
-        registerData.message === "User registered successfully"
-      ) {
-        SuccessToast("회원가입이 완료되었습니다!");
+      SuccessToast("회원가입이 완료되었습니다!");
 
-        // 2. 회원가입 성공 시 로그인 시도
-        const loginResult = await login(formData.email, formData.password);
+      // 회원가입 성공 시 바로 로그인
+      const loginResult = await login(formData.email, formData.password);
 
-        // 로그인 성공 콜백 처리
-        if (onLoginSuccess) {
-          onLoginSuccess(loginResult);
-        }
+      if (onLoginSuccess) {
+        onLoginSuccess(loginResult);
+      }
 
-        // 모달 닫기
-        onClose();
+      onClose();
 
-        // 테마 선택 창 열기 (추가된 부분)
-        if (onThemeOpen) {
-          onThemeOpen();
-        }
-      } else if (registerData.message === "Invalid token") {
-        ErrorToast("토큰 오류, 회원가입 실패. 다시 시도해주세요");
-      } else {
-        ErrorToast("회원가입 실패. 다시 시도해주세요.");
+      if (onThemeOpen) {
+        onThemeOpen();
       }
     } catch (error) {
       console.error("회원가입 또는 로그인 중 오류:", error);
@@ -345,7 +310,7 @@ export default function Signup({
         password: "",
         confirmPassword: "",
         nickname: "",
-        age: "",
+        birthdate: "",
         gender: "male",
       });
 
@@ -382,7 +347,7 @@ export default function Signup({
 
   // 회원가입 버튼 활성화 조건
   const isSignupDisabled =
-    !formData.age ||
+    !formData.birthdate ||
     !formData.nickname ||
     !isEmailVerified ||
     !isNicknameVerified ||
@@ -625,27 +590,17 @@ export default function Signup({
               </button>
             </div>
           </div>
-          {/* 나이와 성별 */}
+          {/* 생년월일과 성별 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 text-left pl-2">
-                나이
+                생년월일
               </label>
               <input
-                type="text"
-                value={formData.age}
-                onChange={(e) => {
-                  const value = e.target.value;
-
-                  if (value === "" || value === "0") {
-                    handleInputChange("age", "");
-                    return;
-                  }
-
-                  if (/^\d+$/.test(value)) {
-                    handleInputChange("age", value);
-                  }
-                }}
+                type="date"
+                value={formData.birthdate}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => handleInputChange("birthdate", e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
