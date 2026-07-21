@@ -102,5 +102,5 @@
     "vite": "^4.5.0",
     "vite-plugin-svgr": "^4.3.0"
   },
-  "proxy": "https://pmserver.salmakis.online"
+  "proxy": "https://pmserver.salmakis.cloud"
 }
