@@ -43,6 +43,7 @@ export default function Signup({
     hasAllRequired: false,
   });
   const [isEmailSending, setIsEmailSending] = useState(false);
+  const [isEmailVerifying, setIsEmailVerifying] = useState(false);
   // 비밀번호 일치 검증
   const [passwordMatch, setPasswordMatch] = useState(true);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -90,6 +91,7 @@ export default function Signup({
       setEmailVerificationToken("");
 
       setIsAgreed(false);
+      setIsEmailVerifying(false);
     }
   }, [isOpen]);
 
@@ -205,6 +207,8 @@ export default function Signup({
     }
   };
   const verifyEmail = async () => {
+    if (isEmailVerifying) return;
+    setIsEmailVerifying(true);
     try {
       const response = await fetch(
         `${BASE_URL}/api/auth/email/verification/confirm`,
@@ -234,6 +238,8 @@ export default function Signup({
     } catch (error) {
       console.error("에러 발생:", error);
       ErrorToast("오류 발생 : 잘못된 인증번호 형식일 수 있습니다");
+    } finally {
+      setIsEmailVerifying(false);
     }
   };
 
@@ -459,10 +465,11 @@ export default function Signup({
                 />
                 <button
                   type="button"
-                  className="w-24 py-2 bg-main hover:bg-blue-700 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-24 py-2 bg-main hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={verifyEmail}
+                  disabled={isEmailVerifying}
                 >
-                  입력
+                  {isEmailVerifying ? "확인 중" : "입력"}
                 </button>
               </div>
               <p className="text-sm text-start text-gray-500 mt-1">

@@ -4,7 +4,7 @@ import Login from "../auth/Login";
 import PasswordFind from "../auth/PasswordFind";
 import Signup from "../auth/Signup";
 import Theme from "../auth/Theme";
-import Themestart from "../auth/Themestart"; // 추가된 import
+import Themestart from "../auth/Themestart";
 import { useState, useEffect, useRef } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -22,16 +22,18 @@ export default function Navbar({ onInvitationAccept }) {
   const [isPasswordFindOpen, setIsPasswordFindOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
-  const [isThemestartOpen, setIsThemestartOpen] = useState(false); // 추가된 state
+  const [isThemestartOpen, setIsThemestartOpen] = useState(false);
   const [selectedThemeKeywords, setSelectedThemeKeywords] = useState({
     tourist: [],
     accommodation: [],
     restaurant: [],
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isInvitationOpen, setisInvitationOpen] = useState(false);
+
+  // 💡 개선: 네이밍 규칙(CamelCase)에 맞춰 수정 (setis... -> setIs...)
+  const [isInvitationOpen, setIsInvitationOpen] = useState(false);
   const [invitations, setInvitations] = useState([]);
-  const [isFeedbackOpen, setisFeedbackOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const { nickname, gravatar } = useNicknameStore();
 
@@ -49,67 +51,41 @@ export default function Navbar({ onInvitationAccept }) {
   const { get, post, isAuthenticated, logout } = useApiClient();
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  // 로그아웃 처리 함수
   const handleLogout = async () => {
     await logout();
-
     window.location.href = "/";
   };
 
-  const handleLoginOpen = () => {
-    setIsLoginOpen(true);
-  };
-
-  const handleLoginClose = () => {
-    setIsLoginOpen(false);
-  };
+  const handleLoginOpen = () => setIsLoginOpen(true);
+  const handleLoginClose = () => setIsLoginOpen(false);
 
   const handlePasswordFindOpen = () => {
     setIsLoginOpen(false);
     setIsPasswordFindOpen(true);
   };
-
-  const handlePasswordFindClose = () => {
-    setIsPasswordFindOpen(false);
-  };
+  const handlePasswordFindClose = () => setIsPasswordFindOpen(false);
 
   const handleSignupOpen = () => {
     setIsLoginOpen(false);
     setIsSignupOpen(true);
   };
+  const handleSignupClose = () => setIsSignupOpen(false);
 
-  const handleSignupClose = () => {
-    setIsSignupOpen(false);
-  };
-
-  const handleThemeOpen = () => {
-    setIsThemeOpen(true);
-  };
-
-  const handleThemeClose = () => {
-    setIsThemeOpen(false);
-  };
+  const handleThemeOpen = () => setIsThemeOpen(true);
+  const handleThemeClose = () => setIsThemeOpen(false);
 
   const handleThemeComplete = (keywords) => {
     setSelectedThemeKeywords(keywords);
     setIsThemeOpen(false);
   };
 
-  // 추가된 함수들
-  const handleThemestartOpen = () => {
-    setIsThemestartOpen(true);
-  };
+  const handleThemestartOpen = () => setIsThemestartOpen(true);
+  const handleThemestartClose = () => setIsThemestartOpen(false);
 
-  const handleThemestartClose = () => {
-    setIsThemestartOpen(false);
-  };
-
-  // 로그인 성공 후 프로필 정보 새로고침을 위한 함수
+  // 💡 개선: 로그인 성공 시 Navbar의 정보를 갱신하기 위한 용도 명확화
   const refreshUserProfile = async () => {
-    // if (isAuthenticated()) {
-    //   importNickname();
-    // }
-    console.log("이거 뭐하는 거임?"); // <- 용도를 모르겠어서 함수 내용들 다 지우고 넣었는데 저렇게 냅둬도 잘 굴러감.
+    // 로그인 직후 상태를 강제로 새로고침하여 닉네임과 gravatar를 즉시 반영합니다.
+    window.location.reload();
   };
 
   const wrapperRef = useRef(null);
@@ -140,6 +116,7 @@ export default function Navbar({ onInvitationAccept }) {
       console.error("초대 수락 실패:", err);
     }
   };
+
   const rejectRequest = async (requestId) => {
     try {
       await post(`${BASE_URL}/api/collaboration-requests/${requestId}/reject`);
@@ -149,13 +126,14 @@ export default function Navbar({ onInvitationAccept }) {
       console.error("초대 거절 실패:", err);
     }
   };
+
   const fetchInvitations = async () => {
     if (isAuthenticated()) {
       try {
+        // v2 API 명세서 기준 경로 및 파싱 구조 일치 확인 완료
         const response = await get(
-          `${BASE_URL}/api/collaboration-requests/pending`
+          `${BASE_URL}/api/collaboration-requests/pending`,
         );
-        console.log(response);
         setInvitations(response.pendingRequests || []);
       } catch (err) {
         console.error("초대 목록을 가져오는데 실패했습니다:", err);
@@ -166,8 +144,6 @@ export default function Navbar({ onInvitationAccept }) {
   useEffect(() => {
     fetchInvitations();
   }, [nickname]);
-
-
 
   return (
     <div className="border-b border-gray-200 ">
@@ -180,15 +156,15 @@ export default function Navbar({ onInvitationAccept }) {
 
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="h-[35px] flex items-center mr-2 sm:mr-4">
-            {" "}
             <button
-              onClick={() => setisFeedbackOpen((prev) => !prev)}
+              onClick={() => setIsFeedbackOpen((prev) => !prev)}
               className="inline-flex items-center justify-center h-[40px] px-3 sm:px-4 py-2 bg-blue-600 ease-in-out delay-75 hover:bg-blue-700 text-white text-sm font-medium rounded-md"
             >
               <FontAwesomeIcon icon={faPencil} className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">피드백하러가기</span>
             </button>
           </div>
+
           {isAuthenticated() ? (
             <div className="relative" ref={wrapperRef}>
               <div className="flex items-center gap-2 sm:gap-3">
@@ -203,13 +179,11 @@ export default function Navbar({ onInvitationAccept }) {
                       className="w-8 h-8 bg-no-repeat bg-contain rounded-full mr-2 sm:mr-3"
                       style={
                         gravatar
-                          ? {
-                            backgroundImage: `url('${gravatar}')`,
-                          }
+                          ? { backgroundImage: `url('${gravatar}')` }
                           : {
-                            backgroundImage:
-                              "url('./src/assets/imgs/default.png')",
-                          }
+                              backgroundImage:
+                                "url('./src/assets/imgs/default.png')",
+                            }
                       }
                     ></div>
                     <span>{nickname}님</span>
@@ -219,7 +193,7 @@ export default function Navbar({ onInvitationAccept }) {
                 <button
                   className="relative flex items-center"
                   onClick={() => {
-                    setisInvitationOpen((prev) => !prev);
+                    setIsInvitationOpen((prev) => !prev);
                     if (!isInvitationOpen) {
                       fetchInvitations();
                     }
@@ -234,6 +208,7 @@ export default function Navbar({ onInvitationAccept }) {
                   )}
                 </button>
               </div>
+
               {isProfileOpen && (
                 <div className="absolute right-0 sm:right-8 top-full w-36 p-2 bg-white border rounded-lg shadow-md z-50">
                   <button
@@ -268,7 +243,7 @@ export default function Navbar({ onInvitationAccept }) {
                     >
                       <h3 className="text-lg font-semibold">초대 알림</h3>
                       <button
-                        onClick={() => setisInvitationOpen(false)}
+                        onClick={() => setIsInvitationOpen(false)}
                         className="text-gray-400 hover:text-gray-600"
                       >
                         ✕
@@ -322,7 +297,6 @@ export default function Navbar({ onInvitationAccept }) {
             </div>
           ) : (
             <div className="h-[35px] flex items-center gap-2">
-
               <button
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
                 onClick={handleLoginOpen}
@@ -334,13 +308,12 @@ export default function Navbar({ onInvitationAccept }) {
         </div>
       </div>
 
-      {/* 모든 모달들을 Navbar에서 관리 */}
       <Login
         isOpen={isLoginOpen}
         onClose={handleLoginClose}
         onPasswordFindOpen={handlePasswordFindOpen}
         onSignupOpen={handleSignupOpen}
-        onLoginSuccess={refreshUserProfile} // 로그인 성공 후 프로필 새로고침
+        onLoginSuccess={refreshUserProfile}
       />
       <PasswordFind
         isOpen={isPasswordFindOpen}
@@ -349,7 +322,7 @@ export default function Navbar({ onInvitationAccept }) {
       <Signup
         isOpen={isSignupOpen}
         onClose={handleSignupClose}
-        onThemeOpen={handleThemestartOpen} // 추가된 prop
+        onThemeOpen={handleThemestartOpen}
         selectedThemeKeywords={selectedThemeKeywords}
         onLoginSuccess={refreshUserProfile}
       />
@@ -366,8 +339,8 @@ export default function Navbar({ onInvitationAccept }) {
       />
       <FeedbackModal
         isOpen={isFeedbackOpen}
-        onClose={() => setisFeedbackOpen(false)}
+        onClose={() => setIsFeedbackOpen(false)}
       />
-    </div >
+    </div>
   );
 }

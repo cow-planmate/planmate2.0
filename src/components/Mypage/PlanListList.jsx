@@ -61,7 +61,7 @@ export default function PlanListList({
       }
     } catch (err) {
       console.error("일정 삭제 실패:", err);
-      ErrorToast("삭제 중 오류가 발생했습니다.");
+      ErrorToast(err.message || "삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -74,7 +74,7 @@ export default function PlanListList({
       SuccessToast("편집 권한을 포기했습니다.");
     } catch (err) {
       console.error("편집 권한 포기 실패:", err);
-      ErrorToast("편집 권한 포기에 실패했습니다.");
+      ErrorToast(err.message || "편집 권한 포기에 실패했습니다.");
     }
   };
 

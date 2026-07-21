@@ -1,13 +1,11 @@
-// pages/OAuthAdditionalInfo.jsx
 import { useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useApiClient } from "../hooks/useApiClient";
 import useNicknameStore from "../store/Nickname";
 
 const OAuthAdditionalInfo = () => {
-  const location = useLocation();
   const navigate = useNavigate();
-  const { setTokens } = useApiClient();
+  const { postWithoutToken, setTokens } = useApiClient();
   const { setNickname, setGravatar } = useNicknameStore();
   const [searchParams] = useSearchParams();
 
@@ -19,7 +17,7 @@ const OAuthAdditionalInfo = () => {
   const [formData, setFormData] = useState({
     email: "",
     age: "",
-    gender: "",
+    gender: "MALE", // 📌 v2 Enum 스펙 반영 ("MALE" | "FEMALE")
   });
 
   const [error, setError] = useState(null);
@@ -40,11 +38,7 @@ const OAuthAdditionalInfo = () => {
   };
 
   const validateForm = () => {
-    if (
-      (needEmail && !formData.email) ||
-      !formData.age ||
-      formData.gender === ""
-    ) {
+    if ((needEmail && !formData.email) || !formData.age || !formData.gender) {
       setError("모든 필드를 입력해주세요.");
       return false;
     }
@@ -57,15 +51,9 @@ const OAuthAdditionalInfo = () => {
       }
     }
 
-    const age = parseInt(formData.age);
+    const age = parseInt(formData.age, 10);
     if (isNaN(age) || age < 0 || age > 150) {
       setError("올바른 나이를 입력해주세요. (0-150)");
-      return false;
-    }
-
-    const gender = parseInt(formData.gender);
-    if (gender !== 0 && gender !== 1) {
-      setError("성별을 선택해주세요.");
       return false;
     }
 
@@ -83,35 +71,31 @@ const OAuthAdditionalInfo = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/oauth/complete`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      // 📌 나이(age)를 v2 LocalDate 형태("YYYY-01-01")로 변환하여 백엔드 지원
+      const currentYear = new Date().getFullYear();
+      const birthYear = currentYear - parseInt(formData.age, 10) + 1;
+      const formattedBirthdate = `${birthYear}-01-01`;
+
+      // 📌 Native fetch 대신 useApiClient 공통 모듈 활용
+      const data = await postWithoutToken(
+        `${API_BASE_URL}/api/oauth/complete`,
+        {
           signupId,
           email: needEmail ? formData.email : null,
-          age: parseInt(formData.age),
-          gender: parseInt(formData.gender),
-        }),
-      });
+          birthdate: formattedBirthdate,
+          gender: formData.gender, // "MALE" | "FEMALE"
+        },
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "추가 정보 등록에 실패했습니다.");
-      }
-
-      const data = await response.json();
       const { accessToken, refreshToken, userId, nickname, email } = data;
 
       // 로그인 성공 처리
-      setTokens(accessToken, refreshToken);
-      localStorage.setItem("userId", userId.toString());
-      setNickname(nickname);
-      setGravatar(email);
+      if (setTokens) setTokens(accessToken, refreshToken);
+      if (userId) localStorage.setItem("userId", userId.toString());
+      if (nickname && setNickname) setNickname(nickname);
+      if (email && setGravatar) setGravatar(email);
 
       const redirectPath = sessionStorage.getItem("redirectAfterLogin") || "/";
-
       sessionStorage.removeItem("redirectAfterLogin");
 
       navigate(redirectPath, { replace: true });
@@ -125,18 +109,18 @@ const OAuthAdditionalInfo = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-pretendard">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
           추가 정보 입력
         </h2>
-        <p className="text-gray-600 mb-6">
+        <p className="text-gray-600 mb-6 text-sm">
           서비스 이용을 위해 추가 정보를 입력해주세요.
         </p>
 
-        {/* 닉네임 표시 */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-xs text-gray-500">
-            닉네임은 마이페이지에서 변경할 수 있습니다.
+        {/* 안내 메시지 */}
+        <div className="mb-6 p-4 bg-blue-50/60 border border-blue-100 rounded-xl">
+          <p className="text-xs text-blue-700 font-medium">
+            💡 닉네임은 마이페이지에서 변경할 수 있습니다.
           </p>
         </div>
 
@@ -155,7 +139,8 @@ const OAuthAdditionalInfo = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="example@domain.com"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1344FF]/20 focus:border-[#1344FF] transition-all"
               />
             </div>
           )}
@@ -178,7 +163,7 @@ const OAuthAdditionalInfo = () => {
               min="0"
               max="150"
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1344FF]/20 focus:border-[#1344FF] transition-all"
             />
           </div>
 
@@ -188,36 +173,40 @@ const OAuthAdditionalInfo = () => {
               성별 <span className="text-red-500">*</span>
             </label>
             <div className="flex gap-4">
-              <label className="flex items-center flex-1 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+              <label className="flex items-center flex-1 p-3.5 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none">
                 <input
                   type="radio"
                   name="gender"
-                  value="0"
-                  checked={formData.gender === "0"}
+                  value="MALE"
+                  checked={formData.gender === "MALE"}
                   onChange={handleChange}
                   required
-                  className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                  className="w-4 h-4 text-[#1344FF] focus:ring-[#1344FF]"
                 />
-                <span className="ml-3 text-gray-700">남성</span>
+                <span className="ml-3 text-sm font-medium text-gray-700">
+                  남성
+                </span>
               </label>
-              <label className="flex items-center flex-1 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+              <label className="flex items-center flex-1 p-3.5 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none">
                 <input
                   type="radio"
                   name="gender"
-                  value="1"
-                  checked={formData.gender === "1"}
+                  value="FEMALE"
+                  checked={formData.gender === "FEMALE"}
                   onChange={handleChange}
                   required
-                  className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                  className="w-4 h-4 text-[#1344FF] focus:ring-[#1344FF]"
                 />
-                <span className="ml-3 text-gray-700">여성</span>
+                <span className="ml-3 text-sm font-medium text-gray-700">
+                  여성
+                </span>
               </label>
             </div>
           </div>
 
           {/* 에러 메시지 */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-medium">
               {error}
             </div>
           )}
@@ -226,7 +215,7 @@ const OAuthAdditionalInfo = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 bg-main text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+            className="w-full py-3.5 bg-[#1344FF] text-white font-medium rounded-xl hover:bg-[#0030E5] focus:outline-none focus:ring-2 focus:ring-[#1344FF]/50 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-sm"
           >
             {isSubmitting ? (
               <>

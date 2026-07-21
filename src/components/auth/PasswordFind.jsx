@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ErrorToast, SuccessToast, WarningToast } from "../common/Toast";
+
 export default function PasswordFind({ isOpen, onClose }) {
   const [formData, setFormData] = useState({
     email: "",
@@ -12,18 +13,13 @@ export default function PasswordFind({ isOpen, onClose }) {
   const [isEmailSending, setIsEmailSending] = useState(false);
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  //킬때마다 초기화
   useEffect(() => {
     if (isOpen) {
-      // 폼 데이터 초기화
       setFormData({
         email: "",
         verificationCode: "",
       });
-      // 타이머 관련 초기화
       setTimeLeft(0);
-
-      // 이메일 인증 관련 초기화
       setIsEmailVerified(false);
       setShowVerification(false);
       setEmailVerificationToken("");
@@ -32,7 +28,6 @@ export default function PasswordFind({ isOpen, onClose }) {
 
   useEffect(() => {
     let timer;
-
     if (timeLeft > 0) {
       timer = setInterval(() => {
         setTimeLeft((prevTime) => prevTime - 1);
@@ -57,7 +52,6 @@ export default function PasswordFind({ isOpen, onClose }) {
   };
 
   const sendEmail = async () => {
-    // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       WarningToast("올바른 이메일 형식을 입력해주세요.");
@@ -76,26 +70,24 @@ export default function PasswordFind({ isOpen, onClose }) {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("이메일 전송 실패");
-      }
-
-      const data = await response.json();
-      console.log("서버 응답:", data);
-      if (data.verificationSent) {
+      // v2 명세서: 성공 시 204 No Content 반환
+      if (response.status === 204) {
         SuccessToast("인증번호가 전송되었습니다.");
         setTimeLeft(300);
-        setShowVerification(true); // 인증번호 입력 영역 표시
-      } else if (data.message === "Email not found") {
-        ErrorToast("이메일을 찾을 수 없습니다.");
+        setShowVerification(true);
       } else {
-        ErrorToast(data.message || "발송 실패");
+        const data = await response.json().catch(() => ({}));
+        if (data.message === "Email not found") {
+          ErrorToast("이메일을 찾을 수 없습니다.");
+        } else {
+          ErrorToast(data.message || "발송 실패");
+        }
       }
     } catch (error) {
       console.error("에러 발생:", error);
       ErrorToast("이메일 전송에 실패했습니다.");
     } finally {
-      setIsEmailSending(false); // 로딩 종료
+      setIsEmailSending(false);
     }
   };
 
@@ -114,16 +106,13 @@ export default function PasswordFind({ isOpen, onClose }) {
         },
       );
 
-      const data = await response.json();
-      console.log("서버 응답:", data);
+      const data = await response.json().catch(() => ({}));
 
-      if (
-        data.emailVerified ||
-        data.message === "Verification completed successfully"
-      ) {
+      if (response.ok) {
         SuccessToast("인증 성공!");
-        setIsEmailVerified(true); // 인증 완료 상태로 변경
-        setEmailVerificationToken(data.token);
+        setIsEmailVerified(true);
+        // v2 명세서: 응답 DTO 필드명 verificationToken 반환
+        setEmailVerificationToken(data.verificationToken);
       } else {
         if (data.message === "Email already in use") {
           ErrorToast("이미 사용중인 이메일입니다.");
@@ -145,41 +134,29 @@ export default function PasswordFind({ isOpen, onClose }) {
 
   const sendTempPassword = async () => {
     try {
-      const headers = {
-        "Content-Type": "application/json",
-      };
-
-      // 이메일 인증 토큰을 Authorization 헤더에 포함
-      if (emailVerificationToken) {
-        headers["Authorization"] = `Bearer ${emailVerificationToken}`;
-      }
-
       const response = await fetch(`${BASE_URL}/api/auth/password/email`, {
         method: "POST",
-        headers: headers,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // v2 명세서: 헤더(Bearer)가 아닌 Body로 verificationToken 전송
+        body: JSON.stringify({
+          verificationToken: emailVerificationToken,
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error("임시 비밀번호 발송 실패");
-      }
-
-      const data = await response.json();
-
-      if (data.message === "Temp password sent" || data.message === "임시 비밀번호를 전송했습니다") {
+      // v2 명세서: 성공 시 204 No Content 반환
+      if (response.status === 204) {
         SuccessToast(
-          data.message || "임시 비밀번호가 이메일로 발송되었습니다. 로그인 후 마이페이지에서 변경해주세요",
+          "임시 비밀번호가 이메일로 발송되었습니다. 로그인 후 마이페이지에서 변경해주세요",
         );
         onClose();
       } else {
+        const data = await response.json().catch(() => ({}));
         ErrorToast(data.message || "발송 실패 다시시도해주세요");
-        setFormData({
-          email: "",
-          verificationCode: "",
-        });
-        // 타이머 관련 초기화
-        setTimeLeft(0);
 
-        // 이메일 인증 관련 초기화
+        setFormData({ email: "", verificationCode: "" });
+        setTimeLeft(0);
         setIsEmailVerified(false);
         setShowVerification(false);
         setEmailVerificationToken("");
@@ -187,14 +164,9 @@ export default function PasswordFind({ isOpen, onClose }) {
     } catch (err) {
       console.log(err);
       ErrorToast("오류 발생 다시시도 해주세요");
-      setFormData({
-        email: "",
-        verificationCode: "",
-      });
-      // 타이머 관련 초기화
-      setTimeLeft(0);
 
-      // 이메일 인증 관련 초기화
+      setFormData({ email: "", verificationCode: "" });
+      setTimeLeft(0);
       setIsEmailVerified(false);
       setShowVerification(false);
       setEmailVerificationToken("");
@@ -224,16 +196,18 @@ export default function PasswordFind({ isOpen, onClose }) {
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
-                className={`min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isEmailVerified ? "bg-gray-100 cursor-not-allowed" : ""
-                  }`}
+                className={`min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  isEmailVerified ? "bg-gray-100 cursor-not-allowed" : ""
+                }`}
                 disabled={isEmailVerified}
               />
               <button
                 type="button"
-                className={`w-24 py-2 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap ${isEmailVerified
-                  ? "bg-gray-300 cursor-not-allowed"
-                  : "bg-main hover:bg-blue-700"
-                  }`}
+                className={`w-24 py-2 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap ${
+                  isEmailVerified
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-main hover:bg-blue-700"
+                }`}
                 onClick={sendEmail}
                 disabled={isEmailVerified}
               >
@@ -281,10 +255,11 @@ export default function PasswordFind({ isOpen, onClose }) {
         </div>
         <button
           type="button"
-          className={`w-full py-3 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-6 ${isEmailVerified
-            ? "bg-main text-white hover:bg-blue-700"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
+          className={`w-full py-3 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-6 ${
+            isEmailVerified
+              ? "bg-main text-white hover:bg-blue-700"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+          }`}
           onClick={sendTempPassword}
           disabled={!isEmailVerified}
         >

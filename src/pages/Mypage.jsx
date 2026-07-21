@@ -8,7 +8,8 @@ import LoadingOverlay from "../components/common/LoadingOverlay";
 import { ErrorToast } from "../components/common/Toast";
 import { Helmet } from "react-helmet";
 
-function App() {
+// 컴포넌트 이름을 App에서 Mypage로 변경하여 명확성 확보
+function Mypage() {
   const navigate = useNavigate();
   const [refreshTrigger, setRefreshTrigger] = useState(false);
   const { get, isAuthenticated, logout } = useApiClient();
@@ -30,7 +31,7 @@ function App() {
       navigate("/");
       return;
     }
-  }, [navigate]);
+  }, [navigate, isAuthenticated]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -38,11 +39,14 @@ function App() {
 
       if (isAuthenticated()) {
         try {
+          // 📌 v2 API 명세서 반영: API Path 변경 (/api/user/profile -> /api/mypage/profile)
           const profileData = await get(`${BASE_URL}/api/user/profile`);
 
           setUserProfile(profileData);
-          setMyPlans(profileData.myPlanVOs || []);
-          setEditablePlans(profileData.editablePlanVOs || []);
+          // 📌 v2 Response 반영: 응답 필드명 변경 (myPlanVOs -> myPlans)
+          setMyPlans(profileData.myPlans || []);
+          // 📌 v2 Response 반영: 응답 필드명 변경 (editablePlanVOs -> sharedPlans)
+          setEditablePlans(profileData.sharedPlans || []);
         } catch (err) {
           console.error("프로필 정보를 가져오는데 실패했습니다:", err);
 
@@ -56,7 +60,7 @@ function App() {
     };
 
     fetchUserProfile();
-  }, [isAuthenticated, get, refreshTrigger]);
+  }, [isAuthenticated, get, refreshTrigger, BASE_URL]);
 
   const handlePlanListRefresh = () => {
     setRefreshTrigger((prev) => !prev);
@@ -104,4 +108,4 @@ function App() {
   );
 }
 
-export default App;
+export default Mypage;

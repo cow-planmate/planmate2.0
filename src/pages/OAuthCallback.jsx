@@ -1,4 +1,3 @@
-// pages/OAuthCallback.jsx
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useApiClient } from "../hooks/useApiClient";
@@ -8,10 +7,9 @@ const OAuthCallback = () => {
   const hasRun = useRef(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { setTokens } = useApiClient();
+  const { postWithoutToken, get, setTokens } = useApiClient();
   const { setNickname, setGravatar } = useNicknameStore();
   const [error, setError] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(true);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -29,52 +27,35 @@ const OAuthCallback = () => {
 
           if (!code) {
             setError("로그인 코드가 없습니다.");
-            setIsProcessing(false);
             return;
           }
 
-          // loginCode를 JWT로 교환
-          const response = await fetch(
+          const data = await postWithoutToken(
             `${API_BASE_URL}/api/oauth/exchange?code=${code}`,
-            {
-              method: "POST",
-            },
           );
 
-          if (!response.ok) {
-            throw new Error("토큰 교환에 실패했습니다.");
-          }
+          const { accessToken, refreshToken, userId, nickname, email } = data;
 
-          const data = await response.json();
-          const { accessToken, refreshToken, nickname, email } = data;
+          // 토큰 및 사용자 정보 스토리지/Zustand 저장
+          if (setTokens) setTokens(accessToken, refreshToken);
+          if (nickname && setNickname) setNickname(nickname);
+          if (email && setGravatar) setGravatar(email);
+          if (userId) localStorage.setItem("userId", userId.toString());
 
-          // 토큰 저장
-          setTokens(accessToken, refreshToken);
-          setNickname(nickname);
-          setGravatar(email);
-
-          // userId는 JWT에서 파싱하거나 별도 API 호출
-          try {
-            const userResponse = await fetch(
-              `${API_BASE_URL}/api/user/mypage`,
-              {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                },
-              },
-            );
-
-            if (userResponse.ok) {
-              const userData = await userResponse.json();
-              localStorage.setItem("userId", userData.userId.toString());
+          // userId 전달받지 못했을 경우 프로필 조회를 통한 fallback 처리
+          if (!userId) {
+            try {
+              const userData = await get(`${API_BASE_URL}/api/user/mypage`);
+              if (userData && userData.userId) {
+                localStorage.setItem("userId", userData.userId.toString());
+              }
+            } catch (err) {
+              console.error("사용자 프로필 조회 실패:", err);
             }
-          } catch (err) {
-            console.error("사용자 정보 조회 실패:", err);
           }
 
           const redirectPath =
             sessionStorage.getItem("redirectAfterLogin") || "/";
-
           sessionStorage.removeItem("redirectAfterLogin");
 
           navigate(redirectPath, { replace: true });
@@ -86,7 +67,6 @@ const OAuthCallback = () => {
 
           if (!signupId) {
             setError("가입 세션이 올바르지 않습니다.");
-            setIsProcessing(false);
             return;
           }
 
@@ -99,23 +79,19 @@ const OAuthCallback = () => {
 
           if (reason === "EMAIL_CONFLICT") {
             setError(
-              "이미 해당 이메일로 가입된 계정이 있습니다. planMate 계정으로 로그인해주세요.",
+              "이미 해당 이메일로 가입된 계정이 있습니다. planMate 일반 계정으로 로그인해주세요.",
             );
           } else {
             setError("OAuth 로그인에 실패했습니다.");
           }
-
-          setIsProcessing(false);
         }
         // 알 수 없는 상태
         else {
           setError("OAuth 로그인 중 오류가 발생했습니다.");
-          setIsProcessing(false);
         }
       } catch (err) {
         console.error("OAuth 콜백 처리 실패:", err);
         setError(err.message || "로그인 처리 중 오류가 발생했습니다.");
-        setIsProcessing(false);
       }
     };
 
@@ -124,8 +100,8 @@ const OAuthCallback = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 font-pretendard">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 font-pretendard p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full text-center border border-gray-100">
           <div className="mb-4">
             <svg
               className="mx-auto h-12 w-12 text-red-500"
@@ -142,17 +118,15 @@ const OAuthCallback = () => {
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">로그인 실패</h2>
-          <p className="text-red-600 mb-6">{error}</p>
+          <p className="text-red-600 mb-6 text-sm">{error}</p>
           <button
             onClick={() => {
               const redirectPath =
                 sessionStorage.getItem("redirectAfterLogin") || "/";
-
               sessionStorage.removeItem("redirectAfterLogin");
-
               navigate(redirectPath, { replace: true });
             }}
-            className="w-full py-3 bg-main text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full py-3.5 bg-[#1344FF] text-white font-medium rounded-xl hover:bg-[#0030E5] transition-all shadow-sm"
           >
             돌아가기
           </button>
@@ -164,11 +138,11 @@ const OAuthCallback = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 font-pretendard">
       <div className="text-center">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-[#1344FF] border-t-transparent mb-4"></div>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">
           로그인 처리 중...
         </h2>
-        <p className="text-gray-600">잠시만 기다려주세요.</p>
+        <p className="text-sm text-gray-500">잠시만 기다려주세요.</p>
       </div>
     </div>
   );

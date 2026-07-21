@@ -9,21 +9,27 @@ export default function Themestart({
 }) {
   const { post } = useApiClient();
   const [isSaving, setIsSaving] = useState(false);
+
+  // 백엔드 v2 카테고리 ID 및 실제 데이터 구조 매핑 보완
   const categoryMap = {
-    0: "관광지",
-    1: "숙소",
-    2: "식당",
+    1: "관광지",
+    2: "숙소",
+    3: "식당",
   };
+
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   if (!isOpen) return null;
+
   const savePreferredTheme = async () => {
     if (isSaving) return;
     setIsSaving(true);
     try {
       const selectedIds = Object.values(selectedThemeKeywords)
         .flat()
-        .map((item) => item.preferredThemeId); // ID만 추출
+        .map((item) => item.preferredThemeId); // ID 추출
+
+      // v2 명세: POST /api/user/preferredTheme
       await post(`${BASE_URL}/api/user/preferredTheme`, {
         preferredThemeIds: selectedIds,
       });
@@ -64,17 +70,26 @@ export default function Themestart({
               </div>
               <div className="space-y-1 text-sm">
                 {Object.entries(selectedThemeKeywords).map(
-                  ([categoryId, keywords]) =>
-                    keywords.length > 0 ? (
-                      <div key={categoryId} className="flex flex-wrap  gap-1">
+                  ([categoryId, keywords]) => {
+                    if (!keywords || keywords.length === 0) return null;
+
+                    // 서버에서 받은 CategoryName이 있으면 그것을 우선 사용하고, 없을 시 백업 매핑 적용
+                    const categoryLabel =
+                      keywords[0]?.preferredThemeCategoryName ||
+                      categoryMap[categoryId] ||
+                      `카테고리 ${categoryId}`;
+
+                    return (
+                      <div key={categoryId} className="flex flex-wrap gap-1">
                         <span className="font-bold text-gray-700">
-                          {categoryMap[categoryId]}:
+                          {categoryLabel}:
                         </span>
                         <span className="font-semibold text-gray-700">
                           {keywords.map((k) => k.preferredThemeName).join(", ")}
                         </span>
                       </div>
-                    ) : null,
+                    );
+                  },
                 )}
               </div>
             </div>
