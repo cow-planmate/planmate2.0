@@ -130,11 +130,10 @@ export default function Navbar({ onInvitationAccept }) {
   const fetchInvitations = async () => {
     if (isAuthenticated()) {
       try {
-        // v2 API 명세서 기준 경로 및 파싱 구조 일치 확인 완료
         const response = await get(
           `${BASE_URL}/api/collaboration-requests/pending`,
         );
-        setInvitations(response.pendingRequests || []);
+        setInvitations(response.requests || []);
       } catch (err) {
         console.error("초대 목록을 가져오는데 실패했습니다:", err);
       }

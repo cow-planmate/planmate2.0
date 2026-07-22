@@ -49,7 +49,7 @@ export default function Navbar({ currentView, onNavigate }: NavbarProps) {
         const response = await get(
           `${BASE_URL}/api/collaboration-requests/pending`,
         );
-        setInvitations(response.pendingRequests || []);
+        setInvitations(response.requests || []);
       } catch (err) {
         console.error("초대 목록을 가져오는데 실패했습니다:", err);
       }

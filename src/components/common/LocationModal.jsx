@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useApiClient } from "../../hooks/useApiClient";
 import { useQuery } from "@tanstack/react-query";
 
 export default function LocationModal({
@@ -8,89 +7,98 @@ export default function LocationModal({
   onLocationSelect,
   modalType, // "departure" 또는 "destination"
 }) {
-  const [selectedUpperRegion, setSelectedUpperRegion] = useState("");
-  const [selectedLowerRegion, setSelectedLowerRegion] = useState(null);
-  const { get } = useApiClient();
+  const [selectedRegion, setSelectedRegion] = useState(null);
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  const { data: regionData = { 상위지역: {} } } = useQuery({
-    queryKey: ["travel"],
+  // 📌 v2 API: fetch API를 통한 여행지 목록 조회 (디버깅 콘솔 로그 추가)
+  const { data: destinations = [] } = useQuery({
+    queryKey: ["destination"],
     queryFn: async () => {
-      // 📌 v2 API 명세서 반영: API Path인 /api/destination 으로 요청 경로 수정
-      const res = await get(`${BASE_URL}/api/destination`);
+      console.log(
+        `[API Request] 여행지 목록 조회 요청 시도: ${BASE_URL}/api/destination`,
+      );
 
-      const upperRegions = {};
-      // 📌 v2 Response 반영: 명세서상 응답 필드인 destinations 객체 접근
-      const destinations = res?.destinations || [];
+      try {
+        const res = await fetch(`${BASE_URL}/api/destination`);
 
-      if (Array.isArray(destinations)) {
-        destinations.forEach((item) => {
-          // 명세서의 DestinationDto 구조(카테고리명, 지역명, ID)에 맞춰 매핑 구조 유지
-          const categoryName = item.travelCategoryName;
-          const travelName = item.travelName;
-          const travelId = item.travelId;
+        console.log(
+          `[API Response Status] HTTP 상태 코드: ${res.status} (${res.statusText})`,
+        );
 
-          if (!categoryName || !travelName) return;
+        if (!res.ok) {
+          console.error(
+            `[API Error Response] 여행지 목록 조회 실패 - Status: ${res.status}`,
+          );
+          throw new Error("여행지 목록을 불러오는 데 실패했습니다.");
+        }
 
-          if (!upperRegions[categoryName]) {
-            upperRegions[categoryName] = [];
-          }
+        const data = await res.json();
+        console.log("[API Raw Response Data] 백엔드 수신 원본 데이터:", data);
 
-          if (
-            !upperRegions[categoryName].some((region) => region.id === travelId)
-          ) {
-            upperRegions[categoryName].push({
-              name: travelName,
-              id: travelId,
-            });
-          }
-        });
+        // 📌 v2 DTO 명세 매핑: destinationId, destinationName
+        const rawDestinations = data?.destinations || data || [];
+
+        if (Array.isArray(rawDestinations)) {
+          const mappedData = rawDestinations.map((item) => ({
+            id: item.destinationId,
+            name: item.destinationName,
+          }));
+
+          console.log(
+            "[API Mapped Data] 프론트엔드 매핑 완료 데이터:",
+            mappedData,
+          );
+          return mappedData;
+        }
+
+        console.warn(
+          "[API Warning] 수신된 데이터가 배열 형태가 아닙니다:",
+          rawDestinations,
+        );
+        return [];
+      } catch (error) {
+        console.error(
+          "[API Network/Fetch Error] 여행지 목록 조회 중 예외 발생:",
+          error,
+        );
+        throw error;
       }
-
-      return {
-        상위지역: upperRegions,
-      };
     },
     enabled: isOpen,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5분 캐싱
   });
 
+  // 모달 닫힐 때 선택 상태 초기화
   useEffect(() => {
     if (!isOpen) {
-      setSelectedUpperRegion("");
-      setSelectedLowerRegion(null);
+      setSelectedRegion(null);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleUpperRegionClick = (regionName) => {
-    setSelectedUpperRegion(regionName);
-    setSelectedLowerRegion(null);
-  };
-
-  const handleLowerRegionClick = (region) => {
-    setSelectedLowerRegion(region);
+  const handleRegionClick = (region) => {
+    setSelectedRegion(region);
   };
 
   const handleConfirm = () => {
-    if (selectedUpperRegion && selectedLowerRegion) {
+    if (selectedRegion) {
       onLocationSelect({
-        name: `${selectedUpperRegion} ${selectedLowerRegion.name}`,
-        id: selectedLowerRegion.id,
+        name: selectedRegion.name,
+        id: selectedRegion.id,
       });
       onClose();
     }
   };
 
   const handleClose = () => {
-    setSelectedUpperRegion("");
-    setSelectedLowerRegion(null);
+    setSelectedRegion(null);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* 백드롭 */}
       <div
         className="fixed inset-0 bg-black bg-opacity-50"
         onClick={handleClose}
@@ -99,68 +107,45 @@ export default function LocationModal({
       <div className="relative bg-white rounded-lg shadow-xl w-[500px] mx-4 max-h-[600px] overflow-hidden">
         <button
           onClick={handleClose}
-          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 text-xl"
+          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 text-xl z-10"
         >
           ✕
         </button>
 
         <div
-          className="p-4 max-h-[450px] overflow-y-auto"
+          className="p-6 max-h-[450px] overflow-y-auto"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 font-pretendard">
-              상위 지역
+              여행지 선택
             </h3>
+
             <div className="flex flex-wrap gap-2">
-              {Object.keys(regionData.상위지역).map((regionName) => (
+              {destinations.map((region) => (
                 <button
-                  key={regionName}
-                  onClick={() => handleUpperRegionClick(regionName)}
+                  key={region.id}
+                  onClick={() => handleRegionClick(region)}
                   className={`px-4 py-2 rounded-lg text-sm font-pretendard transition-colors ${
-                    selectedUpperRegion === regionName
+                    selectedRegion?.id === region.id
                       ? "bg-main text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
-                  {regionName}
+                  {region.name}
                 </button>
               ))}
             </div>
           </div>
-
-          {selectedUpperRegion && (
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3 font-pretendard">
-                {selectedUpperRegion} 하위 지역
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {(regionData.상위지역[selectedUpperRegion] || []).map(
-                  (subRegion) => (
-                    <button
-                      key={subRegion.id}
-                      onClick={() => handleLowerRegionClick(subRegion)}
-                      className={`px-4 py-2 rounded-lg text-sm font-pretendard transition-colors ${
-                        selectedLowerRegion?.id === subRegion.id
-                          ? "bg-main text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {subRegion.name}
-                    </button>
-                  ),
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
+        {/* 완료 버튼 */}
         <div className="p-4 border-t border-gray-200">
           <button
             onClick={handleConfirm}
-            disabled={!selectedUpperRegion || !selectedLowerRegion}
+            disabled={!selectedRegion}
             className={`w-full py-3 rounded-lg font-pretendard transition-colors ${
-              selectedUpperRegion && selectedLowerRegion
+              selectedRegion
                 ? "bg-main text-white hover:bg-blue-600"
                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
             }`}

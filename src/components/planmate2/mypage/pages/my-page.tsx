@@ -299,7 +299,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           setStoreNickname(newNickname);
         }
         alert("프로필 정보가 성공적으로 업데이트되었습니다.");
-        
+
         // 프로필 정보 다시 가져오기
         const profileData = await get(`${BASE_URL}/api/user/profile`);
         setUserProfile(profileData);
@@ -439,8 +439,13 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       if (isAuthenticated() || isOtherUser) {
         try {
           setLoading(true);
-          const endpoint = isOtherUser ? `${BASE_URL}/api/user/profile/${userId}` : `${BASE_URL}/api/user/profile`;
-          
+          // Backend-v2에는 본인 프로필 조회(/api/user/profile)만 있다.
+          // 타인 프로필(/api/user/profile/{userId})은 백엔드 미구현 상태.
+          const endpoint = isOtherUser
+            ? `${BASE_URL}/api/user/profile/${userId}`
+            : `${BASE_URL}/api/user/profile`;
+
+
           let profileData;
           try {
             profileData = await get(endpoint);

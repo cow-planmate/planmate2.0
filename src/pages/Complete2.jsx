@@ -21,9 +21,8 @@ function App() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
-  const token = searchParams.get("token");
 
-  const { get, isAuthenticated } = useApiClient();
+  const { get } = useApiClient();
 
   const [finishLoading, setFinishLoading] = useState(false);
   const [planFrame, setPlanFrame] = useState({});
@@ -165,18 +164,7 @@ function App() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       let planData = null;
-      if (token) {
-        try {
-          planData = await get(
-            `${BASE_URL}/api/plan/${id}/complete?token=${token}`,
-          );
-        } catch (err) {
-          console.error("일정 정보를 가져오는데 실패했습니다:", err);
-          ErrorToast("잘못된 접근입니다.");
-          navigate("/");
-          return;
-        }
-      } else if (id && isAuthenticated()) {
+      if (id) {
         try {
           planData = await get(`${BASE_URL}/api/plan/${id}/complete`);
         } catch (err) {

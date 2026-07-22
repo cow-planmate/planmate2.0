@@ -39,7 +39,7 @@ function Mypage() {
 
       if (isAuthenticated()) {
         try {
-          // 📌 v2 API 명세서 반영: API Path 변경 (/api/user/profile -> /api/mypage/profile)
+          // v2 API 명세: GET /api/user/profile
           const profileData = await get(`${BASE_URL}/api/user/profile`);
 
           setUserProfile(profileData);

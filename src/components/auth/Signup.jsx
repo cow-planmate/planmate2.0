@@ -12,8 +12,8 @@ export default function Signup({
   onThemeOpen,
 }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
-
   const { login } = useApiClient();
+
   const [formData, setFormData] = useState({
     email: "",
     verificationCode: "",
@@ -23,9 +23,9 @@ export default function Signup({
     birthdate: "",
     gender: "male",
   });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [timeLeft, setTimeLeft] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
@@ -42,6 +42,7 @@ export default function Signup({
     hasSpecialChar: false,
     hasAllRequired: false,
   });
+
   const [isEmailSending, setIsEmailSending] = useState(false);
   const [isEmailVerifying, setIsEmailVerifying] = useState(false);
   // 비밀번호 일치 검증
@@ -167,6 +168,7 @@ export default function Signup({
     }
   };
 
+  // 1. 이메일 인증번호 발송
   const sendEmail = async () => {
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -174,17 +176,26 @@ export default function Signup({
       WarningToast("올바른 이메일 형식을 입력해주세요.");
       return;
     }
+
     setIsEmailSending(true);
+
+    const requestUrl = `${BASE_URL}/api/auth/email/verification`;
+    const requestPayload = {
+      email: formData.email,
+      purpose: "SIGN_UP",
+    };
+
+    console.group("📧 [sendEmail] 이메일 인증번호 발송 API 호출");
+    console.log("요청 URL:", requestUrl);
+    console.log("요청 Payload:", requestPayload);
+
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/email/verification`, {
+      const response = await fetch(requestUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: formData.email,
-          purpose: "SIGN_UP",
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       // 실패 응답만 본문({code, message})을 가진다
@@ -200,9 +211,10 @@ export default function Signup({
       setIsTimerRunning(true);
       setShowVerification(true);
     } catch (error) {
-      console.error("에러 발생:", error);
+      console.error("❌ 이메일 전송 중 네트워크/서버 에러 발생:", error);
       ErrorToast("이메일 전송에 실패했습니다. 다시 시도해주세요");
     } finally {
+      console.groupEnd();
       setIsEmailSending(false);
     }
   };
@@ -210,18 +222,13 @@ export default function Signup({
     if (isEmailVerifying) return;
     setIsEmailVerifying(true);
     try {
-      const response = await fetch(
-        `${BASE_URL}/api/auth/email/verification/confirm`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: formData.email,
-            verificationCode: formData.verificationCode,
-            purpose: "SIGN_UP",
-          }),
-        },
-      );
+      const response = await fetch(requestUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestPayload),
+      });
+
+      console.log("응답 HTTP 상태 코드:", response.status, response.statusText);
 
       if (!response.ok) {
         const error = await response.json().catch(() => null);
@@ -236,13 +243,14 @@ export default function Signup({
       setIsTimerRunning(false);
       setEmailVerificationToken(data.verificationToken);
     } catch (error) {
-      console.error("에러 발생:", error);
+      console.error("❌ 이메일 인증 확인 중 에러 발생:", error);
       ErrorToast("오류 발생 : 잘못된 인증번호 형식일 수 있습니다");
     } finally {
       setIsEmailVerifying(false);
     }
   };
 
+  // 3. 닉네임 중복확인
   const verifyNickname = async () => {
     try {
       const response = await fetch(
@@ -266,11 +274,14 @@ export default function Signup({
         ErrorToast("이미 존재하는 닉네임입니다.");
       }
     } catch (error) {
-      console.error("에러 발생:", error);
+      console.error("❌ 닉네임 중복확인 중 에러 발생:", error);
       ErrorToast("오류. 나중에 다시 시도해주세요.");
+    } finally {
+      console.groupEnd();
     }
   };
 
+  // 4. 회원가입 및 자동 로그인
   const handleRegisterAndLogin = async () => {
     try {
       // 이메일 인증으로 받은 signupToken이 이메일을 증명하므로 email은 보내지 않는다
@@ -307,7 +318,7 @@ export default function Signup({
         onThemeOpen();
       }
     } catch (error) {
-      console.error("회원가입 또는 로그인 중 오류:", error);
+      console.error("❌ 회원가입 또는 로그인 중 에러 발생:", error);
       ErrorToast("오류 발생. 다시 시도해주세요.");
       // 폼 데이터 초기화
       setFormData({
@@ -348,6 +359,8 @@ export default function Signup({
       setPasswordMatch(true);
 
       setEmailVerificationToken("");
+    } finally {
+      console.groupEnd();
     }
   };
 
@@ -450,6 +463,7 @@ export default function Signup({
               </button>
             </div>
           </div>
+
           {/* 인증번호 입력 */}
           {showVerification && !isEmailVerified && (
             <div>
@@ -477,6 +491,7 @@ export default function Signup({
               </p>
             </div>
           )}
+
           {/* 비밀번호 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2 text-left pl-2">
@@ -491,6 +506,7 @@ export default function Signup({
                 className="w-full px-3 py-2 pr-12 border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
+                type="button"
                 className="absolute inset-y-0 right-3 flex items-center text-sm text-gray-600 cursor-pointer select-none"
                 onClick={() => setShowPassword(!showPassword)}
               >
@@ -514,7 +530,6 @@ export default function Signup({
                   text="영문, 숫자, 특수문자 3가지 조합"
                 />
 
-                {/* 에러 메시지 */}
                 {!passwordValidation.hasMinLength && (
                   <div className="text-red-600 text-sm mt-2">
                     최소 8글자 이상 작성해야합니다
@@ -525,7 +540,6 @@ export default function Signup({
                     최대 20글자까지 작성할 수 있습니다
                   </div>
                 )}
-
                 {!passwordValidation.hasAllRequired &&
                   passwordValidation.hasMinLength && (
                     <div className="text-red-600 text-sm mt-2">
@@ -535,6 +549,7 @@ export default function Signup({
               </div>
             )}
           </div>
+
           {/* 비밀번호 재입력 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2 text-left pl-2">
@@ -555,6 +570,7 @@ export default function Signup({
                 disabled={isConfirmPasswordDisabled}
               />
               <button
+                type="button"
                 className="absolute inset-y-0 right-3 flex items-center text-sm text-gray-600 cursor-pointer select-none"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={isConfirmPasswordDisabled}
@@ -565,13 +581,13 @@ export default function Signup({
               </button>
             </div>
 
-            {/* 비밀번호 불일치 메시지 */}
             {formData.confirmPassword && !passwordMatch && (
               <div className="text-red-600 text-sm mt-2">
                 비밀번호가 일치하지 않습니다
               </div>
             )}
           </div>
+
           {/* 닉네임 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2 text-left pl-2">
@@ -611,6 +627,7 @@ export default function Signup({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 text-left pl-2">
                 성별
@@ -639,6 +656,7 @@ export default function Signup({
               </div>
             </div>
           </div>
+
           {/* 개인정보 수집·이용 동의 */}
           <div className="flex items-center pl-2">
             <input
@@ -676,16 +694,15 @@ export default function Signup({
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
+                  type="button"
                   onClick={() => setShowPrivacyModal(false)}
                   className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
                 >
                   ×
                 </button>
-
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   개인정보 수집·이용 동의
                 </h2>
-
                 <div className="text-sm text-gray-600 leading-relaxed text-left space-y-3">
                   <div>
                     <p className="font-bold mb-1">1. 수집·이용 목적</p>
@@ -695,14 +712,12 @@ export default function Signup({
                       <li>맞춤형 서비스 제공 및 이벤트 안내</li>
                     </ul>
                   </div>
-
                   <div>
                     <p className="font-bold mb-1">2. 수집하는 개인정보 항목</p>
                     <ul className="list-disc pl-4 space-y-0.5">
                       <li>필수 항목: 이메일, 비밀번호, 닉네임, 나이, 성별</li>
                     </ul>
                   </div>
-
                   <div>
                     <p className="font-bold mb-1">3. 개인정보 보유·이용 기간</p>
                     <ul className="list-disc pl-4 space-y-0.5">
@@ -713,7 +728,6 @@ export default function Signup({
                       </li>
                     </ul>
                   </div>
-
                   <div>
                     <p className="font-bold mb-1">
                       4. 동의 거부 권리 및 불이익 안내
@@ -730,8 +744,8 @@ export default function Signup({
                     </ul>
                   </div>
                 </div>
-
                 <button
+                  type="button"
                   onClick={() => setShowPrivacyModal(false)}
                   className="w-full mt-6 py-2 bg-main hover:bg-blue-700 text-white font-medium rounded-lg"
                 >
@@ -740,6 +754,7 @@ export default function Signup({
               </div>
             </div>
           )}
+
           {/* 회원가입 버튼 */}
           <button
             type="button"

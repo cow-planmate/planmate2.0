@@ -5,7 +5,7 @@ import useNicknameStore from "../store/Nickname";
 
 const OAuthAdditionalInfo = () => {
   const navigate = useNavigate();
-  const { postWithoutToken, setTokens } = useApiClient();
+  const { post, setTokens } = useApiClient();
   const { setNickname, setGravatar } = useNicknameStore();
   const [searchParams] = useSearchParams();
 
@@ -77,15 +77,12 @@ const OAuthAdditionalInfo = () => {
       const formattedBirthdate = `${birthYear}-01-01`;
 
       // 📌 Native fetch 대신 useApiClient 공통 모듈 활용
-      const data = await postWithoutToken(
-        `${API_BASE_URL}/api/oauth/complete`,
-        {
-          signupId,
-          email: needEmail ? formData.email : null,
-          birthdate: formattedBirthdate,
-          gender: formData.gender, // "MALE" | "FEMALE"
-        },
-      );
+      const data = await post(`${API_BASE_URL}/api/oauth/complete`, {
+        signupId,
+        email: needEmail ? formData.email : null,
+        birthdate: formattedBirthdate,
+        gender: formData.gender, // "MALE" | "FEMALE"
+      });
 
       const { accessToken, refreshToken, userId, nickname, email } = data;
 

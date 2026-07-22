@@ -103,12 +103,12 @@ function Home({ hideNavbar = false }) {
 
       if (isAuthenticated()) {
         const requestData = {
-          departure: "null",
-          travelId: destinationLocation.id,
+          destinationId: destinationLocation.id,
           dates: formattedDates,
           adultCount: Number(personCount.adults),
           childCount: Number(personCount.children),
-          transportation: selectedTransport === "car" ? 1 : 0,
+          transportationType:
+            selectedTransport === "car" ? "PRIVATE" : "PUBLIC",
         };
 
         const BASE_URL = import.meta.env.VITE_API_URL;

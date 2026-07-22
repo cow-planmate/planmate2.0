@@ -7,7 +7,7 @@ const OAuthCallback = () => {
   const hasRun = useRef(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { postWithoutToken, get, setTokens } = useApiClient();
+  const { post, get, setTokens } = useApiClient();
   const { setNickname, setGravatar } = useNicknameStore();
   const [error, setError] = useState(null);
 
@@ -30,9 +30,9 @@ const OAuthCallback = () => {
             return;
           }
 
-          const data = await postWithoutToken(
-            `${API_BASE_URL}/api/oauth/exchange?code=${code}`,
-          );
+          const data = await post(`${API_BASE_URL}/api/oauth/exchange`, {
+            code,
+          });
 
           const { accessToken, refreshToken, userId, nickname, email } = data;
 
@@ -45,7 +45,7 @@ const OAuthCallback = () => {
           // userId 전달받지 못했을 경우 프로필 조회를 통한 fallback 처리
           if (!userId) {
             try {
-              const userData = await get(`${API_BASE_URL}/api/user/mypage`);
+              const userData = await get(`${API_BASE_URL}/api/user/profile`);
               if (userData && userData.userId) {
                 localStorage.setItem("userId", userData.userId.toString());
               }

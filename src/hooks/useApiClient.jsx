@@ -160,7 +160,7 @@ export const useApiClient = () => {
     (url, data) =>
       apiRequest(url, {
         method: "DELETE",
-        body: data ? JSON.stringify(data) : undefined,
+        ...(data === undefined ? {} : { body: JSON.stringify(data) }),
       }),
     [apiRequest]
   );

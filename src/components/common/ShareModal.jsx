@@ -13,13 +13,15 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
 
   useEffect(() => {
     getShareLink();
-    if (isOwner) { getEditors(); }
+    if (isOwner) {
+      getEditors();
+    }
   }, [id]);
 
   const removeEditorAccessByOwner = async (targetUserId) => {
     try {
       const response = await del(
-        `${BASE_URL}/api/plan/${id}/editors/${targetUserId}`
+        `${BASE_URL}/api/plan/${id}/editors/${targetUserId}`,
       );
       console.log(response);
       getEditors();
@@ -32,7 +34,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
     try {
       const response = await get(`${BASE_URL}/api/plan/${id}/editors`);
       console.log(response);
-      setEditors(response.simpleEditorVOs || []);
+      setEditors(response.editors || []);
     } catch (error) {
       console.error("에디터 조회에 실패했습니다:", error);
     }
@@ -57,7 +59,9 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
   const getShareLink = async () => {
     try {
       const response = await get(`${BASE_URL}/api/plan/${id}/share`);
-      setShareURL(response.sharedPlanUrl || "");
+      setShareURL(
+        response.isShared ? `${window.location.origin}/complete?id=${id}` : "",
+      );
     } catch (error) {
       console.error("공유 링크 조회 실패", error);
     }
@@ -72,7 +76,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
     if (await showConfirm("편집 권한을 포기하시겠습니까?")) {
       try {
         const response = await del(
-          `${import.meta.env.VITE_API_URL}/api/plan/${id}/editor/me`
+          `${import.meta.env.VITE_API_URL}/api/plan/${id}/editor/me`,
         );
         console.log(response);
         SuccessToast("편집 권한을 포기했습니다.");
@@ -118,7 +122,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
           </div>
         </div>
 
-        {isOwner &&
+        {isOwner && (
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               편집 권한이 있는 사용자
@@ -145,7 +149,8 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
                 </div>
               )}
             </div>
-          </div>}
+          </div>
+        )}
 
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -168,7 +173,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
           </div>
         </div>
 
-        {!isOwner &&
+        {!isOwner && (
           <div className="mt-6">
             <button
               onClick={resignEditorAccess}
@@ -177,7 +182,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
               편집 권한 포기하기
             </button>
           </div>
-        }
+        )}
       </div>
     </div>
   );
