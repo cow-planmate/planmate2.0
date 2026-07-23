@@ -66,15 +66,20 @@ export const PlanSelectionModal: React.FC<PlanSelectionModalProps> = ({
                     <h4 className="text-lg font-bold text-[#1a1a1a] mb-1">
                       {plan.planName || plan.title}
                     </h4>
+                    {/* v2 목록 응답은 planId/planName만 준다 — 나머지는 있을 때만 노출 */}
                     <div className="flex items-center gap-4 text-sm text-[#666666]">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        {plan.destination || '여행지'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {plan.duration || `${plan.startDate} ~ ${plan.endDate}`}
-                      </span>
+                      {plan.destination && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-4 h-4" />
+                          {plan.destination}
+                        </span>
+                      )}
+                      {(plan.duration || (plan.startDate && plan.endDate)) && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {plan.duration || `${plan.startDate} ~ ${plan.endDate}`}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {plan.startDate && (
@@ -94,7 +99,7 @@ export const PlanSelectionModal: React.FC<PlanSelectionModalProps> = ({
             ))
           ) : (
             <div className="text-center py-12 text-gray-500">
-              검색 결과가 없습니다.
+              {planSearch ? '검색 결과가 없습니다.' : '가져올 수 있는 플랜이 없습니다.'}
             </div>
           )}
         </div>

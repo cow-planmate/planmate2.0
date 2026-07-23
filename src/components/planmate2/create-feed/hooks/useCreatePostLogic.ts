@@ -7,73 +7,6 @@ import { useCreatePost } from '../../community/hooks/queries';
 import { blocksToText } from '../../community/utils/blocksToText';
 import { normalizeRegion } from '../../feed/utils/region';
 
-// --- Mock Data ---
-const MY_PLANS = [
-    {
-      id: 1,
-      title: '서울 3박 4일 여행',
-      destination: '서울특별시 종로구',
-      duration: '3박 4일',
-      startDate: '2024.03.15',
-      endDate: '2024.03.18',
-      schedule: [
-        {
-          day: 1,
-          date: '2024.03.15',
-          items: [
-            { time: '10:00', place: '경복궁', description: '조선시대 궁궐 관람' },
-            { time: '12:30', place: '토속촌 삼계탕', description: '점심식사' },
-            { time: '14:00', place: '북촌한옥마을', description: '전통 한옥 거리 산책' },
-          ],
-        },
-        {
-          day: 2,
-          date: '2024.03.16',
-          items: [
-            { time: '10:30', place: '코엑스 별마당 도서관', description: '포토존 및 카페' },
-            { time: '14:00', place: '가로수길', description: '카페 투어' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: '제주도 힐링 여행',
-      destination: '제주특별자치도 제주시',
-      duration: '4박 5일',
-      startDate: '2024.04.01',
-      endDate: '2024.04.05',
-      schedule: [
-        {
-          day: 1,
-          date: '2024.04.01',
-          items: [
-            { time: '11:00', place: '성산일출봉', description: '일출 명소' },
-            { time: '14:00', place: '섭지코지', description: '해안 산책로' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 3,
-      title: '부산 바다 여행',
-      destination: '부산광역시 해운대구',
-      duration: '2박 3일',
-      startDate: '2024.05.10',
-      endDate: '2024.05.12',
-      schedule: [
-        {
-          day: 1,
-          date: '2024.05.10',
-          items: [
-            { time: '10:00', place: '해운대 해수욕장', description: '해변 산책' },
-            { time: '15:00', place: '광안리', description: '광안대교 야경' },
-          ],
-        },
-      ],
-    },
-  ];
-
 export const useCreatePostLogic = (onSubmitCallback: () => void) => {
   const { apiRequest } = useApiClient();
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -154,20 +87,20 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
     }
   }, [showPlanModal]);
 
+  // Backend-v2: 내 플랜 목록은 프로필 응답에 포함된다 (구 /api/plan/my 는 없음)
   const fetchMyPlans = async () => {
     setLoadingPlans(true);
     try {
-      const data = await apiRequest(`${BASE_URL}/api/plan/my`);
-      const allPlans = [...(data.myPlans || []), ...(data.editablePlans || [])];
-      
-      if (allPlans.length === 0) {
-        setPlans(MY_PLANS);
-      } else {
-        setPlans(allPlans);
-      }
+      const data = await apiRequest(`${BASE_URL}/api/user/profile`);
+      const allPlans = [...(data?.myPlans ?? []), ...(data?.editablePlans ?? [])];
+      // 소유 + 편집권한 플랜이 겹칠 수 있으므로 planId 기준 중복 제거
+      const unique = Array.from(
+        new Map(allPlans.map((p: any) => [p.planId, p])).values()
+      );
+      setPlans(unique);
     } catch (err) {
       console.error('플랜 로드 실패:', err);
-      setPlans(MY_PLANS);
+      setPlans([]);
     } finally {
       setLoadingPlans(false);
     }
@@ -186,9 +119,11 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
         const details = await apiRequest(`${BASE_URL}/api/plan/${plan.planId}/complete`);
         const { planFrame, timetables, placeBlocks } = details;
         
-        const fullDestination = planFrame.travelCategoryName && planFrame.travelName 
-          ? (planFrame.travelName.includes(planFrame.travelCategoryName) ? planFrame.travelName : `${planFrame.travelCategoryName} ${planFrame.travelName}`)
-          : (planFrame.travelName || '');
+        // v2: destinationName(평면), 레거시: travelCategoryName + travelName(계층)
+        const travelName = planFrame.destinationName ?? planFrame.travelName ?? '';
+        const fullDestination = planFrame.travelCategoryName && travelName
+          ? (travelName.includes(planFrame.travelCategoryName) ? travelName : `${planFrame.travelCategoryName} ${travelName}`)
+          : travelName;
         setDestination(fullDestination);
         
         if (timetables && timetables.length > 0) {
@@ -199,18 +134,23 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
           setDuration(`${n}박 ${d}일`);
         }
         
-        const scheduleData = timetables.map((tt: any, idx: number) => ({
-          day: idx + 1,
-          date: tt.date,
-          items: placeBlocks
-            .filter((pb: any) => pb.timeTableId === tt.timetableId)
-            .sort((a: any, b: any) => (a.startTime || '').localeCompare(b.startTime || ''))
-            .map((pb: any) => ({
-              time: pb.startTime ? pb.startTime.substring(0, 5) : '00:00',
-              place: pb.placeName,
-              description: pb.placeAddress
-            }))
-        }));
+        // v2 필드명: timeTableId / blockStartTime (레거시: timetableId / startTime)
+        const blockStartTime = (pb: any) => pb.blockStartTime ?? pb.startTime ?? '';
+        const scheduleData = timetables.map((tt: any, idx: number) => {
+          const timetableId = tt.timeTableId ?? tt.timetableId;
+          return {
+            day: idx + 1,
+            date: tt.date,
+            items: placeBlocks
+              .filter((pb: any) => (pb.timeTableId ?? pb.timetableId) === timetableId)
+              .sort((a: any, b: any) => blockStartTime(a).localeCompare(blockStartTime(b)))
+              .map((pb: any) => ({
+                time: blockStartTime(pb) ? blockStartTime(pb).substring(0, 5) : '00:00',
+                place: pb.placeName,
+                description: pb.placeAddress
+              }))
+          };
+        });
         setSchedule(scheduleData);
       } catch (err) {
         console.error('플랜 상세 정보 로드 실패:', err);
