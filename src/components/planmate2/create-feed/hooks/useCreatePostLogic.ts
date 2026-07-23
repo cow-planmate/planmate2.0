@@ -35,23 +35,18 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
 
   useEffect(() => {
     const fetchDestinations = async () => {
+      // 여행지 목록: Backend-v2 /api/destination (평면 {destinations:[{destinationId, destinationName}]})
       try {
-        // Backend-v2: 여행지 목록은 /api/destination (구 /api/travel). 평면 목록 {destinations:[{destinationId, destinationName}]}
         const res = await apiRequest(`${BASE_URL}/api/destination`);
-        // 구 Backend(/api/travel) 응답(res.travels)과도 호환
-        const list = res?.destinations ?? res?.travels ?? [];
+        const list = res?.destinations ?? [];
         const travels = list.map((d: any) => ({
-          travelId: d.destinationId ?? d.travelId,
-          travelName: d.destinationName ?? d.travelName,
-          travelCategoryName: d.travelCategoryName, // v2엔 없음(평면) → undefined
+          travelId: d.destinationId,
+          travelName: d.destinationName,
         }));
         setAvailableTravels(travels);
-        // 카테고리(시/도) 계층이 있으면 유지(레거시), 없으면 평면 목록으로 노출(v2)
-        const categories = Array.from(
-          new Set(travels.map((t: any) => t.travelCategoryName).filter(Boolean))
-        ) as string[];
-        setTravelCategories(categories);
-        setSelectedCategory(categories.length > 0 ? categories[0] : '');
+        // v2는 평면 목록이라 시/도 카테고리 계층이 없다
+        setTravelCategories([]);
+        setSelectedCategory('');
       } catch (err) {
         console.error('Failed to fetch destinations:', err);
       }
@@ -76,9 +71,21 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
     },
   ], []);
 
+  // 업로드 실패를 알리지 않으면 에디터가 'Loading...'에 머물러 원인을 알 수 없다
+  const uploadFile = async (file: File) => {
+    try {
+      return await uploadImage(file);
+    } catch (error) {
+      alert(`이미지 업로드에 실패했습니다: ${(error as Error).message}`);
+      throw error;
+    }
+  };
+
   const editor = useCreateBlockNote({
     dictionary: ko,
     initialContent,
+    // '/이미지' 명령 및 이미지 삽입 → 커뮤니티 이미지 API (MinIO)
+    uploadFile,
   });
 
   useEffect(() => {
