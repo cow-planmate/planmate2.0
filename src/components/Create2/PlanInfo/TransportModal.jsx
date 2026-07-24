@@ -5,7 +5,7 @@ import usePlanStore from "../../../store/Plan";
 const TransportModal = ({
   setIsTransportOpen,
 }) => {
-  const { transportationCategoryId, setPlanField } = usePlanStore();
+  const { transportationType, setPlanField } = usePlanStore();
 
   return (
     <div
@@ -26,9 +26,9 @@ const TransportModal = ({
 
         <div className="grid grid-cols-2 gap-4">
           <button
-            onClick={() => setPlanField("transportationCategoryId", 0)}
+            onClick={() => setPlanField("transportationType", "PUBLIC")}
             className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center gap-3 ${
-              transportationCategoryId === 0
+              transportationType === "PUBLIC"
                 ? "border-main bg-blue-50"
                 : "border-gray-300 hover:border-gray-400"
             }`}
@@ -38,9 +38,9 @@ const TransportModal = ({
           </button>
 
           <button
-            onClick={() => setPlanField("transportationCategoryId", 1)}
+            onClick={() => setPlanField("transportationType", "PRIVATE")}
             className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center gap-3 ${
-              transportationCategoryId === 1
+              transportationType === "PRIVATE"
                 ? "border-main bg-blue-50"
                 : "border-gray-300 hover:border-gray-400"
             }`}

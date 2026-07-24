@@ -12,7 +12,7 @@ import Snowy from "../../assets/imgs/weather/snowy-6.svg";               // 눈
 import Sonagi from "../../assets/imgs/weather/sonagi.svg";               // 소나기
 import Thunderstorms from "../../assets/imgs/weather/thunderstorms.svg"; // 뇌우
 
-export default function Weather({ timetables, selectedDay, travelCategoryName, travelName, travelId }) {
+export default function Weather({ timetables, selectedDay, destinationName, destinationId }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   const { post } = useApiClient();
@@ -39,10 +39,10 @@ export default function Weather({ timetables, selectedDay, travelCategoryName, t
       const startDate = timetables?.[0]?.date;
       const endDate = timetables?.[timetables.length - 1]?.date;
 
-      if (timetables && travelCategoryName && travelName && travelId) {
+      if (timetables && destinationName && destinationId) {
         try {
           const weatherData = await post(`${BASE_URL}/api/weather/recommendations`, {
-            city: `${travelCategoryName} ${travelName}`,
+            city: destinationName,
             start_date: startDate,
             end_date: endDate,
           });
@@ -53,7 +53,7 @@ export default function Weather({ timetables, selectedDay, travelCategoryName, t
       }
     }
     loadWeather();
-  }, [timetables, travelCategoryName, travelName, travelId])
+  }, [timetables, destinationName, destinationId])
 
   useEffect(() => {
     const dayWeather = weather.weather?.[selectedDay];

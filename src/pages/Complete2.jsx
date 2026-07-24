@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useApiClient } from "../hooks/useApiClient";
-import { getTimeSlotIndex } from "../utils/createUtils";
+import { BLOCK_CATEGORY_TO_ID, getTimeSlotIndex } from "../utils/createUtils";
 
 import { faCalendar, faMap } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -107,15 +107,13 @@ function App() {
 
     const place = {
       placeId: block.placeId,
-      categoryId: block.placeCategoryId,
-      url: block.placeLink,
+      categoryId: BLOCK_CATEGORY_TO_ID[block.blockCategory] ?? null,
       name: block.placeName,
       formatted_address: block.placeAddress,
-      rating: block.placeRating,
-      iconUrl: block.photoUrl || "./src/assets/imgs/default.png",
-      photoUrl: block.photoUrl,
-      xlocation: block.xLocation || block.xlocation,
-      ylocation: block.yLocation || block.ylocation,
+      iconUrl: block.placeThumbnailUrl || "./src/assets/imgs/default.png",
+      photoUrl: block.placeThumbnailUrl,
+      xlocation: block.longitude,
+      ylocation: block.latitude,
       memo: block.memo,
     };
 

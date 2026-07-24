@@ -7,7 +7,7 @@ import { formatTime, getTimeTableId } from "../../../utils/createUtils";
 import Weather from '../../common/Weather';
 
 const TimetableGrid = React.forwardRef(({ items, preview, onResizeEnd, showTimetable }, ref) => {
-  const { travelCategoryName, travelName, travelId } = usePlanStore();
+  const { destinationName, destinationId } = usePlanStore();
   const { TOTAL_SLOTS, SLOT_HEIGHT, selectedDay, timetables } = useTimetableStore();
   const { setNodeRef } = useDroppable({ id: 'timetable-area' });
   // ref merge (for scrolling calculation in parent)
@@ -22,9 +22,8 @@ const TimetableGrid = React.forwardRef(({ items, preview, onResizeEnd, showTimet
       <Weather
         timetables={timetables}
         selectedDay={selectedDay}
-        travelCategoryName={travelCategoryName}
-        travelName={travelName}
-        travelId={travelId}
+        destinationName={destinationName}
+        destinationId={destinationId}
       />
       <div className="h-full flex flex-col overflow-hidden relative py-4 px-5 overflow-y-auto overflow-x-hidden">
         <div className="md:hidden block py-1">
