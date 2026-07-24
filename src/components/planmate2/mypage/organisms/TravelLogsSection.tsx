@@ -1,31 +1,52 @@
 import { BookOpen, Copy, Heart, MessageCircle, PenTool } from 'lucide-react';
 import React from 'react';
+import { Pagination } from '../../community/atoms/Pagination';
 
 interface TravelLogsSectionProps {
   travelTab: 'created' | 'forked' | 'liked';
   setTravelTab: (tab: 'created' | 'forked' | 'liked') => void;
   myTravelPosts: any[];
+  myTravelPostsCount?: number;
   forkedTravelPosts: any[];
   likedTravelPosts: any[];
+  /** 다른 사용자의 프로필 — 공개 목록인 작성한 여행기만 노출한다 */
+  isOtherUser?: boolean;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
   onNavigateDetail: (post: any) => void;
 }
+
+const EmptyState: React.FC<{ message: string }> = ({ message }) => (
+  <div className="col-span-full bg-white rounded-xl shadow-md py-16 text-center text-[#999999]">
+    <BookOpen className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+    <p className="text-sm">{message}</p>
+  </div>
+);
 
 export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
   travelTab,
   setTravelTab,
   myTravelPosts,
+  myTravelPostsCount,
   forkedTravelPosts,
   likedTravelPosts,
+  isOtherUser = false,
+  page,
+  totalPages,
+  onPageChange,
   onNavigateDetail,
 }) => {
+  const currentTab = isOtherUser ? 'created' : travelTab;
+
   return (
     <>
       <div className="my-10 border-t border-gray-200"></div>
-      
+
       <div className="flex items-center gap-2 mb-6">
         <BookOpen className="w-6 h-6 text-[#1344FF]" />
-        <h3 className="text-xl font-bold text-[#1a1a1a]">나의 여행기</h3>
-        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{myTravelPosts.length}</span>
+        <h3 className="text-xl font-bold text-[#1a1a1a]">{isOtherUser ? '여행기' : '나의 여행기'}</h3>
+        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{myTravelPostsCount ?? myTravelPosts.length}</span>
       </div>
 
       <div className="bg-white rounded-xl shadow-md mb-6 overflow-hidden">
@@ -33,7 +54,7 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
           <button
             onClick={() => setTravelTab('created')}
             className={`flex-1 py-4 transition-all flex items-center justify-center gap-2 ${
-              travelTab === 'created'
+              currentTab === 'created'
                 ? 'text-[#1344FF] border-b-2 border-[#1344FF] bg-blue-50/50'
                 : 'text-[#666666] hover:text-[#1344FF] hover:bg-gray-50'
             }`}
@@ -41,33 +62,47 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
             <PenTool className="w-4 h-4" />
             <span className="font-medium">작성한 여행기</span>
           </button>
-          <button
-            onClick={() => setTravelTab('forked')}
-            className={`flex-1 py-4 transition-all flex items-center justify-center gap-2 ${
-              travelTab === 'forked'
-                ? 'text-[#1344FF] border-b-2 border-[#1344FF] bg-blue-50/50'
-                : 'text-[#666666] hover:text-[#1344FF] hover:bg-gray-50'
-            }`}
-          >
-            <Copy className="w-4 h-4" />
-            <span className="font-medium">가져온 여행</span>
-          </button>
-          <button
-            onClick={() => setTravelTab('liked')}
-            className={`flex-1 py-4 transition-all flex items-center justify-center gap-2 ${
-              travelTab === 'liked'
-                ? 'text-[#1344FF] border-b-2 border-[#1344FF] bg-blue-50/50'
-                : 'text-[#666666] hover:text-[#1344FF] hover:bg-gray-50'
-            }`}
-          >
-            <Heart className="w-4 h-4" />
-            <span className="font-medium">좋아요한 여행</span>
-          </button>
+          {!isOtherUser && (
+            <>
+              <button
+                onClick={() => setTravelTab('forked')}
+                className={`flex-1 py-4 transition-all flex items-center justify-center gap-2 ${
+                  currentTab === 'forked'
+                    ? 'text-[#1344FF] border-b-2 border-[#1344FF] bg-blue-50/50'
+                    : 'text-[#666666] hover:text-[#1344FF] hover:bg-gray-50'
+                }`}
+              >
+                <Copy className="w-4 h-4" />
+                <span className="font-medium">가져온 여행</span>
+              </button>
+              <button
+                onClick={() => setTravelTab('liked')}
+                className={`flex-1 py-4 transition-all flex items-center justify-center gap-2 ${
+                  currentTab === 'liked'
+                    ? 'text-[#1344FF] border-b-2 border-[#1344FF] bg-blue-50/50'
+                    : 'text-[#666666] hover:text-[#1344FF] hover:bg-gray-50'
+                }`}
+              >
+                <Heart className="w-4 h-4" />
+                <span className="font-medium">좋아요한 여행</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {travelTab === 'created' && myTravelPosts.map(post => (
+        {currentTab === 'created' && myTravelPosts.length === 0 && (
+          <EmptyState message={isOtherUser ? '아직 작성한 여행기가 없습니다.' : '아직 작성한 여행기가 없습니다. 완성한 일정을 피드에 공유해 보세요!'} />
+        )}
+        {currentTab === 'forked' && forkedTravelPosts.length === 0 && (
+          <EmptyState message="아직 가져온 여행이 없습니다. 마음에 드는 여행기의 일정을 가져와 보세요!" />
+        )}
+        {currentTab === 'liked' && likedTravelPosts.length === 0 && (
+          <EmptyState message="아직 좋아요한 여행이 없습니다." />
+        )}
+
+        {currentTab === 'created' && myTravelPosts.map(post => (
           <div
             key={post.id}
             onClick={() => onNavigateDetail(post)}
@@ -109,7 +144,7 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
           </div>
         ))}
 
-        {travelTab === 'forked' && forkedTravelPosts.map(post => (
+        {currentTab === 'forked' && forkedTravelPosts.map(post => (
            <div
              key={post.id}
              onClick={() => onNavigateDetail(post)}
@@ -150,7 +185,7 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
            </div>
         ))}
 
-        {travelTab === 'liked' && likedTravelPosts.map(post => (
+        {currentTab === 'liked' && likedTravelPosts.map(post => (
           <div
             key={post.id}
             onClick={() => onNavigateDetail(post)}
@@ -190,6 +225,10 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mb-12">
+        <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
       </div>
     </>
   );

@@ -1,12 +1,17 @@
 import { ChevronRight, MessageSquare, Users2 } from 'lucide-react';
 import React from 'react';
+import { Pagination } from '../../community/atoms/Pagination';
 
 interface CommunityActivitySectionProps {
   communityTab: 'written' | 'liked' | 'comments';
   setCommunityTab: (tab: 'written' | 'liked' | 'comments') => void;
   myCommunityPosts: any[];
+  myCommunityPostsCount?: number;
   likedCommunityPosts: any[];
   myComments: any[];
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
   onNavigateDetail: (post: { id: number; category: string }) => void;
 }
 
@@ -14,16 +19,24 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
   communityTab,
   setCommunityTab,
   myCommunityPosts,
+  myCommunityPostsCount,
   likedCommunityPosts,
   myComments,
+  page,
+  totalPages,
+  onPageChange,
   onNavigateDetail,
 }) => {
+  const currentList =
+    communityTab === 'written' ? myCommunityPosts
+    : communityTab === 'liked' ? likedCommunityPosts
+    : myComments;
   return (
     <>
       <div className="flex items-center gap-2 mb-6">
         <Users2 className="w-6 h-6 text-[#1344FF]" />
         <h3 className="text-xl font-bold text-[#1a1a1a]">커뮤니티 활동</h3>
-        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{myCommunityPosts.length}</span>
+        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{myCommunityPostsCount ?? myCommunityPosts.length}</span>
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-12">
@@ -136,7 +149,17 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
               </div>
             </div>
           ))}
+
+          {currentList.length === 0 && (
+            <div className="py-14 text-center text-[#999999] text-sm">
+              {communityTab === 'written' ? '작성한 글이 없습니다.'
+                : communityTab === 'liked' ? '좋아요한 글이 없습니다.'
+                : '작성한 댓글이 없습니다.'}
+            </div>
+          )}
         </div>
+
+        <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
       </div>
     </>
   );

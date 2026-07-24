@@ -11,10 +11,12 @@ import {
   fetchHotPosts,
   fetchLikedPosts,
   fetchMyComments,
+  fetchMyForks,
   fetchMyPosts,
   fetchMyStats,
   fetchPost,
   fetchPosts,
+  fetchUserPosts,
   forkPost,
   joinMate,
   leaveMate,
@@ -32,6 +34,7 @@ const KEYS = {
   post: (postId: number | string) => ['community', 'post', String(postId)] as const,
   comments: (postId: number | string) => ['community', 'comments', String(postId)] as const,
   me: (tab: string, page: number) => ['community', 'me', tab, page] as const,
+  userPosts: (userId: string, category: string, page: number) => ['community', 'user', userId, category, page] as const,
 };
 
 // ── 조회 ─────────────────────────────────────────────────────────────────
@@ -81,14 +84,31 @@ export const useComments = (postId: number | string | undefined, page = 0) =>
     enabled: postId !== undefined && postId !== null && postId !== '',
   });
 
-export const useMyActivity = (tab: 'posts' | 'liked' | 'comments', page = 0) =>
+/**
+ * 내 커뮤니티 활동 목록.
+ * @param category 게시판 필터 (마이페이지 여행기 = 'feed', 미지정 시 전체) — posts/liked에만 적용
+ * @param enabled  다른 사용자 프로필을 볼 때처럼 내 활동이 필요 없으면 false
+ */
+export const useMyActivity = (
+  tab: 'posts' | 'liked' | 'comments' | 'forks', page = 0, category?: string, enabled = true,
+) =>
   useQuery({
-    queryKey: KEYS.me(tab, page),
+    queryKey: KEYS.me(category ? `${tab}:${category}` : tab, page),
     queryFn: () => {
-      if (tab === 'posts') return fetchMyPosts(page);
-      if (tab === 'liked') return fetchLikedPosts(page);
+      if (tab === 'posts') return fetchMyPosts(page, 20, category);
+      if (tab === 'liked') return fetchLikedPosts(page, 20, category);
+      if (tab === 'forks') return fetchMyForks(page);
       return fetchMyComments(page);
     },
+    enabled,
+  });
+
+// 다른 사용자의 프로필에 노출되는 공개 목록 (여행기 등)
+export const useUserPosts = (userId: string | undefined, category: string, page = 0) =>
+  useQuery({
+    queryKey: KEYS.userPosts(userId ?? '', category, page),
+    queryFn: () => fetchUserPosts(userId!, category, page),
+    enabled: !!userId,
   });
 
 export const useMyStats = () =>

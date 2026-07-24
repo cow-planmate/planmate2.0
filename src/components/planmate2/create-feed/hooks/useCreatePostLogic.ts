@@ -2,9 +2,10 @@ import { ko } from "@blocknote/core/locales";
 import { useCreateBlockNote } from "@blocknote/react";
 import { useEffect, useMemo, useState } from 'react';
 import { useApiClient } from '../../../../hooks/useApiClient';
-import { uploadImage, type ItineraryDay } from '../../community/api/communityApi';
+import { deleteImage, uploadImage, type ItineraryDay } from '../../community/api/communityApi';
 import { useCreatePost } from '../../community/hooks/queries';
 import { blocksToText } from '../../community/utils/blocksToText';
+import { fileToDataUrl, resolveContentImages } from '../../community/utils/pendingImages';
 import { normalizeRegion } from '../../feed/utils/region';
 
 export const useCreatePostLogic = (onSubmitCallback: () => void) => {
@@ -71,12 +72,13 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
     },
   ], []);
 
-  // 업로드 실패를 알리지 않으면 에디터가 'Loading...'에 머물러 원인을 알 수 없다
+  // 삽입 시엔 서버에 올리지 않고 data: URL로만 둔다 (실제 업로드는 등록 시 resolveContentImages에서).
+  // 등록하지 않고 이탈한 draft의 이미지가 MinIO에 고아로 남는 것을 방지한다.
   const uploadFile = async (file: File) => {
     try {
-      return await uploadImage(file);
+      return await fileToDataUrl(file);
     } catch (error) {
-      alert(`이미지 업로드에 실패했습니다: ${(error as Error).message}`);
+      alert(`이미지를 불러오지 못했습니다: ${(error as Error).message}`);
       throw error;
     }
   };
@@ -199,9 +201,17 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
       return;
     }
 
+    const uploadedUrls: string[] = [];
     try {
       const thumbnailUrl = await resolveThumbnailUrl();
-      const blocks = editor.document as any[];
+      // 커버가 data: URL이었다면 이번에 새로 업로드된 것 → 실패 시 정리 대상
+      if (thumbnailUrl && coverImage?.startsWith('data:')) {
+        uploadedUrls.push(thumbnailUrl);
+      }
+      // 등록 시점에만 본문의 data: 이미지를 MinIO에 업로드해 URL로 교체한다
+      const resolved = await resolveContentImages(editor.document as any[], uploadImage);
+      uploadedUrls.push(...resolved.uploadedUrls);
+      const blocks = resolved.blocks;
       const contentText = [description, blocksToText(blocks)].filter(Boolean).join('\n').trim();
 
       const itineraryDays: ItineraryDay[] = schedule.map((d: any) => ({
@@ -231,6 +241,8 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
       alert('여행기가 성공적으로 작성되었습니다!');
       onSubmitCallback();
     } catch (err) {
+      // 등록 실패 시 방금 올린 커버/본문 이미지는 고아가 되므로 정리한다
+      uploadedUrls.forEach((url) => deleteImage(url).catch(() => {}));
       alert(`여행기 등록에 실패했습니다: ${(err as Error).message}`);
     }
   };

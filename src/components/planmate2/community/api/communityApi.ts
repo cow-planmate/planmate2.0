@@ -54,6 +54,8 @@ export interface CommunityPostSummary {
   forks?: number;
   tags?: string[];
   description?: string;
+  // 내 활동 목록 전용 — 좋아요/가져가기를 한 시각 (ISO)
+  actedAt?: string;
 }
 
 export interface CommunityPostDetail extends CommunityPostSummary {
@@ -185,6 +187,14 @@ export const fetchFeedPosts = async (
   return mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/posts?${params}`));
 };
 
+/** 특정 사용자가 쓴 글 (프로필 페이지 — 다른 사용자의 여행기) */
+export const fetchUserPosts = async (
+  userId: string, category: string, page = 0, size = 20,
+): Promise<PageData<CommunityPostSummary>> => {
+  const params = new URLSearchParams({ category, userId, page: String(page), size: String(size), sort: 'latest' });
+  return mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/posts?${params}`));
+};
+
 export const fetchFeedRegionCounts = async (): Promise<RegionCount[]> =>
   request<RegionCount[]>('/api/community/posts/regions?category=feed');
 
@@ -212,6 +222,19 @@ export const mapFeedPost = (post: CommunityPostSummary & { createdAtIso: string 
 });
 
 export type FeedCardPost = ReturnType<typeof mapFeedPost>;
+
+/** 마이페이지 "가져온 여행" 카드 — 원작자와 가져간 시각을 덧붙인다 */
+export const mapForkedFeedPost = (post: CommunityPostSummary & { createdAtIso: string }) => ({
+  ...mapFeedPost(post),
+  originalAuthor: post.author,
+  forkedAt: timeAgo(post.actedAt),
+});
+
+/** 마이페이지 "좋아요한 여행" 카드 — 좋아요한 시각을 덧붙인다 */
+export const mapLikedFeedPost = (post: CommunityPostSummary & { createdAtIso: string }) => ({
+  ...mapFeedPost(post),
+  likedAt: timeAgo(post.actedAt),
+});
 
 export const fetchHotPosts = async (category: string): Promise<CommunityPostSummary[]> => {
   const posts = await request<CommunityPostSummary[]>(`/api/community/posts/hot?category=${category}`);
@@ -301,11 +324,22 @@ export const updateAnswered = async (postId: number, isAnswered: boolean): Promi
   }));
 
 // ── 내 활동 ──────────────────────────────────────────────────────────────
-export const fetchMyPosts = async (page = 0, size = 20): Promise<PageData<CommunityPostSummary>> =>
-  mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/me/posts?page=${page}&size=${size}`));
+// category를 주면 해당 게시판만 (마이페이지 여행기 = feed)
+const myActivityQuery = (page: number, size: number, category?: string) => {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (category) params.set('category', category);
+  return params.toString();
+};
 
-export const fetchLikedPosts = async (page = 0, size = 20): Promise<PageData<CommunityPostSummary>> =>
-  mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/me/liked?page=${page}&size=${size}`));
+export const fetchMyPosts = async (page = 0, size = 20, category?: string): Promise<PageData<CommunityPostSummary>> =>
+  mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/me/posts?${myActivityQuery(page, size, category)}`));
+
+export const fetchLikedPosts = async (page = 0, size = 20, category?: string): Promise<PageData<CommunityPostSummary>> =>
+  mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/me/liked?${myActivityQuery(page, size, category)}`));
+
+/** 내가 가져간(포크한) 피드 글 — 가져간 시각 최신순 */
+export const fetchMyForks = async (page = 0, size = 20): Promise<PageData<CommunityPostSummary>> =>
+  mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/me/forks?page=${page}&size=${size}`));
 
 export const fetchMyComments = async (page = 0, size = 20): Promise<PageData<CommunityComment>> =>
   mapPage(await request<PageData<CommunityComment>>(`/api/community/me/comments?page=${page}&size=${size}`));
@@ -322,4 +356,11 @@ export const uploadImage = async (file: File): Promise<string> => {
     body: formData,
   });
   return res.url;
+};
+
+/** 업로드된 이미지 삭제 (등록/수정 실패 시 방금 올린 이미지 정리용) */
+export const deleteImage = async (url: string): Promise<void> => {
+  await request<void>(`/api/community/images?url=${encodeURIComponent(url)}`, {
+    method: 'DELETE',
+  });
 };
