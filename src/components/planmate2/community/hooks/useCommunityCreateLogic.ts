@@ -1,8 +1,9 @@
 import { ko } from "@blocknote/core/locales";
 import { useCreateBlockNote } from "@blocknote/react";
 import { useEffect, useMemo, useState } from 'react';
-import { uploadImage } from '../api/communityApi';
+import { deleteImage, uploadImage } from '../api/communityApi';
 import { blocksToText } from '../utils/blocksToText';
+import { fileToDataUrl, resolveContentImages } from '../utils/pendingImages';
 import { useCreatePost, usePost, useUpdatePost } from './queries';
 
 /** 첫 번째 이미지 블록의 URL → 썸네일 */
@@ -40,12 +41,13 @@ export const useCommunityCreateLogic = (
     },
   ], []);
 
-  // 업로드 실패를 알리지 않으면 에디터가 'Loading...'에 머물러 원인을 알 수 없다
+  // 삽입 시엔 서버에 올리지 않고 data: URL로만 둔다 (실제 업로드는 등록 시 resolveContentImages에서).
+  // 등록하지 않고 이탈한 draft의 이미지가 MinIO에 고아로 남는 것을 방지한다.
   const uploadFile = async (file: File) => {
     try {
-      return await uploadImage(file);
+      return await fileToDataUrl(file);
     } catch (error) {
-      alert(`이미지 업로드에 실패했습니다: ${(error as Error).message}`);
+      alert(`이미지를 불러오지 못했습니다: ${(error as Error).message}`);
       throw error;
     }
   };
@@ -105,12 +107,14 @@ export const useCommunityCreateLogic = (
   };
 
   const handleSubmit = async () => {
-    const blocks = editor.document;
-    const contentText = blocksToText(blocks as any[]);
-    const thumbnailUrl = firstImageUrl(blocks as any[]);
+    const rawBlocks = editor.document as any[];
+    const contentText = blocksToText(rawBlocks);
+    // 검증은 업로드 전에 한다 — 유효성 실패 시 이미지가 서버에 올라가 고아가 되는 것을 막는다.
+    // 이미지 존재 여부만 보면 되므로 아직 data: URL이어도 무방하다.
+    const hasImage = firstImageUrl(rawBlocks) != null;
 
     // 이미지 블록은 평문이 없으므로, 사진만 올린 글도 내용이 있는 것으로 본다
-    if (!title.trim() || (contentText.trim().length === 0 && !thumbnailUrl)) {
+    if (!title.trim() || (contentText.trim().length === 0 && !hasImage)) {
       alert('제목과 내용을 모두 입력해주세요.');
       return;
     }
@@ -123,19 +127,25 @@ export const useCommunityCreateLogic = (
       return;
     }
 
-    const payload = {
-      title: title.trim(),
-      content: blocks,
-      contentText,
-      thumbnailUrl,
-      ...(type === 'recommend' && { location: location.trim(), rating: Number(rating) }),
-      ...(type === 'mate' && {
-        region: location.trim(),
-        maxParticipants: mateCount === 'unlimited' ? null : Number(mateCount),
-      }),
-    };
-
+    // 검증 통과 후에만 본문의 data: 이미지를 MinIO에 업로드해 URL로 교체한다
+    let uploadedUrls: string[] = [];
     try {
+      const resolved = await resolveContentImages(rawBlocks, uploadImage);
+      uploadedUrls = resolved.uploadedUrls;
+      const thumbnailUrl = firstImageUrl(resolved.blocks);
+
+      const payload = {
+        title: title.trim(),
+        content: resolved.blocks,
+        contentText,
+        thumbnailUrl,
+        ...(type === 'recommend' && { location: location.trim(), rating: Number(rating) }),
+        ...(type === 'mate' && {
+          region: location.trim(),
+          maxParticipants: mateCount === 'unlimited' ? null : Number(mateCount),
+        }),
+      };
+
       if (isEditMode) {
         await updatePostMutation.mutateAsync(payload);
       } else {
@@ -143,6 +153,8 @@ export const useCommunityCreateLogic = (
       }
       onSubmit();
     } catch (error) {
+      // 저장 실패 시 방금 올린 이미지는 고아가 되므로 정리한다
+      uploadedUrls.forEach((url) => deleteImage(url).catch(() => {}));
       alert(`게시글 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(error as Error).message}`);
     }
   };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApiClient } from '../../../../hooks/useApiClient';
 import useKakaoLoader from '../../../../hooks/useKakaoLoader';
@@ -8,13 +8,13 @@ import { useCalendar } from '../hooks/useCalendar';
 import { usePlanChecklists } from '../hooks/usePlanChecklists';
 import { useUserStats } from '../hooks/useUserStats';
 import {
-  FORKED_TRAVEL_POSTS,
-  LIKED_TRAVEL_POSTS,
-  MY_TRAVEL_POSTS,
-  FRIENDS_LIST,
-  CHAT_ROOMS
-} from '../mockData';
-import { useMyActivity } from '../../community/hooks/queries';
+  mapFeedPost,
+  mapForkedFeedPost,
+  mapLikedFeedPost,
+  type CommunityPostSummary,
+  type PageData,
+} from '../../community/api/communityApi';
+import { useMyActivity, useUserPosts } from '../../community/hooks/queries';
 import { CalendarSection } from '../organisms/CalendarSection';
 import { CommunityActivitySection } from '../organisms/CommunityActivitySection';
 import { MapSection } from '../organisms/MapSection';
@@ -22,8 +22,6 @@ import { MyPageModals } from '../organisms/MyPageModals';
 import { ProfileHeader } from '../organisms/ProfileHeader';
 import { TravelLogsSection } from '../organisms/TravelLogsSection';
 import { TripSection } from '../organisms/TripSection';
-import { SocialSection } from '../organisms/SocialSection';
-import { ChatModal } from '../../social/molecules/ChatModal';
 
 // @ts-ignore
 import gravatarUrl from "../../../../utils/gravatarUrl";
@@ -49,11 +47,62 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   const [travelTab, setTravelTab] = useState<'created' | 'forked' | 'liked'>('created');
   const [communityTab, setCommunityTab] = useState<'my_posts' | 'liked_posts' | 'comments'>('my_posts');
 
+  // 여행기 — 탭별 페이지(0-based). 탭 전환 시 1페이지로 리셋한다
+  const [travelPage, setTravelPage] = useState(0);
+  const changeTravelTab = (tab: 'created' | 'forked' | 'liked') => {
+    setTravelTab(tab);
+    setTravelPage(0);
+  };
+
+  // 커뮤니티 활동 — 탭별 페이지(0-based). 탭 전환 시 1페이지로 리셋한다
+  const [communityPage, setCommunityPage] = useState(0);
+  const changeCommunityTab = (tab: 'my_posts' | 'liked_posts' | 'comments') => {
+    setCommunityTab(tab);
+    setCommunityPage(0);
+  };
+
   // 커뮤니티 활동 (본인 프로필에서만 의미 있음 — me 엔드포인트)
-  const { data: myCommunityPostsPage } = useMyActivity('posts');
-  const { data: likedCommunityPostsPage } = useMyActivity('liked');
-  const { data: myCommunityCommentsPage } = useMyActivity('comments');
-  
+  // 여행기(feed)는 별도 "나의 여행기" 섹션에서 다루므로 커뮤니티 게시판만 조회한다.
+  // 활성 탭만 현재 페이지를 요청하고, 비활성 탭은 개수 배지용으로 1페이지만 유지한다.
+  const COMMUNITY_CATEGORIES = 'free,qna,mate,recommend';
+  const { data: myCommunityPostsPage } = useMyActivity('posts', communityTab === 'my_posts' ? communityPage : 0, COMMUNITY_CATEGORIES, !isOtherUser);
+  const { data: likedCommunityPostsPage } = useMyActivity('liked', communityTab === 'liked_posts' ? communityPage : 0, COMMUNITY_CATEGORIES, !isOtherUser);
+  const { data: myCommunityCommentsPage } = useMyActivity('comments', communityTab === 'comments' ? communityPage : 0, undefined, !isOtherUser);
+
+  const activeCommunityPage = (
+    communityTab === 'my_posts' ? myCommunityPostsPage
+    : communityTab === 'liked_posts' ? likedCommunityPostsPage
+    : myCommunityCommentsPage
+  ) as PageData<any> | undefined;
+
+  // 여행기 — 본인은 me 엔드포인트(작성/가져옴/좋아요), 다른 사용자는 공개 목록(작성글만).
+  // 활성 탭만 현재 페이지를 요청하고, 비활성 탭은 개수 배지용으로 1페이지만 유지한다.
+  const { data: myFeedPostsPage } = useMyActivity('posts', travelTab === 'created' ? travelPage : 0, 'feed', !isOtherUser);
+  const { data: forkedFeedPostsPage } = useMyActivity('forks', travelTab === 'forked' ? travelPage : 0, undefined, !isOtherUser);
+  const { data: likedFeedPostsPage } = useMyActivity('liked', travelTab === 'liked' ? travelPage : 0, 'feed', !isOtherUser);
+  const { data: userFeedPostsPage } = useUserPosts(isOtherUser ? userId : undefined, 'feed', travelPage);
+
+  const travelPostsPage = (isOtherUser ? userFeedPostsPage : myFeedPostsPage) as PageData<CommunityPostSummary> | undefined;
+  const myTravelPosts = useMemo(
+    () => (travelPostsPage?.items ?? []).map(mapFeedPost),
+    [travelPostsPage],
+  );
+  const forkedTravelPosts = useMemo(
+    () => ((forkedFeedPostsPage as PageData<CommunityPostSummary> | undefined)?.items ?? []).map(mapForkedFeedPost),
+    [forkedFeedPostsPage],
+  );
+  const likedTravelPosts = useMemo(
+    () => ((likedFeedPostsPage as PageData<CommunityPostSummary> | undefined)?.items ?? []).map(mapLikedFeedPost),
+    [likedFeedPostsPage],
+  );
+
+  // 다른 사용자 프로필은 작성글 탭만 노출하므로 항상 작성글 페이지를 기준으로 한다
+  const activeTravelPage = (
+    isOtherUser || travelTab === 'created' ? travelPostsPage
+    : travelTab === 'forked' ? forkedFeedPostsPage
+    : likedFeedPostsPage
+  ) as PageData<any> | undefined;
+
   const [date, setDate] = useState<Date>(new Date());
   
   // API 관련 상태
@@ -674,20 +723,29 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
 
         <TravelLogsSection
           travelTab={travelTab}
-          setTravelTab={setTravelTab}
-          myTravelPosts={MY_TRAVEL_POSTS}
-          forkedTravelPosts={FORKED_TRAVEL_POSTS}
-          likedTravelPosts={LIKED_TRAVEL_POSTS}
+          setTravelTab={changeTravelTab}
+          myTravelPosts={myTravelPosts}
+          myTravelPostsCount={travelPostsPage?.totalElements ?? myTravelPosts.length}
+          forkedTravelPosts={forkedTravelPosts}
+          likedTravelPosts={likedTravelPosts}
+          isOtherUser={!!isOtherUser}
+          page={travelPage}
+          totalPages={activeTravelPage?.totalPages ?? 1}
+          onPageChange={setTravelPage}
           onNavigateDetail={(post) => onNavigate('detail', { post })}
         />
 
         {!isOtherUser && (
           <CommunityActivitySection
             communityTab={communityTab === 'my_posts' ? 'written' : communityTab === 'liked_posts' ? 'liked' : 'comments'}
-            setCommunityTab={(tab) => setCommunityTab(tab === 'written' ? 'my_posts' : tab === 'liked' ? 'liked_posts' : 'comments')}
+            setCommunityTab={(tab) => changeCommunityTab(tab === 'written' ? 'my_posts' : tab === 'liked' ? 'liked_posts' : 'comments')}
             myCommunityPosts={(myCommunityPostsPage as any)?.items ?? []}
+            myCommunityPostsCount={(myCommunityPostsPage as any)?.totalElements}
             likedCommunityPosts={(likedCommunityPostsPage as any)?.items ?? []}
             myComments={(myCommunityCommentsPage as any)?.items ?? []}
+            page={communityPage}
+            totalPages={activeCommunityPage?.totalPages ?? 1}
+            onPageChange={setCommunityPage}
             onNavigateDetail={(post) => onNavigate('detail', { post })}
           />
         )}
