@@ -127,6 +127,9 @@ export const initStompClient = (id) => {
   client = new Client({
     webSocketFactory: () => socket,
     reconnectDelay: 3000,
+    connectHeaders: {
+      Authorization: `Bearer ${token}`,
+    },
     onConnect: (frame) => {
       console.log("✅ WebSocket 연결 완료:", frame);
       useSocketStore.getState().setConnected();
