@@ -122,11 +122,10 @@ function Home({ hideNavbar = false }) {
           planName:
             destinationLocation?.name.split(" ")[1] || "제목을 입력하세요",
           planId: -1,
-          travelCategoryName: destinationLocation?.name.split(" ")[0] || "",
-          travelName: destinationLocation?.name.split(" ")[1] || "",
-          travelId: destinationLocation?.id || null,
+          destinationName: destinationLocation?.name.split(" ")[1] || "",
+          destinationId: destinationLocation?.id || null,
           departure: departureLocation?.name || "",
-          transportationCategoryId: selectedTransport === "car" ? 1 : 0,
+          transportationType: selectedTransport === "car" ? "PRIVATE" : "PUBLIC",
           adultCount: Number(personCount.adults),
           childCount: Number(personCount.children),
         });
