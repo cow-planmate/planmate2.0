@@ -222,13 +222,18 @@ export default function Signup({
     if (isEmailVerifying) return;
     setIsEmailVerifying(true);
     try {
-      const response = await fetch(requestUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestPayload),
-      });
-
-      console.log("응답 HTTP 상태 코드:", response.status, response.statusText);
+      const response = await fetch(
+        `${BASE_URL}/api/auth/email/verification/confirm`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            verificationCode: formData.verificationCode,
+            purpose: "SIGN_UP",
+          }),
+        },
+      );
 
       if (!response.ok) {
         const error = await response.json().catch(() => null);
