@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
+import { groupThemesByCategory } from "../../shared/theme/category";
 
 export default function Theme({
   isOpen,
@@ -58,37 +59,13 @@ export default function Theme({
       const themeList = res.preferredThemes || [];
 
       if (Array.isArray(themeList) && themeList.length > 0) {
-        const categoryMap = {};
-        const categorizedKeywords = [];
-        const categoryList = [];
-
-        themeList.forEach((item) => {
-          const catId = item.preferredThemeCategoryId;
-          const catName = item.preferredThemeCategoryName;
-
-          if (!categoryMap[catId]) {
-            categoryMap[catId] = [];
-            categoryList.push({
-              id: catId,
-              name: catName,
-            });
-          }
-          categoryMap[catId].push(item);
-        });
-
-        categoryList.sort((a, b) => a.id - b.id);
-
-        categoryList.forEach((cat) => {
-          categorizedKeywords.push(categoryMap[cat.id] || []);
-        });
+        // v2 응답은 카테고리를 category enum 문자열로만 준다 (shared/theme/category 참고)
+        const { categories: categoryList, keywordsByStep: categorizedKeywords } =
+          groupThemesByCategory(themeList);
 
         setCategories(categoryList);
         setKeywordsByStep(categorizedKeywords);
 
-        const initialSelected = {};
-        categoryList.forEach((cat) => {
-          initialSelected[cat.id] = [];
-        });
         setAllSelectedKeywords((prev) => {
           const hasInitial =
             prev && Object.values(prev).some((arr) => arr && arr.length > 0);

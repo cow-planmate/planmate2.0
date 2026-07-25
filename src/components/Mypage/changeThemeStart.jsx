@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { useApiClient } from "../../hooks/useApiClient";
+import { toThemeUpdatesPayload } from "../../shared/theme/category";
 import { X, Heart, Check, ChevronRight } from "lucide-react";
 
 export default function Themestart({
@@ -26,28 +27,9 @@ export default function Themestart({
     setIsSaving(true);
 
     try {
-      const selectedData = Object.values(selectedThemeKeywords || {})
-        .flat()
-        .filter((item) => item && item.preferredThemeId !== -1)
-        .reduce((acc, item) => {
-          const categoryId = item.preferredThemeCategoryId;
-          const themeId = item.preferredThemeId;
-
-          if (!acc[categoryId]) {
-            acc[categoryId] = [];
-          }
-          acc[categoryId].push(themeId);
-          return acc;
-        }, {});
-
-      const themeUpdates = Object.entries(selectedData).map(
-        ([categoryId, themeIds]) => ({
-          preferredThemeCategoryId: parseInt(categoryId),
-          preferredThemeIds: themeIds,
-        }),
-      );
-
-      console.log("themeUpdates:", themeUpdates);
+      // v2 ChangePreferredThemesRequest는 Map<PreferredThemeCategory, List<Integer>>를 받는다.
+      // 예: { ATTRACTION: [1, 2], ACCOMMODATION: [], RESTAURANT: [21] }
+      const themeUpdates = toThemeUpdatesPayload(selectedThemeKeywords);
 
       await patch(`${BASE_URL}/api/user/preferredThemes`, {
         themeUpdates,

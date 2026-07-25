@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
+import {
+  categoryIdToName,
+  categoryKeyToId,
+} from "../../shared/theme/category";
 
 export default function Themestart({
   isOpen = false,
@@ -9,13 +13,6 @@ export default function Themestart({
 }) {
   const { post } = useApiClient();
   const [isSaving, setIsSaving] = useState(false);
-
-  // 백엔드 v2 카테고리 ID 및 실제 데이터 구조 매핑 보완
-  const categoryMap = {
-    1: "관광지",
-    2: "숙소",
-    3: "식당",
-  };
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -73,10 +70,10 @@ export default function Themestart({
                   ([categoryId, keywords]) => {
                     if (!keywords || keywords.length === 0) return null;
 
-                    // 서버에서 받은 CategoryName이 있으면 그것을 우선 사용하고, 없을 시 백업 매핑 적용
+                    // v2 응답에는 카테고리 표시명이 없으므로 category enum으로 역산한다
                     const categoryLabel =
-                      keywords[0]?.preferredThemeCategoryName ||
-                      categoryMap[categoryId] ||
+                      categoryIdToName(Number(categoryId)) ||
+                      categoryIdToName(categoryKeyToId(keywords[0]?.category)) ||
                       `카테고리 ${categoryId}`;
 
                     return (

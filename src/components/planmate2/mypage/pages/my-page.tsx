@@ -15,6 +15,8 @@ import {
   type PageData,
 } from '../../community/api/communityApi';
 import { useMyActivity, useUserPosts } from '../../community/hooks/queries';
+// @ts-ignore
+import { categoryKeyToId } from '../../../../shared/theme/category';
 import { CalendarSection } from '../organisms/CalendarSection';
 import { CommunityActivitySection } from '../organisms/CommunityActivitySection';
 import { MapSection } from '../organisms/MapSection';
@@ -476,8 +478,9 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           if (profileData.preferredThemes && Array.isArray(profileData.preferredThemes)) {
             const categorized: any = { 0: [], 1: [], 2: [] };
             profileData.preferredThemes.forEach((theme: any) => {
-              const catId = theme.preferredThemeCategoryId;
-              if (categorized[catId] !== undefined) {
+              // v2 응답은 카테고리를 category enum 문자열로 준다
+              const catId = categoryKeyToId(theme.category);
+              if (catId !== undefined) {
                 categorized[catId].push(theme);
               }
             });
@@ -507,15 +510,15 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       
       themes.forEach((theme: any) => {
         if (typeof theme === 'object' && theme !== null) {
-          const catId = theme.preferredThemeCategoryId;
-          if (categorized[catId] !== undefined) {
+          const catId = categoryKeyToId(theme.category);
+          if (catId !== undefined) {
             categorized[catId].push(theme);
           } else {
             categorized[0].push(theme);
           }
         } else if (typeof theme === 'string') {
           categorized[0].push({
-            preferredThemeCategoryId: 0,
+            category: 'ATTRACTION',
             preferredThemeName: theme.trim(),
             preferredThemeId: -1
           });
