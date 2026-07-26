@@ -5,15 +5,14 @@ import { useApiClient } from "../../../hooks/useApiClient";
 import usePlanStore from "../../../store/Plan";
 import useItemsStore from "../../../store/Schedules";
 import useTimetableStore from "../../../store/Timetables";
-import { exportBlock } from "../../../utils/createUtils";
+import { ID_TO_BLOCK_CATEGORY, exportBlock } from "../../../utils/createUtils";
 import { clearTempPlan } from "../../../utils/tempPlanStorage";
 
 export default function NoLoginSave({ isOpen }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
   const { isAuthenticated, post } = useApiClient();
-  const {
-    planName, departure, transportationCategoryId, travelId, adultCount, childCount,
-  } = usePlanStore();
+  const { transportationType, destinationId, adultCount, childCount } =
+    usePlanStore();
   const { timetables } = useTimetableStore();
   const { items } = useItemsStore();
   const navigate = useNavigate();
@@ -25,25 +24,49 @@ export default function NoLoginSave({ isOpen }) {
       if (!Array.isArray(day)) return [];
       const date = timetables.find((t) => t.timeTableId === Number(key))?.date;
       console.log(date);
-      return day.map(item =>
-        exportBlock(key, item.place, item.start, item.duration, item.id, true, date, item.memo)
-      )
+      return day.map((item) =>
+        exportBlock(
+          key,
+          item.place,
+          item.start,
+          item.duration,
+          item.id,
+          true,
+          date,
+          item.memo,
+        ),
+      );
     });
 
     const savePlan = async () => {
       if (isAuthenticated()) {
         try {
-          const res = await post(`${BASE_URL}/api/plan/create`, {
+          const res = await post(`${BASE_URL}/api/plan/full`, {
             planFrame: {
-              planName: planName,
-              departure: departure,
-              transportationCategoryId: transportationCategoryId,
-              travelId: travelId,
+              destinationId: destinationId,
+              transportationType: transportationType,
               adultCount: adultCount,
               childCount: childCount,
             },
-            timetables: timetables,
-            timetablePlaceBlocks: exportBlocks
+            timetables: timetables.map(
+              ({ date, timeTableStartTime, timeTableEndTime }) => ({
+                date,
+                timeTableStartTime,
+                timeTableEndTime,
+              }),
+            ),
+            timetablePlaceBlocks: exportBlocks.map((block) => ({
+              date: block.date,
+              blockCategory: ID_TO_BLOCK_CATEGORY[block.placeCategoryId] || "FREE",
+              placeId: block.placeId || null,
+              placeName: block.placeName,
+              placeAddress: block.placeAddress,
+              latitude: block.yLocation ?? null,
+              longitude: block.xLocation ?? null,
+              blockStartTime: block.blockStartTime,
+              blockEndTime: block.blockEndTime,
+              memo: block.memo || null,
+            })),
           });
           clearTempPlan();
           console.log(res.message);
@@ -52,7 +75,7 @@ export default function NoLoginSave({ isOpen }) {
           console.error("요청에 실패했습니다.", err);
         }
       }
-    }
+    };
 
     savePlan();
   }, [isOpen]);
@@ -65,5 +88,5 @@ export default function NoLoginSave({ isOpen }) {
         <LoadingRing className="w-20" />
       </div>
     </div>
-  )
+  );
 }

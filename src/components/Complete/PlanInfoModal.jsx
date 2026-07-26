@@ -1,7 +1,7 @@
 export default function PlanInfoModal({setIsInfoOpen, planFrame}) {
   const infodiv = "rounded-lg p-2 w-full";
   const flexCenter = "flex items-center";
-  const transInfo = {0: "대중교통", 1: "자동차"};
+  const transInfo = {PUBLIC: "대중교통", PRIVATE: "자동차"};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm font-pretendard">
@@ -39,7 +39,7 @@ export default function PlanInfoModal({setIsInfoOpen, planFrame}) {
         >
           <div className="space-y-1.5">
             <p className="text-gray-500 text-start font-semibold">여행지</p>
-            <p className="text text-start max-w-full truncate">{planFrame.travelName}</p>
+            <p className="text text-start max-w-full truncate">{planFrame.destinationName}</p>
           </div>
         </div>
         <div
@@ -47,7 +47,7 @@ export default function PlanInfoModal({setIsInfoOpen, planFrame}) {
         >
           <div className="space-y-1.5">
             <p className="text-gray-500 text-start font-semibold">이동수단</p>
-            <p className="text text-start max-w-full">{transInfo[planFrame.transportationCategoryId]}</p>
+            <p className="text text-start max-w-full">{transInfo[planFrame.transportationType]}</p>
           </div>
         </div>
       </div>

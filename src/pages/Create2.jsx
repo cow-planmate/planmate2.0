@@ -34,7 +34,7 @@ import Main from "../components/Create2/Main/Main";
 import PlanInfo from "../components/Create2/PlanInfo/PlanInfo";
 import useNicknameStore from "../store/Nickname";
 import useItemsStore from "../store/Schedules";
-import { convertBlock, resetAllStores } from "../utils/createUtils";
+import { convertBlock, mapPlaceSummary, resetAllStores } from "../utils/createUtils";
 import { ErrorToast, SuccessToast } from '../components/common/Toast';
 
 function App() {
@@ -51,12 +51,10 @@ function App() {
     planId,
     setPlanAll,
     setEventId,
-    travelCategoryName,
-    travelName,
-    travelId,
+    destinationName,
+    destinationId,
     planName,
-    departure,
-    transportationCategoryId,
+    transportationType,
     adultCount,
     childCount,
   } = usePlanStore();
@@ -148,60 +146,36 @@ function App() {
         return;
       }
 
-      if (id && isAuthenticated()) {
-        try {
-          const [tourData, lodgingData, restaurantData] = await Promise.all([
-            get(`${BASE_URL}/api/plan/${id}/tour`),
-            get(`${BASE_URL}/api/plan/${id}/lodging`),
-            get(`${BASE_URL}/api/plan/${id}/restaurant`),
-          ]);
+      try {
+        const fetchCategory = (category) =>
+          get(
+            `${BASE_URL}/api/place?destinationId=${destinationId}&category=${category}&page=1&size=20`,
+          );
 
-          setPlacesAll({
-            tour: tourData.places,
-            tourNext: tourData.nextPageTokens,
-            lodging: lodgingData.places,
-            lodgingNext: lodgingData.nextPageTokens,
-            restaurant: restaurantData.places,
-            restaurantNext: restaurantData.nextPageTokens,
-          });
+        const [tourData, lodgingData, restaurantData] = await Promise.all([
+          fetchCategory("ATTRACTION"),
+          fetchCategory("ACCOMMODATION"),
+          fetchCategory("RESTAURANT"),
+        ]);
 
-          setIsPlaceLoading(true);
-        } catch (err) {
-          console.error("추천 장소를 가져오는데 실패했습니다:", err);
-        }
-      } else {
-        try {
-          const [tourData, lodgingData, restaurantData] = await Promise.all([
-            get(
-              `${BASE_URL}/api/plan/tour/${travelCategoryName}/${travelName}`,
-            ),
-            get(
-              `${BASE_URL}/api/plan/lodging/${travelCategoryName}/${travelName}`,
-            ),
-            get(
-              `${BASE_URL}/api/plan/restaurant/${travelCategoryName}/${travelName}`,
-            ),
-          ]);
+        setPlacesAll({
+          tour: tourData.places.map(mapPlaceSummary),
+          tourNext: tourData.hasNext ? 2 : null,
+          lodging: lodgingData.places.map(mapPlaceSummary),
+          lodgingNext: lodgingData.hasNext ? 2 : null,
+          restaurant: restaurantData.places.map(mapPlaceSummary),
+          restaurantNext: restaurantData.hasNext ? 2 : null,
+        });
 
-          setPlacesAll({
-            tour: tourData.places,
-            tourNext: tourData.nextPageTokens,
-            lodging: lodgingData.places,
-            lodgingNext: lodgingData.nextPageTokens,
-            restaurant: restaurantData.places,
-            restaurantNext: restaurantData.nextPageTokens,
-          });
-
-          setIsPlaceLoading(true);
-        } catch (err) {
-          console.error("추천 장소를 가져오는데 실패했습니다:", err);
-        }
+        setIsPlaceLoading(true);
+      } catch (err) {
+        console.error("추천 장소를 가져오는데 실패했습니다:", err);
       }
       setPlacesLoading(false);
     };
 
-    if (travelCategoryName && travelName && travelId) updatePlace();
-  }, [travelCategoryName, travelName, travelId, isTempLoaded, isAuthenticated]);
+    if (destinationId) updatePlace();
+  }, [destinationId, isTempLoaded, isAuthenticated]);
 
   useEffect(() => {
     if (id && isAuthenticated() && planId && planId !== -1) {
@@ -278,11 +252,9 @@ function App() {
       // 저장할 데이터 선별
       const planData = {
         planName: planState.planName,
-        travelCategoryName: planState.travelCategoryName,
-        travelName: planState.travelName,
-        travelId: planState.travelId,
-        departure: planState.departure,
-        transportationCategoryId: planState.transportationCategoryId,
+        destinationName: planState.destinationName,
+        destinationId: planState.destinationId,
+        transportationType: planState.transportationType,
         adultCount: planState.adultCount,
         childCount: planState.childCount,
         planId: planState.planId,
@@ -309,8 +281,9 @@ function App() {
     planId,
     isAuthenticated,
     planName,
-    departure,
-    transportationCategoryId,
+    destinationName,
+    destinationId,
+    transportationType,
     adultCount,
     childCount,
     isTempLoaded,

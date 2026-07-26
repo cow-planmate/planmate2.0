@@ -11,20 +11,17 @@ export default function TitleModal({ onClose, id, currentTitle, onSuccess }) {
     if (!isAuthenticated()) return;
 
     try {
-      const response = await patch(`${BASE_URL}/api/plan/${id}/name`, {
+      // v2: PATCH /api/plan/{planId}/name은 204 No Content를 반환한다.
+      // 응답 본문이 없으므로 예외가 나지 않으면 성공으로 처리한다.
+      await patch(`${BASE_URL}/api/plan/${id}/name`, {
         planName: newTitle,
       });
 
-      if (response.edited === true) {
-        onSuccess(newTitle);
-        onClose();
-      } else {
-        const errorMessage =
-          response.message || "패치에 실패했습니다. 다시 시도해주세요.";
-        ErrorToast(errorMessage);
-      }
+      onSuccess(newTitle);
+      onClose();
     } catch (err) {
-      console.error("패치에 실패했습니다:", err);
+      console.error("제목 변경 실패:", err);
+      ErrorToast(err.message || "패치에 실패했습니다. 다시 시도해주세요.");
     }
   };
 

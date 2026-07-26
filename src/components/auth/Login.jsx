@@ -1,4 +1,4 @@
-// components/Login.jsx
+// components/auth/Login.jsx
 import React, { useState, useEffect } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
 import google from "../../assets/imgs/googleicon.png";
@@ -23,7 +23,6 @@ export default function Login({
   const API_BASE_URL = import.meta.env.VITE_API_URL;
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-  // API 클라이언트 훅 사용
   const { login, isLoading, error } = useApiClient();
 
   // 모달이 열릴 때마다 폼 데이터 초기화
@@ -44,7 +43,6 @@ export default function Login({
     if (formError) setFormError("");
   };
 
-  // 유효성 검증
   const validateForm = () => {
     if (!formData.email.trim()) {
       setFormError("이메일을 입력해주세요.");
@@ -62,7 +60,7 @@ export default function Login({
     return true;
   };
 
-  // 로그인 처리
+  // 🔐 일반 로그인 처리
   const handleLogin = async () => {
     if (!validateForm()) return;
 
@@ -77,7 +75,7 @@ export default function Login({
       // 모달 닫기
       onClose();
     } catch (err) {
-      // 에러는 useApiClient에서 자동으로 설정됨
+      // 에러는 useApiClient에서 자동으로 설정되며 백엔드 에러 메시지 직접 노출
       console.error("로그인 실패:", err);
       ErrorToast(String(err).replace("Error: ", ""));
     }
@@ -90,6 +88,7 @@ export default function Login({
     }
   };
 
+  // 🌍 SNS 로그인 처리
   const handleSNSLogin = (provider) => {
     sessionStorage.setItem("redirectAfterLogin", location.pathname);
 

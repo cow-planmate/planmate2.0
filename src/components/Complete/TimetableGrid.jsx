@@ -4,9 +4,8 @@ import { ScheduledItem } from "./ScheduledItem";
 import Weather from "../common/Weather";
 
 const TimetableGrid = ({ planFrame, placeBlocks, selectedDay, timetables, showTimetable }) => {
-  const travelCategoryName = planFrame?.travelCategoryName;
-  const travelName = planFrame?.travelName;
-  const travelId = planFrame?.travelId;
+  const destinationName = planFrame?.destinationName;
+  const destinationId = planFrame?.destinationId;
 
   const SLOT_HEIGHT = 40;
   const [TOTAL_SLOTS, setTotalSlots] = useState(0);
@@ -32,9 +31,8 @@ const TimetableGrid = ({ planFrame, placeBlocks, selectedDay, timetables, showTi
       <Weather
         timetables={timetables}
         selectedDay={selectedDay}
-        travelCategoryName={travelCategoryName}
-        travelName={travelName}
-        travelId={travelId}
+        destinationName={destinationName}
+        destinationId={destinationId}
       />
       <div className="h-full flex flex-col overflow-hidden relative py-4 px-5 overflow-y-auto overflow-x-hidden">
         <div className="md:hidden block py-1">

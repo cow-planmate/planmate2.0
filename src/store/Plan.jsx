@@ -3,11 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 
 const usePlanStore = create((set) => ({
   planName: "",
-  travelCategoryName: "",
-  travelName: "",
-  travelId: 0,
-  departure: "",
-  transportationCategoryId: 0,
+  destinationName: "",
+  destinationId: 0,
+  transportationType: "PUBLIC",
   adultCount: 0,
   childCount: 0,
   planId: 0,
@@ -34,11 +32,9 @@ const usePlanStore = create((set) => ({
   resetPlan: () =>
     set({
       planName: "",
-      travelCategoryName: "",
-      travelName: "",
-      travelId: 0,
-      departure: "",
-      transportationCategoryId: 0,
+      destinationName: "",
+      destinationId: 0,
+      transportationType: "PUBLIC",
       adultCount: 0,
       childCount: 0,
       planId: 0,

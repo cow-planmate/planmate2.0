@@ -92,6 +92,8 @@ export const useApiClient = () => {
           }
 
           if (retryResponse.ok) {
+            // 💡 204 No Content 대응: 응답 본문이 비어있으면 json 파싱을 건너뛴다
+            if (retryResponse.status === 204) return null;
             return await retryResponse.json();
           } else {
             throw new Error("토큰 갱신 후에도 요청이 실패했습니다.");
@@ -111,6 +113,11 @@ export const useApiClient = () => {
         const errorMessage =
           errorData?.message || `API 요청 실패: ${response.status}`;
         throw new Error(errorMessage);
+      }
+
+      // 💡 204 No Content 대응: v2는 수정/삭제 계열 성공 응답을 본문 없이 204로 준다
+      if (response.status === 204) {
+        return null;
       }
 
       return await response.json();
@@ -153,7 +160,7 @@ export const useApiClient = () => {
     (url, data) =>
       apiRequest(url, {
         method: "DELETE",
-        body: data ? JSON.stringify(data) : undefined,
+        ...(data === undefined ? {} : { body: JSON.stringify(data) }),
       }),
     [apiRequest]
   );

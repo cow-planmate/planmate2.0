@@ -8,17 +8,13 @@ export const SidebarItem = ({
   onMobileAdd,
   onDelete,
 }) => {
-  const BASE_URL = import.meta.env.VITE_API_URL;
-
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `sidebar-${place.placeId}`,
     data: { type: "sidebar", place, duration, originalId: place.placeId },
     disabled: isMobile,
   });
 
-  const imageUrl = place.placeId
-    ? `${BASE_URL}/image/place/${encodeURIComponent(place.placeId)}`
-    : place.iconUrl;
+  const imageUrl = place.photoUrl || place.iconUrl;
 
   return (
     <div

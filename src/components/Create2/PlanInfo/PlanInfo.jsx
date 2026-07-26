@@ -28,7 +28,7 @@ import RedoIcon from "../../../assets/imgs/redo.svg?react";
 export default function PlanInfo({ id }) {
   const {
     planName,
-    transportationCategoryId,
+    transportationType,
     setPlanField,
     planId
   } = usePlanStore();
@@ -187,9 +187,9 @@ export default function PlanInfo({ id }) {
         </button>
         <div className={`hidden md:flex whitespace-nowrap flex-shrink-0 ${flexCenter} py-2 px-3 border border-gray-300 rounded-full`}>
           <span className="text-gray-500 mr-1 text-sm">이동수단</span>
-          <select value={transportationCategoryId} onChange={(e) => setPlanField("transportationCategoryId", e.target.value)}>
-            <option value='0'>대중교통</option>
-            <option value='1'>자동차</option>
+          <select value={transportationType} onChange={(e) => setPlanField("transportationType", e.target.value)}>
+            <option value='PUBLIC'>대중교통</option>
+            <option value='PRIVATE'>자동차</option>
           </select>
         </div>
       </div>

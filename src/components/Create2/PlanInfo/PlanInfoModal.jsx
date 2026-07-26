@@ -8,17 +8,17 @@ import PersonCountModal from "../../common/PersonCountModal";
 import LocationModal from "../../common/LocationModal";
 
 export default function PlanInfoModal({setIsInfoOpen}) {
-  const { 
-    travelName,
-    transportationCategoryId,
-    adultCount, 
+  const {
+    destinationName,
+    transportationType,
+    adultCount,
     childCount,
     setPlanField
   } = usePlanStore();
 
   const infoButton = "rounded-lg p-2 hover:bg-gray-100 w-full";
   const flexCenter = "flex items-center";
-  const transInfo = {0: "대중교통", 1: "자동차"};
+  const transInfo = {PUBLIC: "대중교통", PRIVATE: "자동차"};
 
   const [isPersonCountOpen, setIsPersonCountOpen] = useState(false);
   const [isDestinationOpen, setIsDestinationOpen] = useState(false);
@@ -33,9 +33,8 @@ export default function PlanInfoModal({setIsInfoOpen}) {
   };
 
   const handleDestinationLocationSelect = (location) => {
-    setPlanField("travelId", location.id);
-    setPlanField("travelCategoryName", location.name.split(" ")[0]);
-    setPlanField("travelName", location.name.split(" ").pop());
+    setPlanField("destinationId", location.id);
+    setPlanField("destinationName", location.name);
   };
 
   return (
@@ -79,7 +78,7 @@ export default function PlanInfoModal({setIsInfoOpen}) {
         >
           <div className="space-y-1.5">
             <p className="text-gray-500 text-start font-semibold">여행지</p>
-            <p className="text text-start max-w-full truncate">{travelName}</p>
+            <p className="text text-start max-w-full truncate">{destinationName}</p>
           </div>
         </button>
         <button
@@ -88,7 +87,7 @@ export default function PlanInfoModal({setIsInfoOpen}) {
         >
           <div className="space-y-1.5">
             <p className="text-gray-500 text-start font-semibold">이동수단</p>
-            <p className="text text-start max-w-full">{transInfo[transportationCategoryId]}</p>
+            <p className="text text-start max-w-full">{transInfo[transportationType]}</p>
           </div>
         </button>
       </div>

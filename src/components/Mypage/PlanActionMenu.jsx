@@ -29,7 +29,7 @@ export default function PlanActionMenu({
         isOpen &&
         modalRef.current &&
         !modalRef.current.contains(e.target) &&
-        !buttonRef.current.contains(e.target)
+        !buttonRef.current?.contains(e.target)
       ) {
         setIsOpen(false);
       }

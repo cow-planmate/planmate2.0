@@ -1,4 +1,3 @@
-// components/NicknameModal.jsx
 import { useState } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
 import useNicknameStore from "../../store/Nickname";
@@ -20,10 +19,15 @@ export default function NicknameModal({
         const response = await patch(`${BASE_URL}/api/user/nickname`, {
           nickname,
         });
-        setGlobalNickname(nickname);
-        onNicknameUpdate(nickname);
+
+        // 글로벌 상태 및 부모 컴포넌트 데이터 갱신
+        const updatedNickname = response?.nickname || nickname;
+        setGlobalNickname(updatedNickname);
+        onNicknameUpdate(updatedNickname);
         setIsNicknameModalOpen(false);
-        SuccessToast(response.message);
+
+        // v2 백엔드 응답 메시지 또는 기본 성공 메시지 표시
+        SuccessToast(response?.message || "닉네임이 변경되었습니다.");
       } catch (err) {
         console.error("닉네임 변경에 실패했습니다:", err);
 

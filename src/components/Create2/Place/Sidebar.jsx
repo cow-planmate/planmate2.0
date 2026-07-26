@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { SidebarItem } from "./SidebarItem";
 import { useApiClient } from "../../../hooks/useApiClient";
 import usePlacesStore from "../../../store/Places";
+import usePlanStore from "../../../store/Plan";
+import { mapPlaceSummary } from "../../../utils/createUtils";
 import { faCirclePlus, faUmbrellaBeach, faBed, faUtensils, faPenNib, faMagnifyingGlass, faLightbulb } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import LoadingRing from "../../../assets/imgs/ring-resize.svg?react";
@@ -14,10 +16,18 @@ export default function Sidebar({
   handleMobileAdd,
 }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const { get, post } = useApiClient();
+  const { get } = useApiClient();
   const store = usePlacesStore();
-  const { search, setAddSearch, setAddNext, isLoading } = store;
+  const { search, setAddNext, isLoading } = store;
+  const { destinationId } = usePlanStore();
   const { customPlaces, createCustomPlace, removeCustomPlace } = useNicknameStore();
+
+  // 관광지/숙소/식당 탭 -> GET /api/place의 category 파라미터 매핑
+  const CATEGORY_PARAM = {
+    tour: "ATTRACTION",
+    lodging: "ACCOMMODATION",
+    restaurant: "RESTAURANT",
+  };
 
   const [selectedTab, setSelectedTab] = useState("tour");
   const [searchText, setSearchText] = useState("");
@@ -59,64 +69,69 @@ export default function Sidebar({
     setCustomPlaceName("");
   };
 
-  useEffect(() => {
-    if (selectedTab !== "search") return;
-
-    const q = searchText.trim();
-
-    // 🔐 API 보호
-    if (!q || q.length < 2 || !planId) {
-      setHasSearched(false);
-      setAddSearch({ search: [], searchNext: [] });
-      return;
-    }
-
-    // debounce
-    if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current);
-    }
-
-    searchTimerRef.current = setTimeout(async () => {
-      if (lastSearchRef.current === q) return;
-      lastSearchRef.current = q;
-
-      try {
-        setSearchLoading(true);
-
-        const res = await get(
-          `${BASE_URL}/api/plan/${planId}/place/${encodeURIComponent(q)}`
-        );
-
-        setAddSearch({
-          search: Array.isArray(res?.places) ? res.places : [],
-          searchNext: res.nextPageTokens,
-        });
-
-        setHasSearched(true); // ✅ 실제 검색 완료
-      } catch (err) {
-        console.error("검색 실패:", err);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 400);
-
-    return () => {
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-      }
-    };
-  }, [searchText, selectedTab, planId]);
+  // 검색 탭: GET /api/plan/{id}/place/{query}에 대응하는 백엔드 엔드포인트가 없어 일단 주석 처리.
+  // useEffect(() => {
+  //   if (selectedTab !== "search") return;
+  //
+  //   const q = searchText.trim();
+  //
+  //   // 🔐 API 보호
+  //   if (!q || q.length < 2 || !planId) {
+  //     setHasSearched(false);
+  //     setAddSearch({ search: [], searchNext: [] });
+  //     return;
+  //   }
+  //
+  //   // debounce
+  //   if (searchTimerRef.current) {
+  //     clearTimeout(searchTimerRef.current);
+  //   }
+  //
+  //   searchTimerRef.current = setTimeout(async () => {
+  //     if (lastSearchRef.current === q) return;
+  //     lastSearchRef.current = q;
+  //
+  //     try {
+  //       setSearchLoading(true);
+  //
+  //       const res = await get(
+  //         `${BASE_URL}/api/plan/${planId}/place/${encodeURIComponent(q)}`
+  //       );
+  //
+  //       setAddSearch({
+  //         search: Array.isArray(res?.places) ? res.places : [],
+  //         searchNext: res.nextPageTokens,
+  //       });
+  //
+  //       setHasSearched(true); // ✅ 실제 검색 완료
+  //     } catch (err) {
+  //       console.error("검색 실패:", err);
+  //     } finally {
+  //       setSearchLoading(false);
+  //     }
+  //   }, 400);
+  //
+  //   return () => {
+  //     if (searchTimerRef.current) {
+  //       clearTimeout(searchTimerRef.current);
+  //     }
+  //   };
+  // }, [searchText, selectedTab, planId]);
 
   const handleNext = async () => {
     const currentTab = selectedTab;
-    const nextPageTokens = store[`${currentTab}Next`];
-    console.log(nextPageTokens)
+    const nextPage = store[`${currentTab}Next`];
+    if (!nextPage) return;
     try {
       setNextLoading(true);
-      const res = await post(`${BASE_URL}/api/plan/nextplace`, {
-        tokens: nextPageTokens,
-      });
-      setAddNext(currentTab, res.places, res.nextPageTokens);
+      const res = await get(
+        `${BASE_URL}/api/place?destinationId=${destinationId}&category=${CATEGORY_PARAM[currentTab]}&page=${nextPage}&size=20`,
+      );
+      setAddNext(
+        currentTab,
+        res.places.map(mapPlaceSummary),
+        res.hasNext ? nextPage + 1 : null,
+      );
     } catch (err) {
       console.error("실패!", err);
     } finally {
@@ -130,7 +145,8 @@ export default function Sidebar({
       ${showSidebar ? "translate-x-0" : "translate-x-full md:translate-x-0"}`}
     >
       <div className="flex space-x-1 overflow-x-auto shrink-0 px-5 md:px-0">
-        {["tour", "lodging", "restaurant", "custom", "search"].map((tab) => (
+        {/* "search" 탭: 대응하는 백엔드 엔드포인트가 없어 일단 주석 처리 */}
+        {["tour", "lodging", "restaurant", "custom" /*, "search" */].map((tab) => (
           <button
             key={tab}
             className={`px-4 py-2 rounded-lg md:rounded-none md:rounded-t-lg text-sm md:text-base text-nowrap ${selectedTab === tab
@@ -144,6 +160,7 @@ export default function Sidebar({
         ))}
       </div>
       <div className="flex-1 min-h-0 flex flex-col md:border md:border-gray-300 rounded-lg rounded-tl-none divide-y divide-gray-300 md:min-h-0">
+        {/* 검색 탭 입력창: 대응하는 백엔드 엔드포인트가 없어 일단 주석 처리
         {selectedTab === "search" && (
           <div className="px-5 py-2 shrink-0">
             <div className="flex items-center space-x-2">
@@ -158,6 +175,7 @@ export default function Sidebar({
             </div>
           </div>
         )}
+        */}
         {selectedTab === "custom" && (
           <div className="px-5 py-2 shrink-0">
             <div className="flex items-center space-x-2">
@@ -246,11 +264,9 @@ export default function Sidebar({
                 <p className="text-gray-600 text-[15px] font-medium">
                   {koreanName[selectedTab]} 추천장소가 존재하지 않아요.
                 </p>
-                <p className="text-gray-400 text-xs mt-3">
-                  검색 탭에서 장소를 직접 찾아볼 수 있어요!
-                </p>
               </div>
             )}
+          {/* 검색 탭 빈 결과 안내: 대응하는 백엔드 엔드포인트가 없어 일단 주석 처리
           {selectedTab === "search" &&
             hasSearched &&
             !searchLoading &&
@@ -267,8 +283,9 @@ export default function Sidebar({
                 </p>
               </div>
             )}
+          */}
           {selectedTab !== "custom" && !isLoading &&
-            ((selectedTab !== "search" || search.length !== 0) && store[`${selectedTab}Next`]?.length > 0) && (
+            store[`${selectedTab}Next`] && (
               <div className="text-center py-3">
                 <button
                   className="text-3xl text-main hover:text-mainDark"

@@ -5,41 +5,44 @@ import { useApiClient } from "../hooks/useApiClient";
 import { Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
 import useKakaoLoader from "../hooks/useKakaoLoader";
 import ShareModal from "../components/common/ShareModal";
-import axios from 'axios';
+import axios from "axios";
 
 // AI 서버 URL
 const AI_API_URL = import.meta.env.VITE_AI_API_URL;
 
 // 날씨 설명(텍스트)을 기반으로 아이콘 반환 (DaySelector와 동일)
 const getWeatherIcon = (description) => {
-  if (!description) return '❓';
+  if (!description) return "❓";
   const desc = description.toLowerCase();
-  
-  if (desc.includes('맑음')) return '☀️';
-  if (desc.includes('구름') || desc.includes('흐림')) {
-    if (desc.includes('조금') || desc.includes('약간') || desc.includes('부분')) {
-      return '🌤️';
+
+  if (desc.includes("맑음")) return "☀️";
+  if (desc.includes("구름") || desc.includes("흐림")) {
+    if (
+      desc.includes("조금") ||
+      desc.includes("약간") ||
+      desc.includes("부분")
+    ) {
+      return "🌤️";
     }
-    return '☁️';
+    return "☁️";
   }
-  if (desc.includes('비') || desc.includes('소나기')) {
-     if (desc.includes('약한') || desc.includes('가벼운')) {
-      return '🌦️';
+  if (desc.includes("비") || desc.includes("소나기")) {
+    if (desc.includes("약한") || desc.includes("가벼운")) {
+      return "🌦️";
     }
-    return '🌧️';
+    return "🌧️";
   }
-  if (desc.includes('눈')) return '❄️';
-  if (desc.includes('안개')) return '🌫️';
-  if (desc.includes('뇌우')) return '⛈️';
-  
-  return '🌤️';
+  if (desc.includes("눈")) return "❄️";
+  if (desc.includes("안개")) return "🌫️";
+  if (desc.includes("뇌우")) return "⛈️";
+
+  return "🌤️";
 };
 
 const TravelPlannerApp = () => {
-  const { get, isAuthenticated } = useApiClient();
+  const { get } = useApiClient();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
-  const token = searchParams.get("token");
   const [data, setData] = useState(null);
   const [timetables, setTimetables] = useState([]);
   const tripCategory = { 0: "관광지", 1: "숙소", 2: "식당", 4: "검색" };
@@ -79,11 +82,14 @@ const TravelPlannerApp = () => {
       const placeId = urlMatch ? urlMatch[1] : "";
       let iconUrl;
       if (place.placeCategory === 0) {
-        iconUrl = "https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/park-71.png";
+        iconUrl =
+          "https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/park-71.png";
       } else if (place.placeCategory === 1) {
-        iconUrl = "https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/lodging-71.png";
+        iconUrl =
+          "https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/lodging-71.png";
       } else {
-        iconUrl = "https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/generic_business-71.png";
+        iconUrl =
+          "https://maps.gstatic.com/mapfiles/place_api/icons/v1/png_71/generic_business-71.png";
       }
       const transformedPlace = {
         placeId: placeId,
@@ -103,9 +109,13 @@ const TravelPlannerApp = () => {
       if (result[targetTimetableId]) {
         result[targetTimetableId].push({
           place: transformedPlace,
-          start: getTimeSlotIndex(timetables.find(t => t.timetableId === targetTimetableId).startTime, place.startTime),
+          start: getTimeSlotIndex(
+            timetables.find((t) => t.timetableId === targetTimetableId)
+              .startTime,
+            place.startTime,
+          ),
           duration: duration,
-          memo: place.memo
+          memo: place.memo,
         });
       }
     });
@@ -114,7 +124,7 @@ const TravelPlannerApp = () => {
 
   const getTimeSlotIndex = (timeTableStartTime, time) => {
     const toMinutes = (t) => {
-      const [h, m] = t.split(':').map(Number);
+      const [h, m] = t.split(":").map(Number);
       return h * 60 + m;
     };
     const startMinutes = toMinutes(timeTableStartTime);
@@ -125,15 +135,9 @@ const TravelPlannerApp = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       let planData = null;
-      if (id && isAuthenticated()) {
+      if (id) {
         try {
           planData = await get(`${BASE_URL}/api/plan/${id}/complete`);
-        } catch (err) {
-          console.error("일정 정보를 가져오는데 실패했습니다:", err);
-        }
-      } else if (token) {
-        try {
-          planData = await get(`${BASE_URL}/api/plan/${id}/complete?token=${token}`);
         } catch (err) {
           console.error("일정 정보를 가져오는데 실패했습니다:", err);
           alert("잘못된 접근입니다.");
@@ -163,14 +167,14 @@ const TravelPlannerApp = () => {
     fetchUserProfile();
   }, [id, get]);
 
-// --- [수정됨] 날씨 정보 호출 useEffect ---
+  // --- [수정됨] 날씨 정보 호출 useEffect ---
   useEffect(() => {
     // 1. 데이터가 아직 로드되지 않았으면 중단
     if (!data?.planFrame || !timetables.length) {
       return;
     }
 
-    const city = data.planFrame.travelCategoryName; 
+    const city = data.planFrame.travelCategoryName;
     const startDate = timetables[0].date;
     const endDate = timetables[timetables.length - 1].date;
 
@@ -184,7 +188,9 @@ const TravelPlannerApp = () => {
 
     const fetchWeather = async () => {
       if (!city) {
-        console.warn("지역 정보(travelCategoryName)가 없어 날씨를 조회할 수 없습니다.");
+        console.warn(
+          "지역 정보(travelCategoryName)가 없어 날씨를 조회할 수 없습니다.",
+        );
         lastWeatherFetchParams.current = currentParams; // 다시 시도하지 않도록 설정
         return;
       }
@@ -193,17 +199,14 @@ const TravelPlannerApp = () => {
       lastWeatherFetchParams.current = currentParams; // 요청 시작 시점에 기록
 
       try {
-        const response = await axios.post(
-          `${AI_API_URL}/recommendations`,
-          {
-            city: city,
-            start_date: startDate,
-            end_date: endDate,
-          }
-        );
+        const response = await axios.post(`${AI_API_URL}/recommendations`, {
+          city: city,
+          start_date: startDate,
+          end_date: endDate,
+        });
         setWeatherData(response.data);
       } catch (err) {
-        console.error('날씨 정보 호출 실패 (Complete):', err);
+        console.error("날씨 정보 호출 실패 (Complete):", err);
         // 에러가 발생해도 lastWeatherFetchParams가 설정되어 있으므로 무한 재시도 안 함
       } finally {
         setWeatherLoading(false);
@@ -212,9 +215,9 @@ const TravelPlannerApp = () => {
 
     fetchWeather();
 
-  // [수정] 의존성 배열에서 weatherData, weatherLoading 제거.
-  // data와 timetables가 변경될 때만(즉, 페이지 로드 시) 실행됨.
-  }, [data, timetables]); 
+    // [수정] 의존성 배열에서 weatherData, weatherLoading 제거.
+    // data와 timetables가 변경될 때만(즉, 페이지 로드 시) 실행됨.
+  }, [data, timetables]);
   // --- 날씨 로직 끝 ---
 
   useEffect(() => {
@@ -232,24 +235,24 @@ const TravelPlannerApp = () => {
   }, [timetables, transformedData]);
 
   const cleanSchedule = () => {
-     setSchedule(prevSchedule => {
-       const newSchedule = {};
-       for (const key in prevSchedule) {
-         const seen = new Set();
-         newSchedule[key] = prevSchedule[key].filter(item => {
-           if (seen.has(item.placeId)) return false;
-           seen.add(item.placeId);
-           return true;
-         });
-       }
-       return newSchedule;
-     });
-  }
+    setSchedule((prevSchedule) => {
+      const newSchedule = {};
+      for (const key in prevSchedule) {
+        const seen = new Set();
+        newSchedule[key] = prevSchedule[key].filter((item) => {
+          if (seen.has(item.placeId)) return false;
+          seen.add(item.placeId);
+          return true;
+        });
+      }
+      return newSchedule;
+    });
+  };
 
   useEffect(() => {
     if (selectedDay && schedule[selectedDay]) {
       const sortedSchedule = [...(schedule[selectedDay] || [])].sort((a, b) =>
-        a.timeSlot.localeCompare(b.timeSlot)
+        a.timeSlot.localeCompare(b.timeSlot),
       );
       const newPositions =
         sortedSchedule.length > 0
@@ -270,8 +273,8 @@ const TravelPlannerApp = () => {
           const timeA = a.timeSlot.split(":").map(Number);
           const timeB = b.timeSlot.split(":").map(Number);
           return timeA[0] - timeB[0] || timeA[1] - timeB[1];
-        })
-      ])
+        }),
+      ]),
     );
     setSortedState(sade);
   }, [schedule]);
@@ -288,7 +291,7 @@ const TravelPlannerApp = () => {
   const getCurrentTimeSlots = () => {
     if (!selectedDay || !timetables.length) return [];
     const currentTimetable = timetables.find(
-      (t) => t.timetableId === selectedDay
+      (t) => t.timetableId === selectedDay,
     );
     if (!currentTimetable) return [];
     const startHour = parseInt(currentTimetable.startTime.split(":")[0]);
@@ -297,7 +300,7 @@ const TravelPlannerApp = () => {
     for (let hour = startHour; hour < endHour; hour++) {
       for (let minute = 0; minute < 60; minute += 15) {
         timeSlots.push(
-          `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
+          `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`,
         );
       }
     }
@@ -309,9 +312,11 @@ const TravelPlannerApp = () => {
   const getCurrentEndTime = () => {
     if (!selectedDay || !timetables.length) return "20:00";
     const currentTimetable = timetables.find(
-      (t) => t.timetableId === selectedDay
+      (t) => t.timetableId === selectedDay,
     );
-    return currentTimetable ? currentTimetable.endTime.substring(0, 5) : "20:00";
+    return currentTimetable
+      ? currentTimetable.endTime.substring(0, 5)
+      : "20:00";
   };
 
   const formatDate = (dateString) => {
@@ -333,8 +338,18 @@ const TravelPlannerApp = () => {
   const renderScheduleItem = (item) => {
     const startIndex = getTimeSlotIndex(item.timeSlot);
     const height = item.duration * 30;
-    const tripColor1 = { 0: "bg-lime-50", 1: "bg-orange-50", 2: "bg-blue-50", 4: "bg-gray-50" };
-    const tripColor2 = { 0: "border-lime-100", 1: "border-orange-100", 2: "border-blue-100", 4: "border-gray-100" };
+    const tripColor1 = {
+      0: "bg-lime-50",
+      1: "bg-orange-50",
+      2: "bg-blue-50",
+      4: "bg-gray-50",
+    };
+    const tripColor2 = {
+      0: "border-lime-100",
+      1: "border-orange-100",
+      2: "border-blue-100",
+      4: "border-gray-100",
+    };
 
     return (
       <div
@@ -419,14 +434,21 @@ const TravelPlannerApp = () => {
                   onClick={() => setSelectedDay(timetable.timetableId)}
                 >
                   {/* === 날씨 정보 표시 UI === */}
-                  <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-lg ${
-                      selectedDay === timetable.timetableId ? "bg-white bg-opacity-30" : "bg-gray-100"
-                  }`}>
+                  <div
+                    className={`flex flex-col items-center justify-center w-14 h-14 rounded-lg ${
+                      selectedDay === timetable.timetableId
+                        ? "bg-white bg-opacity-30"
+                        : "bg-gray-100"
+                    }`}
+                  >
                     {weatherLoading ? (
                       <span className="text-xs">...</span>
                     ) : dayWeather ? (
                       <>
-                        <span className="text-3xl" title={dayWeather.description}>
+                        <span
+                          className="text-3xl"
+                          title={dayWeather.description}
+                        >
                           {getWeatherIcon(dayWeather.description)}
                         </span>
                         <span
@@ -442,9 +464,13 @@ const TravelPlannerApp = () => {
                       </>
                     ) : (
                       // 날씨 정보가 없거나 로드 실패 시
-                      <span className={`text-2xl ${
-                          selectedDay === timetable.timetableId ? "text-white" : "text-gray-400"
-                      }`}>
+                      <span
+                        className={`text-2xl ${
+                          selectedDay === timetable.timetableId
+                            ? "text-white"
+                            : "text-gray-400"
+                        }`}
+                      >
                         {getWeatherIcon(null)}
                       </span>
                     )}
@@ -455,9 +481,13 @@ const TravelPlannerApp = () => {
                     <div className="text-xl font-semibold">
                       {getDayNumber(timetable.timetableId)}일차
                     </div>
-                    <div className={`text-sm ${
-                      selectedDay === timetable.timetableId ? "text-gray-200" : "text-gray-500"
-                    }`}>
+                    <div
+                      className={`text-sm ${
+                        selectedDay === timetable.timetableId
+                          ? "text-gray-200"
+                          : "text-gray-500"
+                      }`}
+                    >
                       {formatDate(timetable.date)}
                     </div>
                   </div>
@@ -492,7 +522,7 @@ const TravelPlannerApp = () => {
 
                 {/* 스케줄 아이템들 */}
                 {(schedule[selectedDay] || []).map((item) =>
-                  renderScheduleItem(item)
+                  renderScheduleItem(item),
                 )}
               </div>
             </div>
@@ -530,7 +560,9 @@ const TravelPlannerApp = () => {
                         {item.name}
                       </p>
                       <div className="flex items-center space-x-1">
-                        <div className="text-sm w-[22px] h-[22px] border border-main text-main font-semibold rounded-full flex items-center justify-center">{index+1}</div>
+                        <div className="text-sm w-[22px] h-[22px] border border-main text-main font-semibold rounded-full flex items-center justify-center">
+                          {index + 1}
+                        </div>
                         <a
                           href={item.url}
                           style={{ color: "blue" }}
@@ -564,11 +596,7 @@ const TravelPlannerApp = () => {
         </div>
       </div>
       {isShareOpen && (
-        <ShareModal
-          isOwner={true}
-          setIsShareOpen={setIsShareOpen}
-          id={id}
-        />
+        <ShareModal isOwner={true} setIsShareOpen={setIsShareOpen} id={id} />
       )}
     </div>
   );

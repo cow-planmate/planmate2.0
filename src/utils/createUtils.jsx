@@ -2,6 +2,46 @@ import usePlanStore from "../store/Plan";
 import useTimetableStore from "../store/Timetables";
 import usePlacesStore from "../store/Places";
 
+// blockCategory(백엔드 enum 문자열) <-> categoryId(프론트 내부 정수 표현) 매핑.
+// 정수 순서는 scheduleUtils.jsx의 getCategoryByIconUrl과 동일하게 맞춤(0=관광지,1=숙소,2=식당,3=직접추가,4=검색).
+export const BLOCK_CATEGORY_TO_ID = {
+  ATTRACTION: 0,
+  ACCOMMODATION: 1,
+  RESTAURANT: 2,
+  FREE: 3,
+  SEARCH: 4,
+};
+
+export const ID_TO_BLOCK_CATEGORY = {
+  0: "ATTRACTION",
+  1: "ACCOMMODATION",
+  2: "RESTAURANT",
+  4: "SEARCH",
+};
+
+const PLACE_CATEGORY_TO_ID = {
+  ATTRACTION: 0,
+  ACCOMMODATION: 1,
+  RESTAURANT: 2,
+};
+
+// GET /api/place(PlaceSummaryDto) 응답을 프론트 내부 place 객체 형태로 변환.
+// rating/url은 백엔드에 대응 필드가 없어(TourAPI 전환) 채우지 않음 — UI가 이미 optional로 처리함.
+export function mapPlaceSummary(dto) {
+  return {
+    placeId: dto.contentId,
+    name: dto.title,
+    formatted_address: dto.addr1,
+    photoUrl: dto.thumbnailUrl,
+    iconUrl: "./src/assets/imgs/default.png",
+    categoryId: PLACE_CATEGORY_TO_ID[dto.category] ?? null,
+    xLocation: dto.longitude,
+    yLocation: dto.latitude,
+    contentTypeId: dto.contentTypeId,
+    copyrightDivCd: dto.copyrightDivCd,
+  };
+}
+
 export const formatTime = (slotIndex) => {
   const { START_HOUR } = useTimetableStore.getState();
 
@@ -59,11 +99,6 @@ export function exportBlock(timeTableId, place, newStart, duration, blockId, noL
   const { START_HOUR } = useTimetableStore.getState();
   const startTime = slotIndexToTime(START_HOUR, newStart);
   const endTime = slotIndexToTime(START_HOUR, newStart + duration);
-  
-  const BASE_URL = import.meta.env.VITE_API_URL;
-
-  // photoUrl이 null일 경우 백엔드 이미지 프록시 URL로 대체
-  const photoUrl = place.photoUrl || (place.placeId ? `${BASE_URL}/image/place/${encodeURIComponent(place.placeId)}` : null);
 
   // blockId가 'temp-'로 시작하는 문자열이면 백엔드 전송 시 null로 보냄 (새로 생성하는 항목)
   const finalBlockId = (typeof blockId === 'string' && blockId.startsWith('temp-')) ? null : blockId;
@@ -82,7 +117,7 @@ export function exportBlock(timeTableId, place, newStart, duration, blockId, noL
     yLocation: place.yLocation || place.ylocation,
     placeCategoryId: place.categoryId,
     timeTableId: timeTableId,
-    photoUrl: photoUrl,
+    photoUrl: place.photoUrl,
     placeId: place.placeId,
     memo: memo
   };
@@ -126,15 +161,15 @@ export function convertBlock(block) {
 
   const place = {
     placeId: block.placeId,
-    categoryId: block.placeCategoryId,
-    url: block.placeLink,
+    categoryId: BLOCK_CATEGORY_TO_ID[block.blockCategory] ?? null,
     name: block.placeName,
     formatted_address: block.placeAddress,
-    rating: block.placeRating,
-    photoUrl: block.photoUrl,
+    photoUrl: block.placeThumbnailUrl,
     iconUrl: "./src/assets/imgs/default.png",
-    xLocation: block.xLocation || block.xlocation,
-    yLocation: block.yLocation || block.ylocation,
+    xLocation: block.longitude,
+    yLocation: block.latitude,
+    contentTypeId: block.placeContentTypeId,
+    copyrightDivCd: block.placeCopyrightDivCd,
   }
 
   return { timeTableId, place, start, duration, blockId, memo };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useApiClient } from "../hooks/useApiClient";
-import { getTimeSlotIndex } from "../utils/createUtils";
+import { BLOCK_CATEGORY_TO_ID, getTimeSlotIndex } from "../utils/createUtils";
 
 import { faCalendar, faMap } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -21,9 +21,8 @@ function App() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
-  const token = searchParams.get("token");
 
-  const { get, isAuthenticated } = useApiClient();
+  const { get } = useApiClient();
 
   const [finishLoading, setFinishLoading] = useState(false);
   const [planFrame, setPlanFrame] = useState({});
@@ -108,15 +107,13 @@ function App() {
 
     const place = {
       placeId: block.placeId,
-      categoryId: block.placeCategoryId,
-      url: block.placeLink,
+      categoryId: BLOCK_CATEGORY_TO_ID[block.blockCategory] ?? null,
       name: block.placeName,
       formatted_address: block.placeAddress,
-      rating: block.placeRating,
-      iconUrl: block.photoUrl || "./src/assets/imgs/default.png",
-      photoUrl: block.photoUrl,
-      xlocation: block.xLocation || block.xlocation,
-      ylocation: block.yLocation || block.ylocation,
+      iconUrl: block.placeThumbnailUrl || "./src/assets/imgs/default.png",
+      photoUrl: block.placeThumbnailUrl,
+      xlocation: block.longitude,
+      ylocation: block.latitude,
       memo: block.memo,
     };
 
@@ -165,18 +162,7 @@ function App() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       let planData = null;
-      if (token) {
-        try {
-          planData = await get(
-            `${BASE_URL}/api/plan/${id}/complete?token=${token}`,
-          );
-        } catch (err) {
-          console.error("일정 정보를 가져오는데 실패했습니다:", err);
-          ErrorToast("잘못된 접근입니다.");
-          navigate("/");
-          return;
-        }
-      } else if (id && isAuthenticated()) {
+      if (id) {
         try {
           planData = await get(`${BASE_URL}/api/plan/${id}/complete`);
         } catch (err) {

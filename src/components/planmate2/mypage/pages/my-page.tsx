@@ -15,6 +15,8 @@ import {
   type PageData,
 } from '../../community/api/communityApi';
 import { useMyActivity, useUserPosts } from '../../community/hooks/queries';
+// @ts-ignore
+import { categoryKeyToId } from '../../../../shared/theme/category';
 import { CalendarSection } from '../organisms/CalendarSection';
 import { CommunityActivitySection } from '../organisms/CommunityActivitySection';
 import { MapSection } from '../organisms/MapSection';
@@ -252,7 +254,8 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     try {
       // @ts-ignore
       const response = await post(`${BASE_URL}/api/auth/register/nickname/verify`, { nickname: newNickname });
-      if (response.isAvailable) {
+      // v2 응답 DTO: NicknameVerificationResponse { nicknameAvailable }
+      if (response.nicknameAvailable) {
         setNicknameMessage('사용 가능한 닉네임입니다.');
         setNicknameValid(true);
         setIsNicknameVerified(true);
@@ -277,14 +280,19 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         updates.push(patch(`${BASE_URL}/api/user/nickname`, { nickname: newNickname }));
       }
       
-      // 나이 변경 (Backend expectant of 'age' being a number)
+      // 생년월일 변경 (v2: PATCH /api/user/birthdate)
+      // 백엔드가 LocalDate(YYYY-MM-DD)를 받으므로 입력된 '나이'로 출생연도를 역산한다.
+      // 실제 생년월일이 아닌 근사값이므로, 생년월일 입력 UI가 생기면 그대로 보내도록 교체할 것.
       if (newAge !== userProfile?.age) {
-        updates.push(patch(`${BASE_URL}/api/user/age`, { age: Number(newAge) }));
+        const birthYear = new Date().getFullYear() - Number(newAge) + 1;
+        const birthdate = `${birthYear}-01-01`;
+        updates.push(patch(`${BASE_URL}/api/user/birthdate`, { birthdate }));
       }
-      
-      // 성별 변경
+
+      // 성별 변경 (v2: Gender enum - MALE/FEMALE)
       if (newGender !== userProfile?.gender) {
-        updates.push(patch(`${BASE_URL}/api/user/gender`, { gender: newGender }));
+        const genderEnum = newGender === 0 ? "MALE" : "FEMALE";
+        updates.push(patch(`${BASE_URL}/api/user/gender`, { gender: genderEnum }));
       }
 
       if (updates.length > 0) {
@@ -293,7 +301,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           setStoreNickname(newNickname);
         }
         alert("프로필 정보가 성공적으로 업데이트되었습니다.");
-        
+
         // 프로필 정보 다시 가져오기
         const profileData = await get(`${BASE_URL}/api/user/profile`);
         setUserProfile(profileData);
@@ -328,9 +336,10 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     }
 
     try {
-      await patch(`${BASE_URL}/api/auth/password`, { 
-        oldPassword: currentPassword,
-        password: newPassword,
+      // v2 요청 DTO: ChangePasswordRequest { currentPassword, newPassword, confirmPassword }
+      await patch(`${BASE_URL}/api/auth/password`, {
+        currentPassword: currentPassword,
+        newPassword: newPassword,
         confirmPassword: confirmPassword
       });
       alert("비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.");
@@ -432,8 +441,13 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       if (isAuthenticated() || isOtherUser) {
         try {
           setLoading(true);
-          const endpoint = isOtherUser ? `${BASE_URL}/api/user/profile/${userId}` : `${BASE_URL}/api/user/profile`;
-          
+          // Backend-v2에는 본인 프로필 조회(/api/user/profile)만 있다.
+          // 타인 프로필(/api/user/profile/{userId})은 백엔드 미구현 상태.
+          const endpoint = isOtherUser
+            ? `${BASE_URL}/api/user/profile/${userId}`
+            : `${BASE_URL}/api/user/profile`;
+
+
           let profileData;
           try {
             profileData = await get(endpoint);
@@ -464,8 +478,9 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           if (profileData.preferredThemes && Array.isArray(profileData.preferredThemes)) {
             const categorized: any = { 0: [], 1: [], 2: [] };
             profileData.preferredThemes.forEach((theme: any) => {
-              const catId = theme.preferredThemeCategoryId;
-              if (categorized[catId] !== undefined) {
+              // v2 응답은 카테고리를 category enum 문자열로 준다
+              const catId = categoryKeyToId(theme.category);
+              if (catId !== undefined) {
                 categorized[catId].push(theme);
               }
             });
@@ -495,15 +510,15 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       
       themes.forEach((theme: any) => {
         if (typeof theme === 'object' && theme !== null) {
-          const catId = theme.preferredThemeCategoryId;
-          if (categorized[catId] !== undefined) {
+          const catId = categoryKeyToId(theme.category);
+          if (catId !== undefined) {
             categorized[catId].push(theme);
           } else {
             categorized[0].push(theme);
           }
         } else if (typeof theme === 'string') {
           categorized[0].push({
-            preferredThemeCategoryId: 0,
+            category: 'ATTRACTION',
             preferredThemeName: theme.trim(),
             preferredThemeId: -1
           });

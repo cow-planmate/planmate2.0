@@ -103,12 +103,12 @@ function Home({ hideNavbar = false }) {
 
       if (isAuthenticated()) {
         const requestData = {
-          departure: "null",
-          travelId: destinationLocation.id,
+          destinationId: destinationLocation.id,
           dates: formattedDates,
           adultCount: Number(personCount.adults),
           childCount: Number(personCount.children),
-          transportation: selectedTransport === "car" ? 1 : 0,
+          transportationType:
+            selectedTransport === "car" ? "PRIVATE" : "PUBLIC",
         };
 
         const BASE_URL = import.meta.env.VITE_API_URL;
@@ -122,11 +122,10 @@ function Home({ hideNavbar = false }) {
           planName:
             destinationLocation?.name.split(" ")[1] || "제목을 입력하세요",
           planId: -1,
-          travelCategoryName: destinationLocation?.name.split(" ")[0] || "",
-          travelName: destinationLocation?.name.split(" ")[1] || "",
-          travelId: destinationLocation?.id || null,
+          destinationName: destinationLocation?.name.split(" ")[1] || "",
+          destinationId: destinationLocation?.id || null,
           departure: departureLocation?.name || "",
-          transportationCategoryId: selectedTransport === "car" ? 1 : 0,
+          transportationType: selectedTransport === "car" ? "PRIVATE" : "PUBLIC",
           adultCount: Number(personCount.adults),
           childCount: Number(personCount.children),
         });
