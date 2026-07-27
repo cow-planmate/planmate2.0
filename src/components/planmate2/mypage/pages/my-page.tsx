@@ -1,29 +1,30 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useApiClient } from '../../../../hooks/useApiClient';
-import useKakaoLoader from '../../../../hooks/useKakaoLoader';
-import useNicknameStore from '../../../../store/Nickname';
-import { LEVEL_CONFIG, REGION_COORDINATES } from '../constants';
-import { useCalendar } from '../hooks/useCalendar';
-import { usePlanChecklists } from '../hooks/usePlanChecklists';
-import { useUserStats } from '../hooks/useUserStats';
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useApiClient } from "../../../../hooks/useApiClient";
+import useKakaoLoader from "../../../../hooks/useKakaoLoader";
+import useNicknameStore from "../../../../store/Nickname";
+import { LEVEL_CONFIG, REGION_COORDINATES } from "../constants";
+import { useCalendar } from "../hooks/useCalendar";
+import { usePlanChecklists } from "../hooks/usePlanChecklists";
+import { useUserStats } from "../hooks/useUserStats";
 import {
   mapFeedPost,
   mapForkedFeedPost,
   mapLikedFeedPost,
   type CommunityPostSummary,
   type PageData,
-} from '../../community/api/communityApi';
-import { useMyActivity, useUserPosts } from '../../community/hooks/queries';
+} from "../../community/api/communityApi";
+import { useMyActivity, useUserPosts } from "../../community/hooks/queries";
 // @ts-ignore
-import { categoryKeyToId } from '../../../../shared/theme/category';
-import { CalendarSection } from '../organisms/CalendarSection';
-import { CommunityActivitySection } from '../organisms/CommunityActivitySection';
-import { MapSection } from '../organisms/MapSection';
-import { MyPageModals } from '../organisms/MyPageModals';
-import { ProfileHeader } from '../organisms/ProfileHeader';
-import { TravelLogsSection } from '../organisms/TravelLogsSection';
-import { TripSection } from '../organisms/TripSection';
+import { categoryKeyToId } from "../../../../shared/theme/category";
+import { CalendarSection } from "../organisms/CalendarSection";
+import { CommunityActivitySection } from "../organisms/CommunityActivitySection";
+import { MapSection } from "../organisms/MapSection";
+import { MyPageModals } from "../organisms/MyPageModals";
+import { ProfileHeader } from "../organisms/ProfileHeader";
+import { TravelLogsSection } from "../organisms/TravelLogsSection";
+import { TripSection } from "../organisms/TripSection";
+import type { Gender, Plan, UserProfile } from "../types";
 
 // @ts-ignore
 import gravatarUrl from "../../../../utils/gravatarUrl";
@@ -31,34 +32,67 @@ import gravatarUrl from "../../../../utils/gravatarUrl";
 import ThemeStart from "../../../Mypage/changeThemeStart";
 // @ts-ignore
 import Theme from "../../../Mypage/changeTheme";
+// @ts-ignore
+import TitleModal from "../../../Mypage/TitleModal";
+// @ts-ignore
+import ShareModal from "../../../common/ShareModal";
 
 interface MyPageProps {
   onNavigate: (view: any, data?: any) => void;
   userId?: string;
 }
 
+const enrichPlan = async (
+  get: (url: string) => Promise<any>,
+  baseUrl: string,
+  plan: Plan,
+): Promise<Plan> => {
+  try {
+    const detail = await get(`${baseUrl}/api/plan/${plan.planId}`);
+    const dates = (detail?.timetables ?? [])
+      .map((timetable: any) => timetable.date)
+      .filter(Boolean)
+      .sort();
+
+    return {
+      ...plan,
+      planName: detail?.planFrame?.planName ?? plan.planName,
+      startDate: dates[0],
+      endDate: dates[dates.length - 1],
+      region: detail?.planFrame?.destinationName,
+    };
+  } catch (error) {
+    console.error(`플랜 상세 조회 실패 (${plan.planId}):`, error);
+    return plan;
+  }
+};
+
 export default function MyPage({ onNavigate, userId }: MyPageProps) {
   useKakaoLoader();
   const navigate = useNavigate();
-  
+
   // 현재 로그인한 사용자인지 확인
-  const currentLoggedInUserId = localStorage.getItem('userId');
+  const currentLoggedInUserId = localStorage.getItem("userId");
   const isOtherUser = userId && userId !== currentLoggedInUserId;
 
   // Tabs State
-  const [travelTab, setTravelTab] = useState<'created' | 'forked' | 'liked'>('created');
-  const [communityTab, setCommunityTab] = useState<'my_posts' | 'liked_posts' | 'comments'>('my_posts');
+  const [travelTab, setTravelTab] = useState<"created" | "forked" | "liked">(
+    "created",
+  );
+  const [communityTab, setCommunityTab] = useState<
+    "my_posts" | "liked_posts" | "comments"
+  >("my_posts");
 
   // 여행기 — 탭별 페이지(0-based). 탭 전환 시 1페이지로 리셋한다
   const [travelPage, setTravelPage] = useState(0);
-  const changeTravelTab = (tab: 'created' | 'forked' | 'liked') => {
+  const changeTravelTab = (tab: "created" | "forked" | "liked") => {
     setTravelTab(tab);
     setTravelPage(0);
   };
 
   // 커뮤니티 활동 — 탭별 페이지(0-based). 탭 전환 시 1페이지로 리셋한다
   const [communityPage, setCommunityPage] = useState(0);
-  const changeCommunityTab = (tab: 'my_posts' | 'liked_posts' | 'comments') => {
+  const changeCommunityTab = (tab: "my_posts" | "liked_posts" | "comments") => {
     setCommunityTab(tab);
     setCommunityPage(0);
   };
@@ -66,52 +100,100 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   // 커뮤니티 활동 (본인 프로필에서만 의미 있음 — me 엔드포인트)
   // 여행기(feed)는 별도 "나의 여행기" 섹션에서 다루므로 커뮤니티 게시판만 조회한다.
   // 활성 탭만 현재 페이지를 요청하고, 비활성 탭은 개수 배지용으로 1페이지만 유지한다.
-  const COMMUNITY_CATEGORIES = 'free,qna,mate,recommend';
-  const { data: myCommunityPostsPage } = useMyActivity('posts', communityTab === 'my_posts' ? communityPage : 0, COMMUNITY_CATEGORIES, !isOtherUser);
-  const { data: likedCommunityPostsPage } = useMyActivity('liked', communityTab === 'liked_posts' ? communityPage : 0, COMMUNITY_CATEGORIES, !isOtherUser);
-  const { data: myCommunityCommentsPage } = useMyActivity('comments', communityTab === 'comments' ? communityPage : 0, undefined, !isOtherUser);
+  const COMMUNITY_CATEGORIES = "free,qna,mate,recommend";
+  const { data: myCommunityPostsPage } = useMyActivity(
+    "posts",
+    communityTab === "my_posts" ? communityPage : 0,
+    COMMUNITY_CATEGORIES,
+    !isOtherUser,
+  );
+  const { data: likedCommunityPostsPage } = useMyActivity(
+    "liked",
+    communityTab === "liked_posts" ? communityPage : 0,
+    COMMUNITY_CATEGORIES,
+    !isOtherUser,
+  );
+  const { data: myCommunityCommentsPage } = useMyActivity(
+    "comments",
+    communityTab === "comments" ? communityPage : 0,
+    undefined,
+    !isOtherUser,
+  );
 
   const activeCommunityPage = (
-    communityTab === 'my_posts' ? myCommunityPostsPage
-    : communityTab === 'liked_posts' ? likedCommunityPostsPage
-    : myCommunityCommentsPage
+    communityTab === "my_posts"
+      ? myCommunityPostsPage
+      : communityTab === "liked_posts"
+        ? likedCommunityPostsPage
+        : myCommunityCommentsPage
   ) as PageData<any> | undefined;
 
   // 여행기 — 본인은 me 엔드포인트(작성/가져옴/좋아요), 다른 사용자는 공개 목록(작성글만).
   // 활성 탭만 현재 페이지를 요청하고, 비활성 탭은 개수 배지용으로 1페이지만 유지한다.
-  const { data: myFeedPostsPage } = useMyActivity('posts', travelTab === 'created' ? travelPage : 0, 'feed', !isOtherUser);
-  const { data: forkedFeedPostsPage } = useMyActivity('forks', travelTab === 'forked' ? travelPage : 0, undefined, !isOtherUser);
-  const { data: likedFeedPostsPage } = useMyActivity('liked', travelTab === 'liked' ? travelPage : 0, 'feed', !isOtherUser);
-  const { data: userFeedPostsPage } = useUserPosts(isOtherUser ? userId : undefined, 'feed', travelPage);
+  const { data: myFeedPostsPage } = useMyActivity(
+    "posts",
+    travelTab === "created" ? travelPage : 0,
+    "feed",
+    !isOtherUser,
+  );
+  const { data: forkedFeedPostsPage } = useMyActivity(
+    "forks",
+    travelTab === "forked" ? travelPage : 0,
+    undefined,
+    !isOtherUser,
+  );
+  const { data: likedFeedPostsPage } = useMyActivity(
+    "liked",
+    travelTab === "liked" ? travelPage : 0,
+    "feed",
+    !isOtherUser,
+  );
+  const { data: userFeedPostsPage } = useUserPosts(
+    isOtherUser ? userId : undefined,
+    "feed",
+    travelPage,
+  );
 
-  const travelPostsPage = (isOtherUser ? userFeedPostsPage : myFeedPostsPage) as PageData<CommunityPostSummary> | undefined;
+  const travelPostsPage = (
+    isOtherUser ? userFeedPostsPage : myFeedPostsPage
+  ) as PageData<CommunityPostSummary> | undefined;
   const myTravelPosts = useMemo(
     () => (travelPostsPage?.items ?? []).map(mapFeedPost),
     [travelPostsPage],
   );
   const forkedTravelPosts = useMemo(
-    () => ((forkedFeedPostsPage as PageData<CommunityPostSummary> | undefined)?.items ?? []).map(mapForkedFeedPost),
+    () =>
+      (
+        (forkedFeedPostsPage as PageData<CommunityPostSummary> | undefined)
+          ?.items ?? []
+      ).map(mapForkedFeedPost),
     [forkedFeedPostsPage],
   );
   const likedTravelPosts = useMemo(
-    () => ((likedFeedPostsPage as PageData<CommunityPostSummary> | undefined)?.items ?? []).map(mapLikedFeedPost),
+    () =>
+      (
+        (likedFeedPostsPage as PageData<CommunityPostSummary> | undefined)
+          ?.items ?? []
+      ).map(mapLikedFeedPost),
     [likedFeedPostsPage],
   );
 
   // 다른 사용자 프로필은 작성글 탭만 노출하므로 항상 작성글 페이지를 기준으로 한다
   const activeTravelPage = (
-    isOtherUser || travelTab === 'created' ? travelPostsPage
-    : travelTab === 'forked' ? forkedFeedPostsPage
-    : likedFeedPostsPage
+    isOtherUser || travelTab === "created"
+      ? travelPostsPage
+      : travelTab === "forked"
+        ? forkedFeedPostsPage
+        : likedFeedPostsPage
   ) as PageData<any> | undefined;
 
   const [date, setDate] = useState<Date>(new Date());
-  
+
   // API 관련 상태
-  const { get, patch, del, isAuthenticated, logout } = useApiClient();
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [myPlans, setMyPlans] = useState<any[]>([]);
-  const [editablePlans, setEditablePlans] = useState<any[]>([]);
+  const { get, post, patch, del, isAuthenticated, logout } = useApiClient();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [myPlans, setMyPlans] = useState<Plan[]>([]);
+  const [editablePlans, setEditablePlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 인증 체크
@@ -128,21 +210,21 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     handleToggleChecklist,
     handleUpdateChecklistText,
     handleAddChecklistItem,
-    handleDeleteChecklistItem
+    handleDeleteChecklistItem,
   } = usePlanChecklists(myPlans, editablePlans);
 
   // 모달 상태
   const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [newNickname, setNewNickname] = useState('');
+  const [newNickname, setNewNickname] = useState("");
   const [isNicknameVerified, setIsNicknameVerified] = useState(false);
   const [nicknameValid, setNicknameValid] = useState<boolean | null>(null);
-  const [nicknameMessage, setNicknameMessage] = useState('');
-  const [newAge, setNewAge] = useState<number>(0);
-  const [newGender, setNewGender] = useState<number>(0);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  
+  const [nicknameMessage, setNicknameMessage] = useState("");
+  const [newBirthdate, setNewBirthdate] = useState("");
+  const [newGender, setNewGender] = useState<Gender | "">("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   // 테마 관리 상태
   const [isThemeStartOpen, setIsThemeStartOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
@@ -154,7 +236,10 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
 
   // 다중 삭제 관리 상태
   const [isDeleteMode, setIsDeleteMode] = useState(false);
-  const [selectedPlanIds, setSelectedPlanIds] = useState<number[]>([]);
+  const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
+  const [actionPlan, setActionPlan] = useState<any | null>(null);
+  const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const handleFriendAdd = async () => {
     if (!isAuthenticated()) {
@@ -163,7 +248,9 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     }
     try {
       // 실제 API가 있을 경우: await post(`${BASE_URL}/api/friends`, { friendId: userId });
-      alert(`${userProfile?.nickName || '사용자'}님에게 친구 요청을 보냈습니다.`);
+      alert(
+        `${userProfile?.nickName || "사용자"}님에게 친구 요청을 보냈습니다.`,
+      );
     } catch (err) {
       alert("친구 요청 중 오류가 발생했습니다.");
     }
@@ -174,13 +261,15 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       alert("로그인 후 이용 가능합니다.");
       return;
     }
-    
-    // 이 핸들러는 이제 부모로부터 받은 전역 채팅 함수를 호출하거나 
+
+    // 이 핸들러는 이제 부모로부터 받은 전역 채팅 함수를 호출하거나
     // 여기 프로필 사용자를 넘겨야 합니다 (현재는 팝업 준비중 메시지 대신 전역 처리 필요)
-    // onNavigate를 통해 부모의 전역 핸들러를 호출하도록 유도하거나 
-    // props로 직접 전달받아야 하지만, 현재 구조상 팝업은 부모가 관리하므로 
+    // onNavigate를 통해 부모의 전역 핸들러를 호출하도록 유도하거나
+    // props로 직접 전달받아야 하지만, 현재 구조상 팝업은 부모가 관리하므로
     // 여기서 알림만 띄우거나 기능을 유지하려면 props 수정이 필요합니다.
-    alert(`${targetUser?.nickName || userProfile?.nickname || '사용자'}님과의 채팅을 시작합니다.`);
+    alert(
+      `${targetUser?.nickName || userProfile?.nickname || "사용자"}님과의 채팅을 시작합니다.`,
+    );
   };
 
   // 캘린더 이벤트 팝업 상태
@@ -192,37 +281,34 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     if (newNickname === userProfile?.nickname) {
       setIsNicknameVerified(true);
       setNicknameValid(null);
-      setNicknameMessage('');
+      setNicknameMessage("");
     } else {
       setIsNicknameVerified(false);
       setNicknameValid(null);
-      setNicknameMessage('');
+      setNicknameMessage("");
     }
   }, [newNickname, userProfile?.nickname]);
 
   const BASE_URL = (import.meta as any).env.VITE_API_URL;
-  const setStoreNickname = useNicknameStore((state: any) => (state as any).setNickname);
+  const setStoreNickname = useNicknameStore(
+    (state: any) => (state as any).setNickname,
+  );
 
   // User Level & EXP Hook
   const stats = {
-    forks: editablePlans.length,    // 공유받은 일정
+    forks: editablePlans.length, // 공유받은 일정
     feedPosts: 0,
     community: 0,
     comments: 0,
-    attendance: 10 + (myPlans.length * 5) // 임시 점수 (플랜당 5점)
+    attendance: 10 + myPlans.length * 5, // 임시 점수 (플랜당 5점)
   };
-  const { 
-    exp, 
-    userLevel, 
-    levelName, 
-    displayMax, 
-    remainingCount 
-  } = useUserStats(stats);
+  const { exp, userLevel, levelName, displayMax, remainingCount } =
+    useUserStats(stats);
 
   const handleLogout = () => {
     logout();
-    setStoreNickname('');
-    navigate('/');
+    setStoreNickname("");
+    navigate("/");
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,14 +324,14 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   };
 
   const handleCheckNickname = async () => {
-    if (!newNickname || newNickname.trim() === '') {
-      setNicknameMessage('닉네임을 입력해주세요.');
+    if (!newNickname || newNickname.trim() === "") {
+      setNicknameMessage("닉네임을 입력해주세요.");
       setNicknameValid(false);
       return;
     }
-    
+
     if (newNickname === userProfile?.nickname) {
-      setNicknameMessage('현재 사용 중인 닉네임입니다.');
+      setNicknameMessage("현재 사용 중인 닉네임입니다.");
       setNicknameValid(true);
       setIsNicknameVerified(true);
       return;
@@ -253,20 +339,23 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
 
     try {
       // @ts-ignore
-      const response = await post(`${BASE_URL}/api/auth/register/nickname/verify`, { nickname: newNickname });
+      const response = await post(
+        `${BASE_URL}/api/auth/register/nickname/verify`,
+        { nickname: newNickname },
+      );
       // v2 응답 DTO: NicknameVerificationResponse { nicknameAvailable }
       if (response.nicknameAvailable) {
-        setNicknameMessage('사용 가능한 닉네임입니다.');
+        setNicknameMessage("사용 가능한 닉네임입니다.");
         setNicknameValid(true);
         setIsNicknameVerified(true);
       } else {
-        setNicknameMessage('이미 사용 중인 닉네임입니다.');
+        setNicknameMessage("이미 사용 중인 닉네임입니다.");
         setNicknameValid(false);
         setIsNicknameVerified(false);
       }
     } catch (err) {
       console.error("닉네임 중복 확인 실패:", err);
-      setNicknameMessage('중복 확인 중 오류가 발생했습니다.');
+      setNicknameMessage("중복 확인 중 오류가 발생했습니다.");
       setNicknameValid(false);
     }
   };
@@ -274,25 +363,28 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   const handleProfileSubmit = async () => {
     try {
       const updates = [];
-      
+
       // 닉네임 변경
       if (newNickname && newNickname !== userProfile?.nickname) {
-        updates.push(patch(`${BASE_URL}/api/user/nickname`, { nickname: newNickname }));
+        updates.push(
+          patch(`${BASE_URL}/api/user/nickname`, { nickname: newNickname }),
+        );
       }
-      
+
       // 생년월일 변경 (v2: PATCH /api/user/birthdate)
       // 백엔드가 LocalDate(YYYY-MM-DD)를 받으므로 입력된 '나이'로 출생연도를 역산한다.
       // 실제 생년월일이 아닌 근사값이므로, 생년월일 입력 UI가 생기면 그대로 보내도록 교체할 것.
-      if (newAge !== userProfile?.age) {
-        const birthYear = new Date().getFullYear() - Number(newAge) + 1;
-        const birthdate = `${birthYear}-01-01`;
-        updates.push(patch(`${BASE_URL}/api/user/birthdate`, { birthdate }));
+      if (newBirthdate && newBirthdate !== userProfile?.birthdate) {
+        updates.push(
+          patch(`${BASE_URL}/api/user/birthdate`, { birthdate: newBirthdate }),
+        );
       }
 
       // 성별 변경 (v2: Gender enum - MALE/FEMALE)
-      if (newGender !== userProfile?.gender) {
-        const genderEnum = newGender === 0 ? "MALE" : "FEMALE";
-        updates.push(patch(`${BASE_URL}/api/user/gender`, { gender: genderEnum }));
+      if (newGender && newGender !== userProfile?.gender) {
+        updates.push(
+          patch(`${BASE_URL}/api/user/gender`, { gender: newGender }),
+        );
       }
 
       if (updates.length > 0) {
@@ -306,7 +398,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         const profileData = await get(`${BASE_URL}/api/user/profile`);
         setUserProfile(profileData);
       }
-      
+
       setActiveModal(null);
     } catch (err: any) {
       console.error("프로필 업데이트 실패:", err);
@@ -329,9 +421,17 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     const hasEnglish = /[a-zA-Z]/.test(newPassword);
     const hasNumber = /[0-9]/.test(newPassword);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
-    
-    if (newPassword.length < 8 || newPassword.length > 20 || !hasEnglish || !hasNumber || !hasSpecialChar) {
-      alert("비밀번호 형식이 올바르지 않습니다. (8~20자 영문, 숫자, 특수문자 조합)");
+
+    if (
+      newPassword.length < 8 ||
+      newPassword.length > 64 ||
+      !hasEnglish ||
+      !hasNumber ||
+      !hasSpecialChar
+    ) {
+      alert(
+        "비밀번호 형식이 올바르지 않습니다. (8~64자 영문, 숫자, 특수문자 조합)",
+      );
       return;
     }
 
@@ -340,7 +440,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       await patch(`${BASE_URL}/api/auth/password`, {
         currentPassword: currentPassword,
         newPassword: newPassword,
-        confirmPassword: confirmPassword
+        confirmPassword: confirmPassword,
       });
       alert("비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.");
       handleLogout();
@@ -361,8 +461,15 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     }
   };
 
-  const handleDeletePlan = async (planId: number, isOwner: boolean) => {
-    if (!confirm(isOwner ? "여행 일정을 완전히 삭제하시겠습니까?" : "공유된 일정에서 나가시겠습니까?")) return;
+  const handleDeletePlan = async (planId: string, isOwner: boolean) => {
+    if (
+      !confirm(
+        isOwner
+          ? "여행 일정을 완전히 삭제하시겠습니까?"
+          : "공유된 일정에서 나가시겠습니까?",
+      )
+    )
+      return;
 
     try {
       if (isOwner) {
@@ -370,14 +477,16 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       } else {
         await del(`${BASE_URL}/api/plan/${planId}/editor/me`);
       }
-      
+
       // 로컬 상태 업데이트
       if (isOwner) {
-        setMyPlans(prev => prev.filter((p: any) => p.planId !== planId));
+        setMyPlans((prev) => prev.filter((p: any) => p.planId !== planId));
       } else {
-        setEditablePlans(prev => prev.filter((p: any) => p.planId !== planId));
+        setEditablePlans((prev) =>
+          prev.filter((p: any) => p.planId !== planId),
+        );
       }
-      
+
       alert(isOwner ? "일정이 삭제되었습니다." : "일정에서 나갔습니다.");
     } catch (err) {
       console.error("일정 삭제 실패:", err);
@@ -390,27 +499,44 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       alert("삭제할 일정을 선택해주세요.");
       return;
     }
-    
+
     const count = selectedPlanIds.length;
-    if (!confirm(`선택한 ${count}개의 일정을 삭제하시겠습니까?\n(본인 일정은 삭제되고, 초대된 일정은 나가기 처리됩니다)`)) return;
+    if (
+      !confirm(
+        `선택한 ${count}개의 일정을 삭제하시겠습니까?\n(본인 일정은 삭제되고, 초대된 일정은 나가기 처리됩니다)`,
+      )
+    )
+      return;
 
     try {
-      const ownedToDelete = allPlans.filter(p => selectedPlanIds.includes(p.id) && p.isOwner).map(p => p.id);
-      const sharedToLeave = allPlans.filter(p => selectedPlanIds.includes(p.id) && !p.isOwner).map(p => p.id);
+      const ownedToDelete = allPlans
+        .filter((p) => selectedPlanIds.includes(p.id) && p.isOwner)
+        .map((p) => p.id);
+      const sharedToLeave = allPlans
+        .filter((p) => selectedPlanIds.includes(p.id) && !p.isOwner)
+        .map((p) => p.id);
 
       // 1. 소유한 일정 벌크 삭제
       if (ownedToDelete.length > 0) {
-        // useApiClient의 del은 두번째 인자가 config/body일 수 있음. 
+        // useApiClient의 del은 두번째 인자가 config/body일 수 있음.
         // fetch option에 body를 실어보내야 함.
         // @ts-ignore
         await del(`${BASE_URL}/api/plan`, { planIds: ownedToDelete });
-        setMyPlans(prev => prev.filter((p: any) => !ownedToDelete.includes(p.planId)));
+        setMyPlans((prev) =>
+          prev.filter((p: any) => !ownedToDelete.includes(p.planId)),
+        );
       }
 
       // 2. 공유받은 일정 개별 나가기 (백엔드 벌크가 없으므로 루프)
       if (sharedToLeave.length > 0) {
-        await Promise.all(sharedToLeave.map(id => del(`${BASE_URL}/api/plan/${id}/editor/me`)));
-        setEditablePlans(prev => prev.filter((p: any) => !sharedToLeave.includes(p.planId)));
+        await Promise.all(
+          sharedToLeave.map((id) =>
+            del(`${BASE_URL}/api/plan/${id}/editor/me`),
+          ),
+        );
+        setEditablePlans((prev) =>
+          prev.filter((p: any) => !sharedToLeave.includes(p.planId)),
+        );
       }
 
       alert("선택한 일정이 처리되었습니다.");
@@ -426,18 +552,37 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     if (selectedPlanIds.length === allPlans.length) {
       setSelectedPlanIds([]);
     } else {
-      setSelectedPlanIds(allPlans.map(p => p.id));
+      setSelectedPlanIds(allPlans.map((p) => p.id));
     }
   };
 
-  const togglePlanSelection = (id: number) => {
-    setSelectedPlanIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+  const togglePlanSelection = (id: string) => {
+    if (!id) {
+      setSelectedPlanIds([]);
+      return;
+    }
+    setSelectedPlanIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
+  };
+
+  const handlePlanNameUpdated = (planId: string, planName: string) => {
+    setMyPlans((plans) =>
+      plans.map((plan) => (plan.planId === planId ? { ...plan, planName } : plan)),
+    );
+    setEditablePlans((plans) =>
+      plans.map((plan) => (plan.planId === planId ? { ...plan, planName } : plan)),
+    );
+    setActionPlan((plan: any) => (plan ? { ...plan, title: planName } : plan));
   };
 
   useEffect(() => {
     const fetchUserProfile = async () => {
+      // v2 명세에는 타인 프로필 조회 API가 없으므로 문서에 없는 경로를 호출하지 않는다.
+      if (isOtherUser) {
+        setLoading(false);
+        return;
+      }
       if (isAuthenticated() || isOtherUser) {
         try {
           setLoading(true);
@@ -446,7 +591,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           const endpoint = isOtherUser
             ? `${BASE_URL}/api/user/profile/${userId}`
             : `${BASE_URL}/api/user/profile`;
-
 
           let profileData;
           try {
@@ -458,24 +602,40 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
                 email: `user${userId}@example.com`,
                 myPlanVOs: [],
                 editablePlanVOs: [],
-                preferredThemes: []
+                preferredThemes: [],
               };
             } else {
               throw err;
             }
           }
-          
+
           if (!profileData) {
             console.error("No profile data received");
             return;
           }
 
-          setUserProfile(profileData);
-          setMyPlans(profileData.myPlanVOs || []);
-          setEditablePlans(profileData.editablePlanVOs || []);
+          setUserProfile(profileData as UserProfile);
+
+          const [ownedPlans, sharedPlans] = await Promise.all([
+            Promise.all(
+              (profileData.myPlans || []).map((plan: Plan) =>
+                enrichPlan(get, BASE_URL, plan),
+              ),
+            ),
+            Promise.all(
+              (profileData.editablePlans || []).map((plan: Plan) =>
+                enrichPlan(get, BASE_URL, plan),
+              ),
+            ),
+          ]);
+          setMyPlans(ownedPlans);
+          setEditablePlans(sharedPlans);
 
           // 테마 데이터도 상태에 미리 담아둡니다
-          if (profileData.preferredThemes && Array.isArray(profileData.preferredThemes)) {
+          if (
+            profileData.preferredThemes &&
+            Array.isArray(profileData.preferredThemes)
+          ) {
             const categorized: any = { 0: [], 1: [], 2: [] };
             profileData.preferredThemes.forEach((theme: any) => {
               // v2 응답은 카테고리를 category enum 문자열로 준다
@@ -504,23 +664,23 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       const categorized: any = { 0: [], 1: [], 2: [] };
       const themes = Array.isArray(userProfile.preferredThemes)
         ? userProfile.preferredThemes
-        : typeof userProfile.preferredThemes === 'string'
-          ? userProfile.preferredThemes.split(',').filter(Boolean)
+        : typeof userProfile.preferredThemes === "string"
+          ? userProfile.preferredThemes.split(",").filter(Boolean)
           : [];
-      
+
       themes.forEach((theme: any) => {
-        if (typeof theme === 'object' && theme !== null) {
+        if (typeof theme === "object" && theme !== null) {
           const catId = categoryKeyToId(theme.category);
           if (catId !== undefined) {
             categorized[catId].push(theme);
           } else {
             categorized[0].push(theme);
           }
-        } else if (typeof theme === 'string') {
+        } else if (typeof theme === "string") {
           categorized[0].push({
-            category: 'ATTRACTION',
+            category: "ATTRACTION",
             preferredThemeName: theme.trim(),
-            preferredThemeId: -1
+            preferredThemeId: -1,
           });
         }
       });
@@ -530,45 +690,52 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
 
   // 플랜 데이터를 V2 UI 형식으로 변환
   const allPlans = [
-    ...myPlans.map(p => ({ ...p, isOwner: true })), 
-    ...editablePlans.map(p => ({ ...p, isOwner: false }))
-  ].map(plan => {
+    ...myPlans.map((p) => ({ ...p, isOwner: true })),
+    ...editablePlans.map((p) => ({ ...p, isOwner: false })),
+  ].map((plan) => {
     const hasDates = plan.startDate && plan.endDate;
-    
+
     // 타임존 영향을 받지 않도록 날짜 객체 생성 및 시간 초기화
     const startDate = hasDates ? new Date(plan.startDate) : null;
     if (startDate) startDate.setHours(0, 0, 0, 0);
-    
+
     const endDate = hasDates ? new Date(plan.endDate) : null;
     if (endDate) endDate.setHours(0, 0, 0, 0);
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let dDayStr = 'D-Day';
+    let dDayStr = "D-Day";
     if (startDate) {
       const diffTime = startDate.getTime() - today.getTime();
       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      dDayStr = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`;
+      dDayStr =
+        diffDays === 0
+          ? "D-Day"
+          : diffDays > 0
+            ? `D-${diffDays}`
+            : `D+${Math.abs(diffDays)}`;
     }
 
     const isPast = hasDates && endDate && endDate < today;
-    const isOngoing = hasDates && !isPast && (startDate && startDate <= today);
+    const isOngoing = hasDates && !isPast && startDate && startDate <= today;
 
     return {
       id: plan.planId,
       title: plan.planName,
       startDate: startDate || new Date(),
       endDate: endDate || new Date(),
-      dateStr: hasDates ? `${plan.startDate} - ${plan.endDate}` : '날짜 확인 필요',
+      dateStr: hasDates
+        ? `${plan.startDate} - ${plan.endDate}`
+        : "날짜 확인 필요",
       duration: plan.duration,
       dDay: dDayStr,
-      status: isPast ? '완료' : (isOngoing ? '진행 중' : '예정됨'),
+      status: isPast ? "완료" : isOngoing ? "진행 중" : "예정됨",
       hasDates: hasDates,
-      theme: plan.isOwner ? 'blue' : 'orange',
+      theme: plan.isOwner ? "blue" : "orange",
       isOwner: plan.isOwner,
-      progress: Math.floor(Math.random() * 100), 
-      checklist: planChecklists[plan.planId] || []
+      progress: Math.floor(Math.random() * 100),
+      checklist: planChecklists[plan.planId] || [],
     };
   });
 
@@ -578,15 +745,19 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       const startA = a.startDate.getTime();
       const startB = b.startDate.getTime();
       if (startA !== startB) return startA - startB;
-      return (b.endDate.getTime() - b.startDate.getTime()) - (a.endDate.getTime() - a.startDate.getTime());
+      return (
+        b.endDate.getTime() -
+        b.startDate.getTime() -
+        (a.endDate.getTime() - a.startDate.getTime())
+      );
     });
 
     const lanes: number[] = [];
-    return sorted.map(plan => {
+    return sorted.map((plan) => {
       const start = plan.startDate.getTime();
       const end = plan.endDate.getTime();
-      
-      let laneIndex = lanes.findIndex(laneEnd => laneEnd < start);
+
+      let laneIndex = lanes.findIndex((laneEnd) => laneEnd < start);
       if (laneIndex === -1) {
         laneIndex = lanes.length;
         lanes.push(end);
@@ -597,9 +768,9 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     });
   })();
 
-  const ongoingPlans = allPlans.filter(plan => plan.status === '진행 중');
-  const upcomingPlans = allPlans.filter(plan => plan.status === '예정됨');
-  const pastPlans = allPlans.filter(plan => plan.status === '완료');
+  const ongoingPlans = allPlans.filter((plan) => plan.status === "진행 중");
+  const upcomingPlans = allPlans.filter((plan) => plan.status === "예정됨");
+  const pastPlans = allPlans.filter((plan) => plan.status === "완료");
 
   const SCHEDULED_TRIPS = [...ongoingPlans, ...upcomingPlans];
   const PAST_TRIPS = pastPlans;
@@ -607,20 +778,23 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   const totalLikes = 0;
 
   // 지도용 데이터 가공 (지역별 그룹화)
-  const groupedPlansByRegion = [...myPlans, ...editablePlans].reduce((acc: any, plan: any) => {
-    const region = plan.region || '서울';
-    if (!acc[region]) {
-      acc[region] = {
-        name: region,
-        count: 0,
-        plans: [],
-        coords: REGION_COORDINATES[region] || REGION_COORDINATES['서울']
-      };
-    }
-    acc[region].count += 1;
-    acc[region].plans.push(plan);
-    return acc;
-  }, {});
+  const groupedPlansByRegion = [...myPlans, ...editablePlans].reduce(
+    (acc: any, plan: any) => {
+      const region = plan.region || "서울";
+      if (!acc[region]) {
+        acc[region] = {
+          name: region,
+          count: 0,
+          plans: [],
+          coords: REGION_COORDINATES[region] || REGION_COORDINATES["서울"],
+        };
+      }
+      acc[region].count += 1;
+      acc[region].plans.push(plan);
+      return acc;
+    },
+    {},
+  );
 
   // 캘린더 관련 Hook
   const {
@@ -633,11 +807,27 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   } = useCalendar(date, setDate, eventsWithLanes);
 
   const getCommunityBadge = (type: string) => {
-    switch(type) {
-      case 'free': return <span className="bg-blue-100 text-[#1344FF] text-xs px-2 py-0.5 rounded-full font-bold">자유</span>;
-      case 'qna': return <span className="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full font-bold">Q&A</span>;
-      case 'mate': return <span className="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full font-bold">메이트</span>;
-      default: return null;
+    switch (type) {
+      case "free":
+        return (
+          <span className="bg-blue-100 text-[#1344FF] text-xs px-2 py-0.5 rounded-full font-bold">
+            자유
+          </span>
+        );
+      case "qna":
+        return (
+          <span className="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full font-bold">
+            Q&A
+          </span>
+        );
+      case "mate":
+        return (
+          <span className="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full font-bold">
+            메이트
+          </span>
+        );
+      default:
+        return null;
     }
   };
 
@@ -650,12 +840,12 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   }
 
   const dummyUser = {
-    nickName: userProfile?.nickname || '사용자',
-    email: userProfile?.email || '로그인이 필요합니다',
-    profileLogo: profileImage || gravatarUrl(userProfile?.email || ''),
+    nickName: userProfile?.nickname || "사용자",
+    email: userProfile?.email || "로그인이 필요합니다",
+    profileLogo: profileImage || gravatarUrl(userProfile?.email || ""),
     gender: userProfile?.gender,
-    age: userProfile?.age,
-    preferredThemes: userProfile?.preferredThemes
+    birthdate: userProfile?.birthdate,
+    preferredThemes: userProfile?.preferredThemes,
   };
 
   const userStats = {
@@ -665,24 +855,24 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     expToNext: remainingCount,
     maxExp: displayMax,
     progress: Math.min(100, (exp / displayMax) * 100),
-    stats: stats
+    stats: stats,
   };
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] pb-12">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <ProfileHeader 
+        <ProfileHeader
           dummyUser={dummyUser}
           userStats={userStats}
           onEditProfile={() => {
-            setNewNickname(userProfile?.nickname || '');
-            setNewAge(userProfile?.age || 0);
-            setNewGender(userProfile?.gender || 0);
-            setNewPassword('');
-            setConfirmPassword('');
-            setActiveModal('profile');
+            setNewNickname(userProfile?.nickname || "");
+            setNewBirthdate(userProfile?.birthdate || "");
+            setNewGender(userProfile?.gender || "");
+            setNewPassword("");
+            setConfirmPassword("");
+            setActiveModal("profile");
           }}
-          onViewLevel={() => setActiveModal('level')}
+          onViewLevel={() => setActiveModal("level")}
           onAddFriend={handleFriendAdd}
           onSendMessage={handleSendMessage}
           myPlansCount={myPlans.length}
@@ -704,7 +894,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
                 getEventsForDate={getEventsForDate}
                 onEventClick={(event) => {
                   setSelectedCalendarEvent(event);
-                  setActiveModal('eventDetail');
+                  setActiveModal("eventDetail");
                 }}
               />
 
@@ -730,8 +920,16 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
               handleUpdateChecklistText={handleUpdateChecklistText}
               handleDeleteChecklistItem={handleDeleteChecklistItem}
               handleAddChecklistItem={handleAddChecklistItem}
-              onNavigateTrip={(id: number) => navigate(`/complete?id=${id}`)}
-              onNavigateToPlanMaker={() => onNavigate('plan-maker')}
+              onRenamePlan={(plan) => {
+                setActionPlan(plan);
+                setIsTitleModalOpen(true);
+              }}
+              onSharePlan={(plan) => {
+                setActionPlan(plan);
+                setIsShareModalOpen(true);
+              }}
+              onNavigateTrip={(id: string) => navigate(`/complete?id=${id}`)}
+              onNavigateToPlanMaker={() => onNavigate("plan-maker")}
             />
           </>
         )}
@@ -740,20 +938,36 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           travelTab={travelTab}
           setTravelTab={changeTravelTab}
           myTravelPosts={myTravelPosts}
-          myTravelPostsCount={travelPostsPage?.totalElements ?? myTravelPosts.length}
+          myTravelPostsCount={
+            travelPostsPage?.totalElements ?? myTravelPosts.length
+          }
           forkedTravelPosts={forkedTravelPosts}
           likedTravelPosts={likedTravelPosts}
           isOtherUser={!!isOtherUser}
           page={travelPage}
           totalPages={activeTravelPage?.totalPages ?? 1}
           onPageChange={setTravelPage}
-          onNavigateDetail={(post) => onNavigate('detail', { post })}
+          onNavigateDetail={(post) => onNavigate("detail", { post })}
         />
 
         {!isOtherUser && (
           <CommunityActivitySection
-            communityTab={communityTab === 'my_posts' ? 'written' : communityTab === 'liked_posts' ? 'liked' : 'comments'}
-            setCommunityTab={(tab) => changeCommunityTab(tab === 'written' ? 'my_posts' : tab === 'liked' ? 'liked_posts' : 'comments')}
+            communityTab={
+              communityTab === "my_posts"
+                ? "written"
+                : communityTab === "liked_posts"
+                  ? "liked"
+                  : "comments"
+            }
+            setCommunityTab={(tab) =>
+              changeCommunityTab(
+                tab === "written"
+                  ? "my_posts"
+                  : tab === "liked"
+                    ? "liked_posts"
+                    : "comments",
+              )
+            }
             myCommunityPosts={(myCommunityPostsPage as any)?.items ?? []}
             myCommunityPostsCount={(myCommunityPostsPage as any)?.totalElements}
             likedCommunityPosts={(likedCommunityPostsPage as any)?.items ?? []}
@@ -761,7 +975,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
             page={communityPage}
             totalPages={activeCommunityPage?.totalPages ?? 1}
             onPageChange={setCommunityPage}
-            onNavigateDetail={(post) => onNavigate('detail', { post })}
+            onNavigateDetail={(post) => onNavigate("detail", { post })}
           />
         )}
       </div>
@@ -771,8 +985,8 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         setActiveModal={setActiveModal}
         newNickname={newNickname}
         setNewNickname={setNewNickname}
-        newAge={newAge}
-        setNewAge={setNewAge}
+        newBirthdate={newBirthdate}
+        setNewBirthdate={setNewBirthdate}
         newGender={newGender}
         setNewGender={setNewGender}
         isNicknameVerified={isNicknameVerified}
@@ -792,7 +1006,9 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         userStats={userStats}
         LEVEL_CONFIG={LEVEL_CONFIG}
         handleDeleteAccount={handleDeleteAccount}
-        selectedDateEvents={selectedCalendarEvent ? [selectedCalendarEvent] : []}
+        selectedDateEvents={
+          selectedCalendarEvent ? [selectedCalendarEvent] : []
+        }
         onNavigateDetail={(event) => {
           navigate(`/complete?id=${event.id}`);
           setActiveModal(null);
@@ -802,6 +1018,23 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           setActiveModal(null);
         }}
       />
+
+      {isTitleModalOpen && actionPlan && (
+        <TitleModal
+          id={actionPlan.id}
+          currentTitle={actionPlan.title}
+          onClose={() => setIsTitleModalOpen(false)}
+          onSuccess={(newTitle: string) => handlePlanNameUpdated(actionPlan.id, newTitle)}
+        />
+      )}
+
+      {isShareModalOpen && actionPlan && (
+        <ShareModal
+          id={actionPlan.id}
+          isOwner={actionPlan.isOwner}
+          setIsShareOpen={setIsShareModalOpen}
+        />
+      )}
 
       {/* 테마 수정 모달들 (기존 컴포넌트 유지) */}
       {isThemeStartOpen && (

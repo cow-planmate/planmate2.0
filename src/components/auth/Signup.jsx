@@ -7,7 +7,7 @@ import { ErrorToast, SuccessToast, WarningToast } from "../common/Toast";
 
 export default function Signup({
   isOpen = true,
-  onClose = () => { },
+  onClose = () => {},
   onLoginSuccess,
   onThemeOpen,
 }) {
@@ -115,7 +115,7 @@ export default function Signup({
   // 비밀번호 검증 함수
   const validatePassword = (password) => {
     const hasMinLength = password.length >= 8;
-    const hasMaxLength = password.length <= 20;
+    const hasMaxLength = password.length <= 64;
     const hasEnglish = /[a-zA-Z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
@@ -441,16 +441,18 @@ export default function Signup({
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
-                className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isEmailVerified ? "bg-gray-100 cursor-not-allowed" : ""
-                  }`}
+                className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  isEmailVerified ? "bg-gray-100 cursor-not-allowed" : ""
+                }`}
                 disabled={isEmailVerified}
               />
               <button
                 type="button"
-                className={`w-24 py-2 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap ${isEmailVerified
-                  ? "bg-gray-300 cursor-not-allowed"
-                  : "bg-main hover:bg-blue-700"
-                  }`}
+                className={`w-24 py-2 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap ${
+                  isEmailVerified
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-main hover:bg-blue-700"
+                }`}
                 onClick={sendEmail}
                 disabled={isEmailVerified}
               >
@@ -542,7 +544,7 @@ export default function Signup({
                 )}
                 {!passwordValidation.hasMaxLength && (
                   <div className="text-red-600 text-sm mt-2">
-                    최대 20글자까지 작성할 수 있습니다
+                    최대 64글자까지 작성할 수 있습니다
                   </div>
                 )}
                 {!passwordValidation.hasAllRequired &&
@@ -568,10 +570,11 @@ export default function Signup({
                 onChange={(e) =>
                   handleInputChange("confirmPassword", e.target.value)
                 }
-                className={`w-full px-3 py-2 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isConfirmPasswordDisabled
-                  ? "bg-gray-100 cursor-not-allowed border-gray-300"
-                  : "border-gray-300"
-                  }`}
+                className={`w-full px-3 py-2 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  isConfirmPasswordDisabled
+                    ? "bg-gray-100 cursor-not-allowed border-gray-300"
+                    : "border-gray-300"
+                }`}
                 disabled={isConfirmPasswordDisabled}
               />
               <button
@@ -608,10 +611,11 @@ export default function Signup({
               <button
                 type="button"
                 disabled={isNicknameVerified}
-                className={`w-24 py-2 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap ${isNicknameVerified
-                  ? "bg-gray-300 cursor-not-allowed"
-                  : "bg-main"
-                  }`}
+                className={`w-24 py-2 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap ${
+                  isNicknameVerified
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-main"
+                }`}
                 onClick={verifyNickname}
               >
                 {isNicknameVerified ? "확인완료" : "중복확인"}
@@ -641,20 +645,22 @@ export default function Signup({
                 <button
                   type="button"
                   onClick={() => handleInputChange("gender", "male")}
-                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg border transition-colors ${formData.gender === "male"
-                    ? "bg-main text-white border-main"
-                    : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
-                    }`}
+                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg border transition-colors ${
+                    formData.gender === "male"
+                      ? "bg-main text-white border-main"
+                      : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+                  }`}
                 >
                   남
                 </button>
                 <button
                   type="button"
                   onClick={() => handleInputChange("gender", "female")}
-                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg border transition-colors ${formData.gender === "female"
-                    ? "bg-main text-white border-main"
-                    : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
-                    }`}
+                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg border transition-colors ${
+                    formData.gender === "female"
+                      ? "bg-main text-white border-main"
+                      : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+                  }`}
                 >
                   여
                 </button>
@@ -763,10 +769,11 @@ export default function Signup({
           {/* 회원가입 버튼 */}
           <button
             type="button"
-            className={`w-full py-3 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-6 ${isSignupDisabled
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-main text-white hover:bg-blue-700"
-              }`}
+            className={`w-full py-3 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-6 ${
+              isSignupDisabled
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-main text-white hover:bg-blue-700"
+            }`}
             disabled={isSignupDisabled}
             onClick={handleRegisterAndLogin}
           >

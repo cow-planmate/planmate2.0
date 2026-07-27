@@ -4,10 +4,11 @@ import { ErrorToast, SuccessToast } from "./Toast";
 import useConfirmStore from "../../store/Confirm";
 
 const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
-  const { post, get, del } = useApiClient();
+  const { post, get, patch, del } = useApiClient();
   const [editors, setEditors] = useState([]);
   const [receiverNickname, setreceiverNickname] = useState("");
   const [shareURL, setShareURL] = useState("");
+  const [isShared, setIsShared] = useState(false);
   const BASE_URL = import.meta.env.VITE_API_URL;
   const { showConfirm } = useConfirmStore();
 
@@ -47,7 +48,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
       });
       console.log(response);
       setreceiverNickname("");
-      SuccessToast(response.message);
+      SuccessToast("초대를 보냈습니다.");
     } catch (err) {
       console.error("초대에 실패했습니다:", err);
 
@@ -59,11 +60,30 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
   const getShareLink = async () => {
     try {
       const response = await get(`${BASE_URL}/api/plan/${id}/share`);
+      setIsShared(response.isShared);
       setShareURL(
         response.isShared ? `${window.location.origin}/complete?id=${id}` : "",
       );
     } catch (error) {
       console.error("공유 링크 조회 실패", error);
+    }
+  };
+
+  const toggleShare = async () => {
+    try {
+      const nextShared = !isShared;
+      await patch(`${BASE_URL}/api/plan/${id}/share`, {
+        isShared: nextShared,
+      });
+      setIsShared(nextShared);
+      setShareURL(
+        nextShared ? `${window.location.origin}/complete?id=${id}` : "",
+      );
+      SuccessToast(
+        nextShared ? "일정 공유를 켰습니다." : "일정 공유를 껐습니다.",
+      );
+    } catch (error) {
+      ErrorToast(error.message || "공유 상태 변경에 실패했습니다.");
     }
   };
 
@@ -120,6 +140,18 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
               복사
             </button>
           </div>
+          {isOwner && (
+            <button
+              onClick={toggleShare}
+              className={`mt-3 w-full rounded-xl px-4 py-3 font-medium transition-colors ${
+                isShared
+                  ? "bg-red-50 text-red-600 hover:bg-red-100"
+                  : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+              }`}
+            >
+              {isShared ? "공유 끄기" : "공유 켜기"}
+            </button>
+          )}
         </div>
 
         {isOwner && (
@@ -134,7 +166,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
                     key={editor.userId}
                     className="flex items-center justify-between bg-gray-50 p-3 rounded-xl"
                   >
-                    <span className="text-gray-700">{editor.nickName}</span>
+                    <span className="text-gray-700">{editor.nickname}</span>
                     <button
                       onClick={() => removeEditorAccessByOwner(editor.userId)}
                       className="w-6 h-6 bg-red-100 hover:bg-red-200 rounded-full flex items-center justify-center transition-colors"

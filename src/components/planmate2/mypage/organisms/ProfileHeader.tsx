@@ -25,6 +25,30 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   editablePlansCount,
   isOtherUser = false,
 }) => {
+  const age = dummyUser.birthdate
+    ? Math.max(
+        0,
+        new Date().getFullYear() -
+          new Date(dummyUser.birthdate).getFullYear() -
+          (new Date() <
+          new Date(
+            new Date().getFullYear(),
+            new Date(dummyUser.birthdate).getMonth(),
+            new Date(dummyUser.birthdate).getDate(),
+          )
+            ? 1
+            : 0),
+      )
+    : null;
+  const genderLabel =
+    dummyUser.gender === 'MALE'
+      ? '남성'
+      : dummyUser.gender === 'FEMALE'
+        ? '여성'
+        : dummyUser.gender === 'OTHER'
+          ? '기타'
+          : '성별미설정';
+
   return (
     <div className="bg-white rounded-xl shadow-md p-8 mb-8">
       <div className="flex flex-col md:flex-row items-center gap-8">
@@ -97,7 +121,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <p className="text-[#666666] font-medium">{dummyUser.email}</p>
             <span className="text-gray-300">|</span>
             <span className="px-2 py-0.5 bg-gray-50 text-gray-500 text-xs font-semibold rounded border border-gray-100">
-              {dummyUser.gender === 0 ? '남성' : dummyUser.gender === 1 ? '여성' : '성별미설정'} · {dummyUser.age || '연령미설정'}세
+              {genderLabel} · {age === null ? '연령미설정' : `${age}세`}
             </span>
           </div>
           

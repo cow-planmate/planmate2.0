@@ -1,11 +1,31 @@
 export interface Plan {
-  planId: number;
+  planId: string;
   planName: string;
-  startDate: string;
-  endDate: string;
-  region: string;
-  duration: string;
-  isOwner: boolean;
+  startDate?: string;
+  endDate?: string;
+  region?: string;
+  duration?: string;
+  isOwner?: boolean;
+}
+
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+
+export interface PreferredTheme {
+  preferredThemeId: number;
+  preferredThemeName: string;
+  category: 'ATTRACTION' | 'ACCOMMODATION' | 'RESTAURANT';
+}
+
+export interface UserProfile {
+  userId: string;
+  email: string;
+  nickname: string;
+  birthdate: string | null;
+  gender: Gender | null;
+  isSocialLogin: boolean;
+  myPlans: Plan[];
+  editablePlans: Plan[];
+  preferredThemes: PreferredTheme[];
 }
 
 export interface ChecklistItem {
@@ -15,7 +35,7 @@ export interface ChecklistItem {
 }
 
 export interface Trip extends Plan {
-  id: number;
+  id: string;
   title: string;
   dateStr: string;
   dDay: string;

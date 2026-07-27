@@ -4,6 +4,7 @@ import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
 import { FormItem } from '../molecules/FormItem';
 import { ModalFrame } from '../molecules/ModalFrame';
+import type { Gender } from '../types';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -15,10 +16,10 @@ interface ProfileEditModalProps {
   nicknameValid: boolean | null;
   handleCheckNickname: () => void;
   nicknameMessage: string;
-  newAge: number;
-  setNewAge: (val: number) => void;
-  newGender: number;
-  setNewGender: (val: number) => void;
+  newBirthdate: string;
+  setNewBirthdate: (val: string) => void;
+  newGender: Gender | '';
+  setNewGender: (val: Gender) => void;
   onOpenThemeEditor: () => void;
   onOpenPasswordChange: () => void;
   onOpenDeleteAccount: () => void;
@@ -36,8 +37,8 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   nicknameValid,
   handleCheckNickname,
   nicknameMessage,
-  newAge,
-  setNewAge,
+  newBirthdate,
+  setNewBirthdate,
   newGender,
   setNewGender,
   onOpenThemeEditor,
@@ -109,25 +110,31 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <FormItem label="나이">
             <Input
-              type="number"
-              value={newAge}
-              onChange={(e) => setNewAge(parseInt(e.target.value) || 0)}
+              type="date"
+              value={newBirthdate}
+              onChange={(e) => setNewBirthdate(e.target.value)}
               placeholder="나이"
             />
           </FormItem>
           <FormItem label="성별">
             <div className="flex bg-gray-50 rounded-xl p-1 border-2 border-gray-100 h-[52px]">
               <button
-                onClick={() => setNewGender(0)}
-                className={`flex-1 rounded-lg text-sm font-bold transition-all ${newGender === 0 ? 'bg-white text-[#1344FF] shadow-sm' : 'text-gray-400'}`}
+                onClick={() => setNewGender('MALE')}
+                className={`flex-1 rounded-lg text-sm font-bold transition-all ${newGender === 'MALE' ? 'bg-white text-[#1344FF] shadow-sm' : 'text-gray-400'}`}
               >
                 남성
               </button>
               <button
-                onClick={() => setNewGender(1)}
-                className={`flex-1 rounded-lg text-sm font-bold transition-all ${newGender === 1 ? 'bg-white text-[#1344FF] shadow-sm' : 'text-gray-400'}`}
+                onClick={() => setNewGender('FEMALE')}
+                className={`flex-1 rounded-lg text-sm font-bold transition-all ${newGender === 'FEMALE' ? 'bg-white text-[#1344FF] shadow-sm' : 'text-gray-400'}`}
               >
                 여성
+              </button>
+              <button
+                onClick={() => setNewGender('OTHER')}
+                className={`flex-1 rounded-lg text-sm font-bold transition-all ${newGender === 'OTHER' ? 'bg-white text-[#1344FF] shadow-sm' : 'text-gray-400'}`}
+              >
+                기타
               </button>
             </div>
           </FormItem>

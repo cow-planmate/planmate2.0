@@ -1,4 +1,12 @@
-import { Bell, LogOut, Menu, MessageSquare, User, Users, X } from "lucide-react";
+import {
+  Bell,
+  LogOut,
+  Menu,
+  MessageSquare,
+  User,
+  Users,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
 import useNicknameStore from "../../store/Nickname";
@@ -16,6 +24,8 @@ import Theme from "../auth/Theme";
 import Themestart from "../auth/Themestart";
 // @ts-ignore
 import FeedbackModal from "../common/Feedback";
+// @ts-ignore
+import { ErrorToast, SuccessToast } from "../common/Toast";
 
 interface NavbarProps {
   currentView: string;
@@ -52,7 +62,13 @@ export default function Navbar({
 
   // 알림(초대) 관련 상태
   const [isInvitationOpen, setIsInvitationOpen] = useState(false);
-  const [invitations, setInvitations] = useState<any[]>([]);
+  interface Invitation {
+    collaborationRequestId: number;
+    senderNickname: string;
+    planName: string;
+  }
+
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
 
   const fetchInvitations = async () => {
     if (isAuthenticated()) {
@@ -60,7 +76,19 @@ export default function Navbar({
         const response = await get(
           `${BASE_URL}/api/collaboration-requests/pending`,
         );
-        setInvitations(response.requests || []);
+        const requests = (response.requests || [])
+          .map((request: any) => ({
+            collaborationRequestId:
+              request.collaborationRequestId ?? request.requestId ?? request.id,
+            senderNickname: request.senderNickname,
+            planName: request.planName,
+          }))
+          .filter(
+            (request: Invitation) =>
+              request.collaborationRequestId !== undefined &&
+              request.collaborationRequestId !== null,
+          );
+        setInvitations(requests);
       } catch (err) {
         console.error("초대 목록을 가져오는데 실패했습니다:", err);
       }
@@ -71,27 +99,29 @@ export default function Navbar({
     fetchInvitations();
   }, [nickname]); // nickname이 변경될 때(로그인 완료 등) 목록을 새로 불러옴
 
-  const acceptRequest = async (requestId: number) => {
+  const acceptRequest = async (collaborationRequestId: number) => {
     try {
       await post(
-        `${BASE_URL}/api/collaboration-requests/${requestId}/accept`,
-        {},
+        `${BASE_URL}/api/collaboration-requests/${collaborationRequestId}/accept`,
       );
+      SuccessToast("일정 초대를 수락했습니다.");
       await fetchInvitations();
       await onInvitationAccept?.();
-    } catch (err) {
+    } catch (err: any) {
+      ErrorToast(err?.message || "초대 수락에 실패했습니다.");
       console.error("초대 수락 실패:", err);
     }
   };
 
-  const rejectRequest = async (requestId: number) => {
+  const rejectRequest = async (collaborationRequestId: number) => {
     try {
       await post(
-        `${BASE_URL}/api/collaboration-requests/${requestId}/reject`,
-        {},
+        `${BASE_URL}/api/collaboration-requests/${collaborationRequestId}/reject`,
       );
+      SuccessToast("일정 초대를 거절했습니다.");
       await fetchInvitations();
-    } catch (err) {
+    } catch (err: any) {
+      ErrorToast(err?.message || "초대 거절에 실패했습니다.");
       console.error("초대 거절 실패:", err);
     }
   };
@@ -232,7 +262,7 @@ export default function Navbar({
                           {invitations.length > 0 ? (
                             invitations.map((invitation) => (
                               <div
-                                key={invitation.requestId}
+                                key={invitation.collaborationRequestId}
                                 className="bg-gray-50 rounded-xl p-3 border border-gray-100"
                               >
                                 <p className="text-sm text-gray-600 mb-3 leading-relaxed">
@@ -249,7 +279,9 @@ export default function Navbar({
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() =>
-                                      acceptRequest(invitation.requestId)
+                                      acceptRequest(
+                                        invitation.collaborationRequestId,
+                                      )
                                     }
                                     className="flex-1 bg-[#1344FF] text-white py-2 rounded-lg text-xs font-bold hover:bg-[#0031E6] transition-colors"
                                   >
@@ -257,7 +289,9 @@ export default function Navbar({
                                   </button>
                                   <button
                                     onClick={() =>
-                                      rejectRequest(invitation.requestId)
+                                      rejectRequest(
+                                        invitation.collaborationRequestId,
+                                      )
                                     }
                                     className="flex-1 bg-white text-gray-600 py-2 rounded-lg text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-colors"
                                   >

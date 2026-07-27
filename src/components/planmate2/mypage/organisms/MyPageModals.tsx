@@ -4,6 +4,7 @@ import EventDetailModal from '../modals/EventDetailModal';
 import LevelInfoModal from '../modals/LevelInfoModal';
 import PasswordChangeModal from '../modals/PasswordChangeModal';
 import ProfileEditModal from '../modals/ProfileEditModal';
+import type { Gender } from '../types';
 
 interface MyPageModalsProps {
   // Common
@@ -14,10 +15,10 @@ interface MyPageModalsProps {
   newNickname: string;
   handleNicknameUpdate: () => void;
   setNewNickname: (val: string) => void;
-  newAge: number;
-  setNewAge: (val: number) => void;
-  newGender: number;
-  setNewGender: (val: number) => void;
+  newBirthdate: string;
+  setNewBirthdate: (val: string) => void;
+  newGender: Gender | '';
+  setNewGender: (val: Gender) => void;
   isNicknameVerified: boolean;
   nicknameMessage: string;
   handleCheckNickname: () => void;
@@ -53,8 +54,8 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
   newNickname,
   handleNicknameUpdate,
   setNewNickname,
-  newAge,
-  setNewAge,
+  newBirthdate,
+  setNewBirthdate,
   newGender,
   setNewGender,
   isNicknameVerified,
@@ -91,8 +92,8 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
         nicknameValid={nicknameValid}
         handleCheckNickname={handleCheckNickname}
         nicknameMessage={nicknameMessage}
-        newAge={newAge}
-        setNewAge={setNewAge}
+        newBirthdate={newBirthdate}
+        setNewBirthdate={setNewBirthdate}
         newGender={newGender}
         setNewGender={setNewGender}
         onOpenThemeEditor={onOpenThemeEditor}

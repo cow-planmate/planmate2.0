@@ -38,7 +38,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
 
   const passwordValidation = {
     hasMinLength: newPassword.length >= 8,
-    hasMaxLength: newPassword.length <= 20,
+    hasMaxLength: newPassword.length <= 64,
     hasEnglish: /[a-zA-Z]/.test(newPassword),
     hasNumber: /[0-9]/.test(newPassword),
     hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword),
@@ -110,7 +110,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
               text="영문, 숫자, 특수문자 3가지 조합"
             />
             {newPassword && !passwordValidation.hasMaxLength && (
-              <p className="text-red-500 text-[10px] font-bold mt-1 pl-6">최대 20자까지 가능합니다.</p>
+              <p className="text-red-500 text-[10px] font-bold mt-1 pl-6">최대 64자까지 가능합니다.</p>
             )}
           </div>
         </FormItem>

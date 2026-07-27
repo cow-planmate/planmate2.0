@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 
 export const usePlanChecklists = (myPlans: any[], editablePlans: any[]) => {
-  const [planChecklists, setPlanChecklists] = useState<Record<number, any[]>>({});
+  const [planChecklists, setPlanChecklists] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
-    const newChecklists: Record<number, any[]> = { ...planChecklists };
+    const newChecklists: Record<string, any[]> = { ...planChecklists };
     let changed = false;
 
     [...myPlans, ...editablePlans].forEach(plan => {
@@ -23,7 +23,7 @@ export const usePlanChecklists = (myPlans: any[], editablePlans: any[]) => {
     }
   }, [myPlans, editablePlans]);
 
-  const handleToggleChecklist = (planId: number, itemId: number) => {
+  const handleToggleChecklist = (planId: string, itemId: number) => {
     setPlanChecklists(prev => ({
       ...prev,
       [planId]: prev[planId].map(item => 
@@ -32,7 +32,7 @@ export const usePlanChecklists = (myPlans: any[], editablePlans: any[]) => {
     }));
   };
 
-  const handleUpdateChecklistText = (planId: number, itemId: number, newText: string) => {
+  const handleUpdateChecklistText = (planId: string, itemId: number, newText: string) => {
     setPlanChecklists(prev => ({
       ...prev,
       [planId]: prev[planId].map(item => 
@@ -41,7 +41,7 @@ export const usePlanChecklists = (myPlans: any[], editablePlans: any[]) => {
     }));
   };
 
-  const handleAddChecklistItem = (planId: number) => {
+  const handleAddChecklistItem = (planId: string) => {
     const newItem = { id: Date.now(), text: '할 일 입력', done: false };
     setPlanChecklists(prev => ({
       ...prev,
@@ -49,7 +49,7 @@ export const usePlanChecklists = (myPlans: any[], editablePlans: any[]) => {
     }));
   };
 
-  const handleDeleteChecklistItem = (planId: number, itemId: number) => {
+  const handleDeleteChecklistItem = (planId: string, itemId: number) => {
     setPlanChecklists(prev => ({
       ...prev,
       [planId]: prev[planId].filter(item => item.id !== itemId)
