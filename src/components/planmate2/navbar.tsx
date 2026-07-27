@@ -1,4 +1,4 @@
-import { Bell, LogOut, Menu, User, Users, X } from "lucide-react";
+import { Bell, LogOut, Menu, MessageSquare, User, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
 import useNicknameStore from "../../store/Nickname";
@@ -14,15 +14,22 @@ import PasswordFind from "../auth/PasswordFind";
 import Theme from "../auth/Theme";
 // @ts-ignore
 import Themestart from "../auth/Themestart";
+// @ts-ignore
+import FeedbackModal from "../common/Feedback";
 
 interface NavbarProps {
   currentView: string;
   onNavigate: (
     view: "feed" | "community" | "create" | "mypage" | "plan-maker" | "social",
   ) => void;
+  onInvitationAccept?: () => void | Promise<void>;
 }
 
-export default function Navbar({ currentView, onNavigate }: NavbarProps) {
+export default function Navbar({
+  currentView,
+  onNavigate,
+  onInvitationAccept,
+}: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
@@ -38,6 +45,10 @@ export default function Navbar({ currentView, onNavigate }: NavbarProps) {
   const [isPasswordFindOpen, setIsPasswordFindOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isThemestartOpen, setIsThemestartOpen] = useState(false);
+  const [selectedThemeKeywords, setSelectedThemeKeywords] = useState<
+    Record<string, any[]>
+  >({});
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   // 알림(초대) 관련 상태
   const [isInvitationOpen, setIsInvitationOpen] = useState(false);
@@ -67,6 +78,7 @@ export default function Navbar({ currentView, onNavigate }: NavbarProps) {
         {},
       );
       await fetchInvitations();
+      await onInvitationAccept?.();
     } catch (err) {
       console.error("초대 수락 실패:", err);
     }
@@ -137,6 +149,14 @@ export default function Navbar({ currentView, onNavigate }: NavbarProps) {
               }`}
             >
               일정 생성
+            </button>
+
+            <button
+              onClick={() => setIsFeedbackOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm text-[#666666] hover:bg-gray-50 hover:text-[#1344FF] transition-all"
+            >
+              <MessageSquare className="w-4 h-4" />
+              피드백
             </button>
 
             {isAuthenticated() ? (
@@ -384,6 +404,17 @@ export default function Navbar({ currentView, onNavigate }: NavbarProps) {
               여행 일정 생성
             </button>
 
+            <button
+              onClick={() => {
+                setIsFeedbackOpen(true);
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 text-[#666666] hover:bg-[#f0f4ff] hover:text-[#1344FF]"
+            >
+              <MessageSquare className="w-5 h-5" />
+              피드백
+            </button>
+
             {isAuthenticated() ? (
               <>
                 <button
@@ -472,7 +503,7 @@ export default function Navbar({ currentView, onNavigate }: NavbarProps) {
         }}
         onThemeOpen={() => {
           setIsSignupOpen(false);
-          setIsThemeOpen(true);
+          setIsThemestartOpen(true);
         }}
       />
       <PasswordFind
@@ -482,14 +513,21 @@ export default function Navbar({ currentView, onNavigate }: NavbarProps) {
       <Theme
         isOpen={isThemeOpen}
         onClose={() => setIsThemeOpen(false)}
-        onThemestartOpen={() => {
+        initialSelected={selectedThemeKeywords}
+        onComplete={(keywords: Record<string, any[]>) => {
+          setSelectedThemeKeywords(keywords);
           setIsThemeOpen(false);
-          setIsThemestartOpen(true);
         }}
       />
       <Themestart
         isOpen={isThemestartOpen}
         onClose={() => setIsThemestartOpen(false)}
+        onThemeOpen={() => setIsThemeOpen(true)}
+        selectedThemeKeywords={selectedThemeKeywords}
+      />
+      <FeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
       />
     </nav>
   );
