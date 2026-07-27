@@ -232,7 +232,7 @@ export default function Navbar({
                           {invitations.length > 0 ? (
                             invitations.map((invitation) => (
                               <div
-                                key={invitation.requestId}
+                                key={invitation.collaborationRequestId}
                                 className="bg-gray-50 rounded-xl p-3 border border-gray-100"
                               >
                                 <p className="text-sm text-gray-600 mb-3 leading-relaxed">
@@ -249,7 +249,7 @@ export default function Navbar({
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() =>
-                                      acceptRequest(invitation.requestId)
+                                      acceptRequest(invitation.collaborationRequestId)
                                     }
                                     className="flex-1 bg-[#1344FF] text-white py-2 rounded-lg text-xs font-bold hover:bg-[#0031E6] transition-colors"
                                   >
@@ -257,7 +257,7 @@ export default function Navbar({
                                   </button>
                                   <button
                                     onClick={() =>
-                                      rejectRequest(invitation.requestId)
+                                      rejectRequest(invitation.collaborationRequestId)
                                     }
                                     className="flex-1 bg-white text-gray-600 py-2 rounded-lg text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-colors"
                                   >
