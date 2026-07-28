@@ -43,6 +43,7 @@ const TravelPlannerApp = () => {
   const { get } = useApiClient();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
+  const shareToken = searchParams.get("token");
   const [data, setData] = useState(null);
   const [timetables, setTimetables] = useState([]);
   const tripCategory = { 0: "관광지", 1: "숙소", 2: "식당", 4: "검색" };
@@ -137,7 +138,12 @@ const TravelPlannerApp = () => {
       let planData = null;
       if (id) {
         try {
-          planData = await get(`${BASE_URL}/api/plan/${id}/complete`);
+          const tokenQuery = shareToken
+            ? `?token=${encodeURIComponent(shareToken)}`
+            : "";
+          planData = await get(
+            `${BASE_URL}/api/plan/${id}/complete${tokenQuery}`,
+          );
         } catch (err) {
           console.error("일정 정보를 가져오는데 실패했습니다:", err);
           alert("잘못된 접근입니다.");
@@ -165,7 +171,7 @@ const TravelPlannerApp = () => {
     };
 
     fetchUserProfile();
-  }, [id, get]);
+  }, [id, shareToken, get]);
 
   // --- [수정됨] 날씨 정보 호출 useEffect ---
   useEffect(() => {
@@ -402,12 +408,14 @@ const TravelPlannerApp = () => {
             >
               수정
             </button>
-            <button
-              onClick={() => setIsShareOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-sub border border-main"
-            >
-              공유
-            </button>
+            {!shareToken && (
+              <button
+                onClick={() => setIsShareOpen(true)}
+                className="px-3 py-1.5 rounded-lg bg-sub border border-main"
+              >
+                공유
+              </button>
+            )}
             <button
               onClick={() => navigate("/mypage")}
               className="px-3 py-1.5 rounded-lg text-white bg-main"
@@ -595,7 +603,7 @@ const TravelPlannerApp = () => {
           </div>
         </div>
       </div>
-      {isShareOpen && (
+      {isShareOpen && !shareToken && (
         <ShareModal isOwner={true} setIsShareOpen={setIsShareOpen} id={id} />
       )}
     </div>

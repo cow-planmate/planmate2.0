@@ -25,6 +25,36 @@ const PLACE_CATEGORY_TO_ID = {
   RESTAURANT: 2,
 };
 
+export function getBlockCategoryId(block) {
+  const rawCategory =
+    block?.blockCategory ??
+    block?.placeCategoryId ??
+    block?.placeCategory ??
+    block?.categoryId;
+
+  if (typeof rawCategory === "number") {
+    return rawCategory >= 0 && rawCategory <= 4 ? rawCategory : null;
+  }
+
+  if (typeof rawCategory === "string") {
+    const normalizedCategory = rawCategory.trim().toUpperCase();
+    if (normalizedCategory in BLOCK_CATEGORY_TO_ID) {
+      return BLOCK_CATEGORY_TO_ID[normalizedCategory];
+    }
+
+    const numericCategory = Number(normalizedCategory);
+    if (
+      Number.isInteger(numericCategory) &&
+      numericCategory >= 0 &&
+      numericCategory <= 4
+    ) {
+      return numericCategory;
+    }
+  }
+
+  return null;
+}
+
 // GET /api/place(PlaceSummaryDto) 응답을 프론트 내부 place 객체 형태로 변환.
 // rating/url은 백엔드에 대응 필드가 없어(TourAPI 전환) 채우지 않음 — UI가 이미 optional로 처리함.
 export function mapPlaceSummary(dto) {
@@ -113,8 +143,8 @@ export function exportBlock(timeTableId, place, newStart, duration, blockId, noL
     blockEndTime: endTime,
     startTime: startTime,
     endTime: endTime,
-    xLocation: place.xLocation || place.xlocation,
-    yLocation: place.yLocation || place.ylocation,
+    longitude: place.xLocation ?? place.xlocation,
+    latitude: place.yLocation ?? place.ylocation,
     placeCategoryId: place.categoryId,
     timeTableId: timeTableId,
     photoUrl: place.photoUrl,
@@ -161,13 +191,13 @@ export function convertBlock(block) {
 
   const place = {
     placeId: block.placeId,
-    categoryId: BLOCK_CATEGORY_TO_ID[block.blockCategory] ?? null,
+    categoryId: getBlockCategoryId(block),
     name: block.placeName,
     formatted_address: block.placeAddress,
     photoUrl: block.placeThumbnailUrl,
     iconUrl: "./src/assets/imgs/default.png",
-    xLocation: block.longitude,
-    yLocation: block.latitude,
+    xLocation: block.longitude ?? block.xLocation ?? block.xlocation,
+    yLocation: block.latitude ?? block.yLocation ?? block.ylocation,
     contentTypeId: block.placeContentTypeId,
     copyrightDivCd: block.placeCopyrightDivCd,
   }

@@ -25,6 +25,12 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
   const id = searchParams.get("id");
   
   const place = item?.place;
+  const categoryId =
+    Number.isInteger(Number(place?.categoryId)) &&
+    Number(place.categoryId) >= 0 &&
+    Number(place.categoryId) <= 4
+      ? Number(place.categoryId)
+      : 4;
   const memoDebounceRef = useRef(null);
 
   useEffect(() => {
@@ -121,11 +127,11 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
     4: "bg-gray-50",
   };
   const tripColor2 = {
-    0: "bg-lime-100",
-    1: "bg-orange-100",
-    2: "bg-blue-100",
-    3: "bg-violet-100",
-    4: "bg-gray-100",
+    0: "hover:bg-lime-100",
+    1: "hover:bg-orange-100",
+    2: "hover:bg-blue-100",
+    3: "hover:bg-violet-100",
+    4: "hover:bg-gray-100",
   };
   const tripColor3 = {
     0: "border-lime-500",
@@ -218,23 +224,23 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
         >
           <div
             {...listeners}
-            className={`w-full h-full ${tripColor1[place.categoryId]} border-l-4 ${tripColor3[place.categoryId]} rounded shadow-sm overflow-hidden select-none hover:${tripColor2[place.categoryId]} transition-colors cursor-move
+            className={`w-full h-full ${tripColor1[categoryId]} border-l-4 ${tripColor3[categoryId]} rounded shadow-sm overflow-hidden select-none ${tripColor2[categoryId]} transition-colors cursor-move
               ${isDragging ? "shadow-xl ring-2 ring-blue-300" : ""}
               ${localState.height <= 80 ? "flex flex-col items-start justify-center px-5" : "p-5"}`}
           >
             <div className="w-full flex items-center gap-2 min-w-0">
               <div className="flex-1 min-w-0">
                 <div
-                  className={`font-bold text-lg ${tripColor5[place.categoryId]} truncate pointer-events-none`}
+                  className={`font-bold text-lg ${tripColor5[categoryId]} truncate pointer-events-none`}
                 >
                   {place.name}
                 </div>
 
                 <div
-                  className={`text-xs ${tripColor4[place.categoryId]} font-medium pointer-events-none`}
+                  className={`text-xs ${tripColor4[categoryId]} font-medium pointer-events-none`}
                 >
                   <p>
-                    {tripCategory[place.categoryId]} | {formatTime(item.start)} -{" "}
+                    {tripCategory[categoryId]} | {formatTime(item.start)} -{" "}
                     {formatTime(
                       item.start + Math.round(localState.height / SLOT_HEIGHT),
                     )}
@@ -244,7 +250,7 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
 
               <div className="flex shrink-0 gap-1 mt-[-4px]">
                 <button
-                  className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[place.categoryId]} text-xs pointer-events-auto flex items-center justify-center transition-colors`}
+                  className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-xs pointer-events-auto flex items-center justify-center transition-colors`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsDetailOpen(true);
@@ -254,7 +260,7 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
                   <FontAwesomeIcon icon={faPencilAlt} />
                 </button>
                 <button
-                  className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[place.categoryId]} text-sm pointer-events-auto flex items-center justify-center transition-colors`}
+                  className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-sm pointer-events-auto flex items-center justify-center transition-colors`}
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteItem(item.id, getTimeTableId(timetables, selectedDay));

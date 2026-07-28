@@ -97,7 +97,7 @@ export default function Navbar({
 
   useEffect(() => {
     fetchInvitations();
-  }, [nickname]); // nickname이 변경될 때(로그인 완료 등) 목록을 새로 불러옴
+  }, [nickname, currentView]); // 로그인 완료 및 화면 이동 시 목록을 새로 불러옴
 
   const acceptRequest = async (collaborationRequestId: number) => {
     try {

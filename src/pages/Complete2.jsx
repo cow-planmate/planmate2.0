@@ -6,7 +6,7 @@ import { BLOCK_CATEGORY_TO_ID, getTimeSlotIndex } from "../utils/createUtils";
 import { faCalendar, faMap } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Helmet } from "react-helmet";
-import Navbar from "../components/common/Navbar";
+import Navbar from "../components/planmate2/navbar";
 import Loading from "../components/common/Loading";
 import PlanInfo from "../components/Complete/PlanInfo";
 import DaySelector from "../components/Complete/DaySelector";
@@ -23,6 +23,19 @@ function App() {
   const id = searchParams.get("id");
 
   const { get } = useApiClient();
+
+  const handleNavbarNavigate = (view) => {
+    const routes = {
+      feed: "/",
+      community: "/community/free",
+      create: "/create-post",
+      mypage: "/mypage",
+      "plan-maker": "/plan-maker",
+      social: "/social",
+    };
+
+    navigate(routes[view] || "/");
+  };
 
   const [finishLoading, setFinishLoading] = useState(false);
   const [planFrame, setPlanFrame] = useState({});
@@ -201,7 +214,7 @@ function App() {
     return (
       <div className="font-pretendard h-screen">
         <div className="md:block hidden">
-          <Navbar />
+          <Navbar currentView="" onNavigate={handleNavbarNavigate} />
         </div>
         <Loading />
       </div>
@@ -218,7 +231,7 @@ function App() {
         />
       </Helmet>
       <div className="md:block hidden">
-        <Navbar />
+        <Navbar currentView="" onNavigate={handleNavbarNavigate} />
       </div>
       <PlanInfo planFrame={planFrame} />
       <div

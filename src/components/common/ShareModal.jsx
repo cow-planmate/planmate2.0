@@ -4,7 +4,7 @@ import { ErrorToast, SuccessToast } from "./Toast";
 import useConfirmStore from "../../store/Confirm";
 
 const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
-  const { post, get, patch, del } = useApiClient();
+  const { post, get, del } = useApiClient();
   const [editors, setEditors] = useState([]);
   const [receiverNickname, setreceiverNickname] = useState("");
   const [shareURL, setShareURL] = useState("");
@@ -13,7 +13,6 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
   const { showConfirm } = useConfirmStore();
 
   useEffect(() => {
-    getShareLink();
     if (isOwner) {
       getEditors();
     }
@@ -58,32 +57,38 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
   };
 
   const getShareLink = async () => {
-    try {
-      const response = await get(`${BASE_URL}/api/plan/${id}/share`);
-      setIsShared(response.isShared);
-      setShareURL(
-        response.isShared ? `${window.location.origin}/complete?id=${id}` : "",
-      );
-    } catch (error) {
-      console.error("공유 링크 조회 실패", error);
+    const response = await get(`${BASE_URL}/api/plan/${id}/share`);
+    const payload = response?.data || response;
+    const sharedPlanUrl =
+      payload?.sharedPlanUrl ||
+      payload?.sharedPlanURL ||
+      payload?.shareURL ||
+      (payload?.isShared
+        ? `${window.location.origin}/complete?id=${encodeURIComponent(id)}`
+        : "");
+
+    if (!sharedPlanUrl) {
+      throw new Error("서버에서 공유 링크를 반환하지 않았습니다.");
     }
+
+    setIsShared(true);
+    setShareURL(sharedPlanUrl);
+    return sharedPlanUrl;
   };
 
   const toggleShare = async () => {
+    if (isShared) {
+      setIsShared(false);
+      setShareURL("");
+      SuccessToast("일정 공유를 껐습니다.");
+      return;
+    }
+
     try {
-      const nextShared = !isShared;
-      await patch(`${BASE_URL}/api/plan/${id}/share`, {
-        isShared: nextShared,
-      });
-      setIsShared(nextShared);
-      setShareURL(
-        nextShared ? `${window.location.origin}/complete?id=${id}` : "",
-      );
-      SuccessToast(
-        nextShared ? "일정 공유를 켰습니다." : "일정 공유를 껐습니다.",
-      );
+      await getShareLink();
+      SuccessToast("일정 공유를 켰습니다.");
     } catch (error) {
-      ErrorToast(error.message || "공유 상태 변경에 실패했습니다.");
+      ErrorToast(error.message || "공유 링크 생성에 실패했습니다.");
     }
   };
 
@@ -149,7 +154,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
                   : "bg-blue-50 text-blue-600 hover:bg-blue-100"
               }`}
             >
-              {isShared ? "공유 끄기" : "공유 켜기"}
+              {isShared ? "공유 링크 끄기" : "공유 링크 켜기"}
             </button>
           )}
         </div>

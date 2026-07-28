@@ -13,8 +13,8 @@ export default function Signup({
 }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
   const { login } = useApiClient();
-
   const [formData, setFormData] = useState({
+
     email: "",
     verificationCode: "",
     password: "",

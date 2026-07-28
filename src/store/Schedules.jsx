@@ -1,6 +1,21 @@
 import { create } from "zustand";
 import { checkOverlap, getTimeTableId } from "../utils/createUtils";
 
+const mergePlaceKeepingPosition = (currentPlace, nextPlace) => ({
+  ...currentPlace,
+  ...nextPlace,
+  xLocation:
+    nextPlace?.xLocation ??
+    nextPlace?.xlocation ??
+    currentPlace?.xLocation ??
+    currentPlace?.xlocation,
+  yLocation:
+    nextPlace?.yLocation ??
+    nextPlace?.ylocation ??
+    currentPlace?.yLocation ??
+    currentPlace?.ylocation,
+});
+
 const useItemsStore = create((set, get) => ({
   items: {},
 
@@ -125,7 +140,13 @@ const useItemsStore = create((set, get) => ({
             ...state.items,
             [timeTableId]: dayItems.map((item, idx) => 
               idx === exactMatchIndex 
-                ? { ...item, place, start, duration, memo }
+                ? {
+                    ...item,
+                    place: mergePlaceKeepingPosition(item.place, place),
+                    start,
+                    duration,
+                    memo,
+                  }
                 : item
             )
           }
@@ -146,8 +167,15 @@ const useItemsStore = create((set, get) => ({
             items: {
               ...state.items,
               [timeTableId]: dayItems.map((item, idx) => 
-                idx === tempMatchIndex 
-                  ? { ...item, id: blockId, place, start, duration, memo }
+                  idx === tempMatchIndex
+                  ? {
+                      ...item,
+                      id: blockId,
+                      place: mergePlaceKeepingPosition(item.place, place),
+                      start,
+                      duration,
+                      memo,
+                    }
                   : item
               )
             }
@@ -181,7 +209,13 @@ const useItemsStore = create((set, get) => ({
           ...state.items,
           [timeTableId]: dayItems.map((item) =>
             item.id === blockId
-              ? { ...item, place: place, start: start, duration: duration, memo: memo }
+              ? {
+                  ...item,
+                  place: mergePlaceKeepingPosition(item.place, place),
+                  start,
+                  duration,
+                  memo,
+                }
               : item
           ),
         },

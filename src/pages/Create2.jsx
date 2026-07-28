@@ -28,7 +28,7 @@ import useSocketStore from "../store/Socket";
 import useTimetableStore from "../store/Timetables";
 
 import AirplaneLoading from "../components/common/AirplaneLoading";
-import Navbar from "../components/common/Navbar";
+import Navbar from "../components/planmate2/navbar";
 import DaySelector from "../components/Create2/DaySelector/DaySelector";
 import Main from "../components/Create2/Main/Main";
 import PlanInfo from "../components/Create2/PlanInfo/PlanInfo";
@@ -46,6 +46,19 @@ function App() {
 
   const navigate = useNavigate();
   const { get, post, isAuthenticated } = useApiClient();
+
+  const handleNavbarNavigate = (view) => {
+    const routes = {
+      feed: "/",
+      community: "/community/free",
+      create: "/create-post",
+      mypage: "/mypage",
+      "plan-maker": "/plan-maker",
+      social: "/social",
+    };
+
+    navigate(routes[view] || "/");
+  };
 
   const {
     planId,
@@ -370,7 +383,10 @@ function App() {
           />
         </Helmet>
         <div className="hidden md:block">
-          <Navbar />
+          <Navbar
+            currentView="plan-maker"
+            onNavigate={handleNavbarNavigate}
+          />
         </div>
         {showTempPlanPrompt && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -428,7 +444,10 @@ function App() {
   return (
     <div className="font-pretendard h-screen">
       <div className="hidden md:block">
-        <Navbar />
+        <Navbar
+          currentView="plan-maker"
+          onNavigate={handleNavbarNavigate}
+        />
       </div>
       <PlanInfo id={id} />
       <div
