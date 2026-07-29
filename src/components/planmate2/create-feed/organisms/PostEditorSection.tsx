@@ -7,6 +7,18 @@ interface PostEditorSectionProps {
 }
 
 export const PostEditorSection: React.FC<PostEditorSectionProps> = ({ editor }) => {
+  // 에디터 본문(첫 줄)이 아니라 네모칸 여백 아무 곳이나 눌러도 작성이 시작되도록 한다.
+  const focusEditorAtEnd = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('.bn-editor')) return;
+    e.preventDefault();
+    const blocks = editor.document;
+    const last = blocks[blocks.length - 1];
+    if (last) {
+      editor.setTextCursorPosition(last, 'end');
+    }
+    editor.focus();
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md p-8">
       <SectionTitle title="여행 후기" required>
@@ -15,8 +27,11 @@ export const PostEditorSection: React.FC<PostEditorSectionProps> = ({ editor }) 
           <span className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[10px] text-[#1344FF]">/</span>
         </div>
       </SectionTitle>
-      
-      <div className="min-h-[500px] border border-[#e5e7eb] rounded-2xl bg-white focus-within:ring-4 focus-within:ring-[#1344FF]/5 focus-within:border-[#1344FF] transition-all overflow-hidden">
+
+      <div
+        onMouseDown={focusEditorAtEnd}
+        className="min-h-[500px] border border-[#e5e7eb] rounded-2xl bg-white focus-within:ring-4 focus-within:ring-[#1344FF]/5 focus-within:border-[#1344FF] transition-all overflow-hidden cursor-text"
+      >
         <BlockNoteView editor={editor} theme="light" />
       </div>
     </div>

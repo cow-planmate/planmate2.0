@@ -5,7 +5,6 @@ import { CreatePostHeader } from '../molecules/CreatePostHeader';
 import { BasicInfoSection } from '../organisms/BasicInfoSection';
 import { PlanSelectionModal } from '../organisms/PlanSelectionModal';
 import { PostEditorSection } from '../organisms/PostEditorSection';
-import { SchedulePreview } from '../organisms/SchedulePreview';
 import { TravelDetailsSection } from '../organisms/TravelDetailsSection';
 
 interface CreatePostProps {
@@ -48,14 +47,11 @@ export default function CreatePost({ onBack, onSubmit }: CreatePostProps) {
             setDays={logic.setDays}
             setNights={logic.setNights}
             setDuration={logic.setDuration}
+            schedule={logic.schedule}
+            onShowPlanModal={() => logic.setShowPlanModal(true)}
           />
 
           <PostEditorSection editor={logic.editor} />
-
-          <SchedulePreview 
-            schedule={logic.schedule} 
-            onShowPlanModal={() => logic.setShowPlanModal(true)} 
-          />
 
           {/* 제출 버튼 */}
           <div className="flex gap-4">
@@ -70,7 +66,7 @@ export default function CreatePost({ onBack, onSubmit }: CreatePostProps) {
               type="submit"
               className="flex-[2] py-5 bg-[#1344FF] text-white rounded-2xl hover:bg-[#0d34cc] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-100 font-black text-lg"
             >
-              여행기 등록하기
+              피드 등록하기
             </button>
           </div>
         </form>
