@@ -5,7 +5,7 @@ import { useApiClient } from "../../../hooks/useApiClient";
 import usePlanStore from "../../../store/Plan";
 import useItemsStore from "../../../store/Schedules";
 import useTimetableStore from "../../../store/Timetables";
-import { ID_TO_BLOCK_CATEGORY, exportBlock } from "../../../utils/createUtils";
+import { exportBlock } from "../../../utils/createUtils";
 import { clearTempPlan } from "../../../utils/tempPlanStorage";
 
 export default function NoLoginSave({ isOpen }) {
@@ -55,18 +55,13 @@ export default function NoLoginSave({ isOpen }) {
                 timeTableEndTime,
               }),
             ),
-            timetablePlaceBlocks: exportBlocks.map((block) => ({
-              date: block.date,
-              blockCategory: ID_TO_BLOCK_CATEGORY[block.placeCategoryId] || "FREE",
-              placeId: block.placeId || null,
-              placeName: block.placeName,
-              placeAddress: block.placeAddress,
-              latitude: block.yLocation ?? null,
-              longitude: block.xLocation ?? null,
-              blockStartTime: block.blockStartTime,
-              blockEndTime: block.blockEndTime,
-              memo: block.memo || null,
-            })),
+            // exportBlock이 이미 서버 DTO 필드명으로 만들어 준다 (blockId/timeTableId만 신규 생성이라 제외)
+            timetablePlaceBlocks: exportBlocks.map(
+              ({ blockId, timeTableId, ...block }) => ({
+                ...block,
+                memo: block.memo || null,
+              }),
+            ),
           });
           clearTempPlan();
           console.log(res.message);

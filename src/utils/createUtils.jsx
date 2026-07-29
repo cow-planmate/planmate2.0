@@ -16,6 +16,7 @@ export const ID_TO_BLOCK_CATEGORY = {
   0: "ATTRACTION",
   1: "ACCOMMODATION",
   2: "RESTAURANT",
+  3: "FREE", // 직접 추가한 장소
   4: "SEARCH",
 };
 
@@ -133,22 +134,22 @@ export function exportBlock(timeTableId, place, newStart, duration, blockId, noL
   // blockId가 'temp-'로 시작하는 문자열이면 백엔드 전송 시 null로 보냄 (새로 생성하는 항목)
   const finalBlockId = (typeof blockId === 'string' && blockId.startsWith('temp-')) ? null : blockId;
 
+  // 서버 DTO(TimeTablePlaceBlockDto / TimetablePlaceBlockDto)의 필드명을 그대로 사용한다.
+  // DTO가 @JsonIgnoreProperties(ignoreUnknown = true)라 이름이 다르면 조용히 버려지므로 주의.
   const block = {
     blockId: finalBlockId,
+    timeTableId: timeTableId,
+    placeId: place.placeId ?? null,
     placeName: place.name,
-    placeRating: place.rating,
-    placeAddress: place.formatted_address,
-    placeLink: place.url,
+    placeContentTypeId: place.contentTypeId ?? null,
+    placeAddress: place.formatted_address ?? null,
+    placeThumbnailUrl: place.photoUrl ?? null,
+    placeCopyrightDivCd: place.copyrightDivCd ?? null,
+    latitude: place.yLocation ?? place.ylocation ?? null,
+    longitude: place.xLocation ?? place.xlocation ?? null,
     blockStartTime: startTime,
     blockEndTime: endTime,
-    startTime: startTime,
-    endTime: endTime,
-    longitude: place.xLocation ?? place.xlocation,
-    latitude: place.yLocation ?? place.ylocation,
-    placeCategoryId: place.categoryId,
-    timeTableId: timeTableId,
-    photoUrl: place.photoUrl,
-    placeId: place.placeId,
+    blockCategory: ID_TO_BLOCK_CATEGORY[getBlockCategoryId(place)] ?? "FREE",
     memo: memo
   };
 

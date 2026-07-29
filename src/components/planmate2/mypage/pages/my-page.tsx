@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useApiClient } from "../../../../hooks/useApiClient";
 import useKakaoLoader from "../../../../hooks/useKakaoLoader";
 import useNicknameStore from "../../../../store/Nickname";
-import { LEVEL_CONFIG, REGION_COORDINATES } from "../constants";
+import { LEVEL_CONFIG } from "../constants";
+import { DEFAULT_MAP_CENTER, getRegionCoords } from "../../feed/utils/region";
 import { useCalendar } from "../hooks/useCalendar";
 import { usePlanChecklists } from "../hooks/usePlanChecklists";
 import { useUserStats } from "../hooks/useUserStats";
@@ -14,7 +15,7 @@ import {
   type CommunityPostSummary,
   type PageData,
 } from "../../community/api/communityApi";
-import { useMyActivity, useUserPosts } from "../../community/hooks/queries";
+import { useMyActivity, useMyStats, useUserPosts } from "../../community/hooks/queries";
 // @ts-ignore
 import { categoryKeyToId } from "../../../../shared/theme/category";
 import { CalendarSection } from "../organisms/CalendarSection";
@@ -294,16 +295,12 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     (state: any) => (state as any).setNickname,
   );
 
-  // User Level & EXP Hook
-  const stats = {
-    forks: editablePlans.length, // 공유받은 일정
-    feedPosts: 0,
-    community: 0,
-    comments: 0,
-    attendance: 10 + myPlans.length * 5, // 임시 점수 (플랜당 5점)
-  };
-  const { exp, userLevel, levelName, displayMax, remainingCount } =
-    useUserStats(stats);
+  // 레벨/경험치 — 서버 통계(GET /api/community/me/stats)를 그대로 사용한다.
+  // 다른 사용자 프로필은 통계 API가 본인 전용이라, 작성글에 실려오는 작성자 레벨로 대체한다.
+  const { data: myStats } = useMyStats(!isOtherUser && isAuthenticated());
+  const otherUserLevel = isOtherUser ? myTravelPosts[0]?.level : undefined;
+  const { exp, userLevel, levelName, displayMax, remainingCount, percent } =
+    useUserStats(isOtherUser ? undefined : myStats, otherUserLevel);
 
   const handleLogout = () => {
     logout();
@@ -786,7 +783,8 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           name: region,
           count: 0,
           plans: [],
-          coords: REGION_COORDINATES[region] || REGION_COORDINATES["서울"],
+          // 정식 명칭·시군 단위도 getRegionCoords가 정규화해서 찾아준다
+          coords: getRegionCoords(region) ?? DEFAULT_MAP_CENTER,
         };
       }
       acc[region].count += 1;
@@ -854,8 +852,11 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     exp,
     expToNext: remainingCount,
     maxExp: displayMax,
-    progress: Math.min(100, (exp / displayMax) * 100),
-    stats: stats,
+    progress: percent,
+    stats: {
+      postCount: myStats?.postCount ?? 0,
+      commentCount: myStats?.commentCount ?? 0,
+    },
   };
 
   return (
