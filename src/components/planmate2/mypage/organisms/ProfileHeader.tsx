@@ -62,7 +62,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         {/* 프로필 이미지 */}
         <div className="relative group">
           <div className="relative">
-            {dummyUser ? (
+            {dummyUser.profileLogo ? (
               <img
                 src={dummyUser.profileLogo}
                 alt="프로필"
@@ -73,9 +73,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <User className="w-16 h-16 text-gray-400" />
               </div>
             )}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <Camera className="w-8 h-8 text-white drop-shadow-lg" />
-            </div>
+            {/* 사진 변경은 프로필 수정 모달에서 한다 — 아바타 클릭도 같은 곳으로 연결 */}
+            {!isOtherUser && (
+              <button
+                onClick={onEditProfile}
+                title="프로필 사진 변경"
+                className="absolute inset-0 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Camera className="w-8 h-8 text-white drop-shadow-lg" />
+              </button>
+            )}
           </div>
           {!isOtherUser && (
             <button 

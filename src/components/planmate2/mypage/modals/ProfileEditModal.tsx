@@ -1,4 +1,4 @@
-import { Camera, Settings, TriangleAlert } from 'lucide-react';
+import { Camera, Loader2, Settings, Trash2, TriangleAlert, User } from 'lucide-react';
 import React from 'react';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
@@ -11,6 +11,8 @@ interface ProfileEditModalProps {
   onClose: () => void;
   dummyUser: any;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemoveImage?: () => void;
+  isUploadingImage?: boolean;
   newNickname: string;
   setNewNickname: (val: string) => void;
   nicknameValid: boolean | null;
@@ -32,6 +34,8 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   onClose,
   dummyUser,
   handleImageUpload,
+  onRemoveImage,
+  isUploadingImage = false,
   newNickname,
   setNewNickname,
   nicknameValid,
@@ -56,20 +60,47 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       {/* Avatar Placement - centered on the line between gradient and content */}
       <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-20">
         <div className="relative group">
-          <div className="w-32 h-32 rounded-full border-[6px] border-white overflow-hidden bg-gray-100 shadow-xl transition-transform hover:scale-105">
-            <img 
-              src={dummyUser.profileLogo} 
-              alt="Profile" 
-              className="w-full h-full object-cover" 
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'; // Fallback
-              }}
-            />
+          <div className="w-32 h-32 rounded-full border-[6px] border-white overflow-hidden bg-gray-100 shadow-xl transition-transform hover:scale-105 flex items-center justify-center">
+            {dummyUser.profileLogo ? (
+              <img
+                src={dummyUser.profileLogo}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-14 h-14 text-gray-400" />
+            )}
+            {isUploadingImage && (
+              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              </div>
+            )}
           </div>
-          <label className="absolute bottom-1 right-1 p-2.5 bg-[#1344FF] rounded-full text-white cursor-pointer shadow-lg hover:bg-[#0031E5] transition-all border-4 border-white">
+          <label
+            className={`absolute bottom-1 right-1 p-2.5 bg-[#1344FF] rounded-full text-white shadow-lg transition-all border-4 border-white ${
+              isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-[#0031E5]'
+            }`}
+            title="사진 변경"
+          >
             <Camera className="w-5 h-5" />
-            <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+            <input
+              type="file"
+              className="hidden"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              disabled={isUploadingImage}
+              onChange={handleImageUpload}
+            />
           </label>
+          {dummyUser.profileLogo && onRemoveImage && (
+            <button
+              onClick={onRemoveImage}
+              disabled={isUploadingImage}
+              title="기본 이미지로 되돌리기"
+              className="absolute bottom-1 left-1 p-2.5 bg-white rounded-full text-gray-400 shadow-lg border-4 border-white transition-all hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
