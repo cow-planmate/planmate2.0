@@ -16,7 +16,14 @@ import {
   type CommunityPostSummary,
   type PageData,
 } from "../../community/api/communityApi";
-import { useDeletePost, useMyActivity, useMyStats, useUserPosts } from "../../community/hooks/queries";
+import {
+  useDeletePost,
+  useMyActivity,
+  useMyStats,
+  useUserComments,
+  useUserPosts,
+  useUserStats as useUserCommunityStats,
+} from "../../community/hooks/queries";
 import { ProfilePrivateError, fetchPublicProfile, updateProfileVisibility } from "../api/userApi";
 // @ts-ignore
 import { categoryKeyToId } from "../../../../shared/theme/category";
@@ -127,12 +134,27 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     !isOtherUser,
   );
 
+  // 타인 프로필 — 커뮤니티 게시글(작성글)과 댓글은 공개 목록 엔드포인트로 조회한다.
+  // 좋아요 목록은 본인 전용이라 타인 프로필에서는 탭 자체를 노출하지 않는다.
+  const { data: userCommunityPostsPage } = useUserPosts(
+    isOtherUser && !isProfilePrivate && communityTab === "my_posts" ? userId : undefined,
+    COMMUNITY_CATEGORIES,
+    communityPage,
+  );
+  const { data: userCommentsPage } = useUserComments(
+    isOtherUser && !isProfilePrivate && communityTab === "comments" ? userId : undefined,
+    communityPage,
+  );
+
+  const communityPostsPage = isOtherUser ? userCommunityPostsPage : myCommunityPostsPage;
+  const communityCommentsPage = isOtherUser ? userCommentsPage : myCommunityCommentsPage;
+
   const activeCommunityPage = (
     communityTab === "my_posts"
-      ? myCommunityPostsPage
+      ? communityPostsPage
       : communityTab === "liked_posts"
         ? likedCommunityPostsPage
-        : myCommunityCommentsPage
+        : communityCommentsPage
   ) as PageData<any> | undefined;
 
   // 여행기 — 본인은 me 엔드포인트(작성/가져옴/좋아요), 다른 사용자는 공개 목록(작성글만).
@@ -321,12 +343,16 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     (state: any) => (state as any).setNickname,
   );
 
-  // 레벨/경험치 — 서버 통계(GET /api/community/me/stats)를 그대로 사용한다.
-  // 다른 사용자 프로필은 통계 API가 본인 전용이라, 작성글에 실려오는 작성자 레벨로 대체한다.
+  // 레벨/경험치 — 서버 통계를 그대로 사용한다.
+  // 본인은 /api/community/me/stats, 타인은 공개 목록과 같은 게이트를 쓰는
+  // /api/community/users/{id}/stats 를 조회한다.
   const { data: myStats } = useMyStats(!isOtherUser && isAuthenticated());
-  const otherUserLevel = isOtherUser ? myTravelPosts[0]?.level : undefined;
+  const { data: otherUserStats } = useUserCommunityStats(
+    isOtherUser && !isProfilePrivate ? userId : undefined,
+  );
+  const stats = isOtherUser ? otherUserStats : myStats;
   const { exp, userLevel, levelName, displayMax, remainingCount, percent } =
-    useUserStats(isOtherUser ? undefined : myStats, otherUserLevel);
+    useUserStats(stats);
 
   const handleLogout = () => {
     logout();
@@ -935,8 +961,8 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     maxExp: displayMax,
     progress: percent,
     stats: {
-      postCount: myStats?.postCount ?? 0,
-      commentCount: myStats?.commentCount ?? 0,
+      postCount: stats?.postCount ?? 0,
+      commentCount: stats?.commentCount ?? 0,
     },
   };
 
@@ -1039,8 +1065,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           onDeletePost={handleDeleteTravelPost}
         />
 
-        {!isOtherUser && (
-          <CommunityActivitySection
+        <CommunityActivitySection
             communityTab={
               communityTab === "my_posts"
                 ? "written"
@@ -1057,16 +1082,16 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
                     : "comments",
               )
             }
-            myCommunityPosts={(myCommunityPostsPage as any)?.items ?? []}
-            myCommunityPostsCount={(myCommunityPostsPage as any)?.totalElements}
+            myCommunityPosts={(communityPostsPage as any)?.items ?? []}
+            myCommunityPostsCount={(communityPostsPage as any)?.totalElements}
             likedCommunityPosts={(likedCommunityPostsPage as any)?.items ?? []}
-            myComments={(myCommunityCommentsPage as any)?.items ?? []}
+            myComments={(communityCommentsPage as any)?.items ?? []}
+            isOtherUser={!!isOtherUser}
             page={communityPage}
             totalPages={activeCommunityPage?.totalPages ?? 1}
             onPageChange={setCommunityPage}
             onNavigateDetail={(post) => onNavigate("detail", { post })}
           />
-        )}
       </div>
 
       <MyPageModals

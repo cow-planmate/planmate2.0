@@ -16,7 +16,9 @@ import {
   fetchMyStats,
   fetchPost,
   fetchPosts,
+  fetchUserComments,
   fetchUserPosts,
+  fetchUserStats,
   forkPost,
   joinMate,
   leaveMate,
@@ -34,7 +36,9 @@ const KEYS = {
   post: (postId: number | string) => ['community', 'post', String(postId)] as const,
   comments: (postId: number | string) => ['community', 'comments', String(postId)] as const,
   me: (tab: string, page: number) => ['community', 'me', tab, page] as const,
-  userPosts: (userId: string, category: string, page: number) => ['community', 'user', userId, category, page] as const,
+  userPosts: (userId: string, category: string, page: number) => ['community', 'user', userId, 'posts', category, page] as const,
+  userComments: (userId: string, page: number) => ['community', 'user', userId, 'comments', page] as const,
+  userStats: (userId: string) => ['community', 'user', userId, 'stats'] as const,
 };
 
 // ── 조회 ─────────────────────────────────────────────────────────────────
@@ -103,11 +107,27 @@ export const useMyActivity = (
     enabled,
   });
 
-// 다른 사용자의 프로필에 노출되는 공개 목록 (여행기 등)
+// 다른 사용자의 프로필에 노출되는 공개 목록 — 여행기(feed)와 커뮤니티 게시글 양쪽에 쓴다.
+// category에 쉼표로 여러 게시판을 넘길 수 있다.
 export const useUserPosts = (userId: string | undefined, category: string, page = 0) =>
   useQuery({
     queryKey: KEYS.userPosts(userId ?? '', category, page),
     queryFn: () => fetchUserPosts(userId!, category, page),
+    enabled: !!userId,
+  });
+
+export const useUserComments = (userId: string | undefined, page = 0) =>
+  useQuery({
+    queryKey: KEYS.userComments(userId ?? '', page),
+    queryFn: () => fetchUserComments(userId!, page),
+    enabled: !!userId,
+  });
+
+/** 다른 사용자의 활동 통계 — 레벨 표시에 쓴다 (본인은 useMyStats) */
+export const useUserStats = (userId: string | undefined) =>
+  useQuery({
+    queryKey: KEYS.userStats(userId ?? ''),
+    queryFn: () => fetchUserStats(userId!),
     enabled: !!userId,
   });
 

@@ -187,13 +187,28 @@ export const fetchFeedPosts = async (
   return mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/posts?${params}`));
 };
 
-/** 특정 사용자가 쓴 글 (프로필 페이지 — 다른 사용자의 여행기) */
+/**
+ * 다른 사용자의 프로필에 노출되는 작성글.
+ * category에 쉼표로 여러 게시판을 넘길 수 있다 (예: 'free,qna,mate,recommend').
+ * 대상이 프로필을 비공개로 두면 403(USER_002)이 온다.
+ */
 export const fetchUserPosts = async (
   userId: string, category: string, page = 0, size = 20,
 ): Promise<PageData<CommunityPostSummary>> => {
-  const params = new URLSearchParams({ category, userId, page: String(page), size: String(size), sort: 'latest' });
-  return mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/posts?${params}`));
+  const params = new URLSearchParams({ category, page: String(page), size: String(size) });
+  return mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/users/${userId}/posts?${params}`));
 };
+
+/** 다른 사용자가 쓴 댓글 (원문 제목·이동 정보 포함) */
+export const fetchUserComments = async (
+  userId: string, page = 0, size = 20,
+): Promise<PageData<CommunityComment>> =>
+  mapPage(await request<PageData<CommunityComment>>(
+    `/api/community/users/${userId}/comments?page=${page}&size=${size}`));
+
+/** 다른 사용자의 활동 통계 (레벨·글 수·댓글 수) */
+export const fetchUserStats = async (userId: string): Promise<MyStats> =>
+  request<MyStats>(`/api/community/users/${userId}/stats`);
 
 export const fetchFeedRegionCounts = async (): Promise<RegionCount[]> =>
   request<RegionCount[]>('/api/community/posts/regions?category=feed');
