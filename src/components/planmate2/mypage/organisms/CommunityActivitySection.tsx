@@ -9,6 +9,8 @@ interface CommunityActivitySectionProps {
   myCommunityPostsCount?: number;
   likedCommunityPosts: any[];
   myComments: any[];
+  /** 타인 프로필이면 좋아요 탭을 감춘다 — 좋아요 이력은 본인만 본다 */
+  isOtherUser?: boolean;
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -22,6 +24,7 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
   myCommunityPostsCount,
   likedCommunityPosts,
   myComments,
+  isOtherUser = false,
   page,
   totalPages,
   onPageChange,
@@ -51,6 +54,7 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
           >
             작성글
           </button>
+          {!isOtherUser && (
           <button
             onClick={() => setCommunityTab('liked')}
             className={`px-6 py-2 rounded-md transition-all font-medium text-sm ${
@@ -61,6 +65,7 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
           >
             좋아요한 글
           </button>
+          )}
           <button
             onClick={() => setCommunityTab('comments')}
             className={`px-6 py-2 rounded-md transition-all font-medium text-sm ${
