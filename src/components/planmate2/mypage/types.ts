@@ -49,12 +49,12 @@ export interface Trip extends Plan {
   lane?: number;
 }
 
+/** 커뮤니티 활동 통계 (GET /api/community/me/stats) — 레벨 산정 기준 */
 export interface UserStats {
-  forks: number;
-  feedPosts: number;
-  community: number;
-  comments: number;
-  attendance: number;
+  postCount: number;
+  commentCount: number;
+  /** 서버가 산정한 레벨 (없으면 점수로 계산) */
+  level?: number;
 }
 
 export interface LevelConfig {

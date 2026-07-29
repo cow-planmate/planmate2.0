@@ -43,7 +43,8 @@ export const DetailFilterPanel: React.FC<DetailFilterPanelProps> = ({
         {/* 지역 필터 */}
         <div>
           <label className="block text-sm font-bold text-[#1a1a1a] mb-2">지역</label>
-          <div className="flex flex-wrap gap-2">
+          {/* 지역 수가 많아질 수 있어 스크롤 처리 */}
+          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
             {regions.map(region => (
               <button
                 key={region}

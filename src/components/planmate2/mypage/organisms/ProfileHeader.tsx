@@ -125,18 +125,24 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </span>
           </div>
           
-          {/* 레벨 진행바 */}
-          <div className="max-w-xs mx-auto md:mx-0 mb-6">
+          {/* 레벨 진행바 — 활동 통계는 본인만 조회할 수 있어 타인 프로필에서는 감춘다 */}
+          <div className={`max-w-xs mx-auto md:mx-0 mb-6 ${isOtherUser ? 'hidden' : ''}`}>
             <div className="flex justify-between text-xs mb-1.5">
               <span className="text-[#1344FF] font-bold text-xs uppercase tracking-tighter">현재 경험치</span>
-              <span className="text-gray-400 font-medium">{userStats.exp} / {userStats.maxExp} EXP</span>
+              <span className="text-gray-400 font-medium">
+                {userStats.exp} / {userStats.maxExp} 점
+              </span>
             </div>
             <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-[#1344FF] to-[#4B70FF] transition-all duration-1000"
                 style={{ width: `${userStats.progress}%` }}
               />
             </div>
+            <p className="mt-1.5 text-[11px] text-gray-400">
+              여행기·게시글 {userStats.stats?.postCount ?? 0}개 · 댓글 {userStats.stats?.commentCount ?? 0}개
+              {userStats.expToNext > 0 && ` · 다음 레벨까지 ${userStats.expToNext}점`}
+            </p>
           </div>
 
           {/* 취향 태그 */}

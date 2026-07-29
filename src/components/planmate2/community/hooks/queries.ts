@@ -111,8 +111,9 @@ export const useUserPosts = (userId: string | undefined, category: string, page 
     enabled: !!userId,
   });
 
-export const useMyStats = () =>
-  useQuery({ queryKey: ['community', 'me', 'stats'], queryFn: fetchMyStats });
+/** 내 활동 통계(게시글/댓글 수, 레벨) — 로그인 사용자만 조회 가능 */
+export const useMyStats = (enabled = true) =>
+  useQuery({ queryKey: ['community', 'me', 'stats'], queryFn: fetchMyStats, enabled });
 
 // ── 변경 (공통 무효화 규칙 포함) ─────────────────────────────────────────
 const useInvalidate = () => {
