@@ -1,3 +1,4 @@
+import { Lock } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApiClient } from "../../../../hooks/useApiClient";
@@ -15,7 +16,8 @@ import {
   type CommunityPostSummary,
   type PageData,
 } from "../../community/api/communityApi";
-import { useMyActivity, useMyStats, useUserPosts } from "../../community/hooks/queries";
+import { useDeletePost, useMyActivity, useMyStats, useUserPosts } from "../../community/hooks/queries";
+import { ProfilePrivateError, fetchPublicProfile, updateProfileVisibility } from "../api/userApi";
 // @ts-ignore
 import { categoryKeyToId } from "../../../../shared/theme/category";
 import { CalendarSection } from "../organisms/CalendarSection";
@@ -75,6 +77,10 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   // 현재 로그인한 사용자인지 확인
   const currentLoggedInUserId = localStorage.getItem("userId");
   const isOtherUser = userId && userId !== currentLoggedInUserId;
+
+  // 타인 프로필이 비공개라 조회가 거부된 상태 (403 USER_002).
+  // 목록 쿼리들이 이 값을 참조하므로 훅 선언보다 먼저 만들어 둔다.
+  const [isProfilePrivate, setIsProfilePrivate] = useState(false);
 
   // Tabs State
   const [travelTab, setTravelTab] = useState<"created" | "forked" | "liked">(
@@ -149,8 +155,9 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     "feed",
     !isOtherUser,
   );
+  // 비공개 프로필로 판명되면 여행기 목록도 더 이상 요청하지 않는다
   const { data: userFeedPostsPage } = useUserPosts(
-    isOtherUser ? userId : undefined,
+    isOtherUser && !isProfilePrivate ? userId : undefined,
     "feed",
     travelPage,
   );
@@ -188,6 +195,17 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         : likedFeedPostsPage
   ) as PageData<any> | undefined;
 
+  // 내 여행기 삭제 — 목록 캐시는 useDeletePost가 무효화한다
+  const deleteTravelPost = useDeletePost();
+  const handleDeleteTravelPost = async (post: any) => {
+    if (!confirm(`'${post.title}' 여행기를 삭제할까요? 삭제하면 되돌릴 수 없습니다.`)) return;
+    try {
+      await deleteTravelPost.mutateAsync(Number(post.id));
+    } catch (error) {
+      alert(`여행기 삭제에 실패했습니다: ${(error as Error).message}`);
+    }
+  };
+
   const [date, setDate] = useState<Date>(new Date());
 
   // API 관련 상태
@@ -196,6 +214,14 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   const [myPlans, setMyPlans] = useState<Plan[]>([]);
   const [editablePlans, setEditablePlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  // 타인 프로필은 일정 목록 대신 개수만 내려온다
+  const [otherUserPlanCounts, setOtherUserPlanCounts] = useState<{
+    myPlanCount: number;
+    editablePlanCount: number;
+  } | null>(null);
+  // 내 프로필 공개 설정 (본인 프로필에서만 사용)
+  const [isProfilePublic, setIsProfilePublic] = useState(true);
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
 
   // 인증 체크
   useEffect(() => {
@@ -575,35 +601,28 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      // v2 명세에는 타인 프로필 조회 API가 없으므로 문서에 없는 경로를 호출하지 않는다.
-      if (isOtherUser) {
+      if (!isAuthenticated()) {
         setLoading(false);
         return;
       }
-      if (isAuthenticated() || isOtherUser) {
+      {
         try {
           setLoading(true);
-          // Backend-v2에는 본인 프로필 조회(/api/user/profile)만 있다.
-          // 타인 프로필(/api/user/profile/{userId})은 백엔드 미구현 상태.
-          const endpoint = isOtherUser
-            ? `${BASE_URL}/api/user/profile/${userId}`
-            : `${BASE_URL}/api/user/profile`;
+          setIsProfilePrivate(false);
 
-          let profileData;
-          try {
-            profileData = await get(endpoint);
-          } catch (err) {
-            if (isOtherUser) {
-              profileData = {
-                nickname: `사용자${userId}`,
-                email: `user${userId}@example.com`,
-                myPlanVOs: [],
-                editablePlanVOs: [],
-                preferredThemes: [],
-              };
-            } else {
-              throw err;
-            }
+          // 타인 프로필은 공개 범위가 제한된 응답(이메일·일정 목록 없음)을 준다.
+          // 비공개 프로필이면 403(USER_002)이 오고, 아래 catch에서 전용 화면으로 전환한다.
+          let profileData: any;
+          if (isOtherUser) {
+            const publicProfile = await fetchPublicProfile(userId!);
+            profileData = {
+              ...publicProfile,
+              email: "",
+              myPlans: [],
+              editablePlans: [],
+            };
+          } else {
+            profileData = await get(`${BASE_URL}/api/user/profile`);
           }
 
           if (!profileData) {
@@ -612,6 +631,14 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           }
 
           setUserProfile(profileData as UserProfile);
+          setOtherUserPlanCounts(
+            isOtherUser
+              ? {
+                  myPlanCount: profileData.myPlanCount ?? 0,
+                  editablePlanCount: profileData.editablePlanCount ?? 0,
+                }
+              : null,
+          );
 
           const [ownedPlans, sharedPlans] = await Promise.all([
             Promise.all(
@@ -644,16 +671,44 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
             setSelectedThemeKeywords(categorized);
           }
         } catch (err) {
-          console.error("프로필 정보를 가져오는데 실패했습니다:", err);
+          if (err instanceof ProfilePrivateError) {
+            setIsProfilePrivate(true);
+            setUserProfile(null);
+          } else {
+            console.error("프로필 정보를 가져오는데 실패했습니다:", err);
+          }
         } finally {
           setLoading(false);
         }
-      } else {
-        setLoading(false);
       }
     };
     fetchUserProfile();
   }, [userId, isOtherUser, isAuthenticated, get]);
+
+  // 서버가 준 공개 설정을 토글 초기값으로 반영 (본인 프로필 응답에만 들어있다)
+  useEffect(() => {
+    if (!isOtherUser && userProfile?.profilePublic !== undefined) {
+      setIsProfilePublic(userProfile.profilePublic);
+    }
+  }, [isOtherUser, userProfile?.profilePublic]);
+
+  // 공개/비공개 전환 — 낙관적으로 토글하고 실패 시 되돌린다
+  const handleToggleProfileVisibility = async (nextPublic: boolean) => {
+    const previous = isProfilePublic;
+    setIsProfilePublic(nextPublic);
+    setIsSavingVisibility(true);
+    try {
+      await updateProfileVisibility(nextPublic);
+      setUserProfile((profile) =>
+        profile ? { ...profile, profilePublic: nextPublic } : profile,
+      );
+    } catch (err) {
+      setIsProfilePublic(previous);
+      alert(`프로필 공개 설정 변경에 실패했습니다: ${(err as Error).message}`);
+    } finally {
+      setIsSavingVisibility(false);
+    }
+  };
 
   // userProfile이 변경될 때마다 테마 선택 상태 동기화
   useEffect(() => {
@@ -837,9 +892,35 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     );
   }
 
+  // 비공개 프로필 — 닉네임을 포함한 어떤 정보도 서버가 주지 않으므로 안내만 노출한다
+  if (isProfilePrivate) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center px-4">
+        <div className="bg-white rounded-xl shadow-md p-10 max-w-md w-full text-center">
+          <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-gray-100 flex items-center justify-center">
+            <Lock className="w-8 h-8 text-gray-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#1a1a1a] mb-2">
+            비공개 프로필입니다
+          </h2>
+          <p className="text-[#666666] mb-8">
+            이 사용자는 프로필을 비공개로 설정했습니다.
+          </p>
+          <button
+            onClick={() => navigate(-1)}
+            className="px-6 py-3 bg-[#1344FF] text-white rounded-xl font-bold hover:bg-[#0d34cc] transition-all active:scale-95"
+          >
+            돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const dummyUser = {
     nickName: userProfile?.nickname || "사용자",
-    email: userProfile?.email || "로그인이 필요합니다",
+    // 타인 프로필에는 이메일이 내려오지 않는다 (ProfileHeader가 빈 값이면 감춘다)
+    email: isOtherUser ? "" : userProfile?.email || "로그인이 필요합니다",
     profileLogo: profileImage || gravatarUrl(userProfile?.email || ""),
     gender: userProfile?.gender,
     birthdate: userProfile?.birthdate,
@@ -876,9 +957,14 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           onViewLevel={() => setActiveModal("level")}
           onAddFriend={handleFriendAdd}
           onSendMessage={handleSendMessage}
-          myPlansCount={myPlans.length}
-          editablePlansCount={editablePlans.length}
+          myPlansCount={otherUserPlanCounts?.myPlanCount ?? myPlans.length}
+          editablePlansCount={
+            otherUserPlanCounts?.editablePlanCount ?? editablePlans.length
+          }
           isOtherUser={isOtherUser}
+          isProfilePublic={isProfilePublic}
+          isSavingVisibility={isSavingVisibility}
+          onToggleVisibility={handleToggleProfileVisibility}
         />
 
         {!isOtherUser && (
@@ -949,6 +1035,8 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           totalPages={activeTravelPage?.totalPages ?? 1}
           onPageChange={setTravelPage}
           onNavigateDetail={(post) => onNavigate("detail", { post })}
+          onEditPost={(post) => onNavigate("feed-edit", { post })}
+          onDeletePost={handleDeleteTravelPost}
         />
 
         {!isOtherUser && (

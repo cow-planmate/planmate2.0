@@ -23,6 +23,8 @@ export interface UserProfile {
   birthdate: string | null;
   gender: Gender | null;
   isSocialLogin: boolean;
+  /** 프로필 공개 여부 — 비공개면 타인이 마이페이지를 열 수 없다 */
+  profilePublic?: boolean;
   myPlans: Plan[];
   editablePlans: Plan[];
   preferredThemes: PreferredTheme[];
