@@ -24,6 +24,8 @@ interface MyPageModalsProps {
   handleCheckNickname: () => void;
   nicknameValid: boolean | null;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemoveImage?: () => void;
+  isUploadingImage?: boolean;
   dummyUser: any;
   onOpenThemeEditor: () => void;
   
@@ -63,6 +65,8 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
   nicknameValid,
   handleCheckNickname,
   handleImageUpload,
+  onRemoveImage,
+  isUploadingImage,
   dummyUser,
   userStats,
   LEVEL_CONFIG,
@@ -87,6 +91,8 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
         onClose={() => setActiveModal(null)}
         dummyUser={dummyUser}
         handleImageUpload={handleImageUpload}
+        onRemoveImage={onRemoveImage}
+        isUploadingImage={isUploadingImage}
         newNickname={newNickname}
         setNewNickname={setNewNickname}
         nicknameValid={nicknameValid}

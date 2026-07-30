@@ -24,7 +24,13 @@ import {
   useUserPosts,
   useUserStats as useUserCommunityStats,
 } from "../../community/hooks/queries";
-import { ProfilePrivateError, fetchPublicProfile, updateProfileVisibility } from "../api/userApi";
+import {
+  ProfilePrivateError,
+  deleteProfileImage,
+  fetchPublicProfile,
+  updateProfileVisibility,
+  uploadProfileImage,
+} from "../api/userApi";
 // @ts-ignore
 import { categoryKeyToId } from "../../../../shared/theme/category";
 import { CalendarSection } from "../organisms/CalendarSection";
@@ -331,6 +337,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   const [selectedCalendarEvent, setSelectedCalendarEvent] = useState<any>(null);
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     if (newNickname === userProfile?.nickname) {
@@ -366,15 +373,50 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     navigate("/");
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string);
-        alert("프로필 이미지가 변경되었습니다. (데모)");
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // 업로드가 끝나기 전까지 고른 사진을 즉시 보여준다 (실패하면 되돌린다)
+    const previousImage = profileImage;
+    const preview = URL.createObjectURL(file);
+    setProfileImage(preview);
+    setIsUploadingImage(true);
+
+    try {
+      const url = await uploadProfileImage(file);
+      setProfileImage(url);
+      setUserProfile((profile) =>
+        profile ? { ...profile, profileImageUrl: url } : profile,
+      );
+    } catch (err) {
+      setProfileImage(previousImage);
+      alert(`프로필 이미지 변경에 실패했습니다: ${(err as Error).message}`);
+    } finally {
+      URL.revokeObjectURL(preview);
+      setIsUploadingImage(false);
+      // 같은 파일을 다시 골라도 change 이벤트가 발생하도록 초기화한다
+      e.target.value = "";
+    }
+  };
+
+  const handleImageRemove = async () => {
+    if (!profileImage) return;
+    if (!confirm("프로필 사진을 삭제할까요? 기본 이미지로 돌아갑니다.")) return;
+
+    const previousImage = profileImage;
+    setProfileImage(null);
+    setIsUploadingImage(true);
+    try {
+      await deleteProfileImage();
+      setUserProfile((profile) =>
+        profile ? { ...profile, profileImageUrl: null } : profile,
+      );
+    } catch (err) {
+      setProfileImage(previousImage);
+      alert(`프로필 이미지 삭제에 실패했습니다: ${(err as Error).message}`);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -670,6 +712,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           }
 
           setUserProfile(profileData as UserProfile);
+          setProfileImage(profileData.profileImageUrl ?? null);
           setOtherUserPlanCounts(
             isOtherUser
               ? {
@@ -960,7 +1003,9 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     nickName: userProfile?.nickname || "사용자",
     // 타인 프로필에는 이메일이 내려오지 않는다 (ProfileHeader가 빈 값이면 감춘다)
     email: isOtherUser ? "" : userProfile?.email || "로그인이 필요합니다",
-    profileLogo: profileImage || gravatarUrl(userProfile?.email || ""),
+    profileLogo:
+      profileImage ||
+      (userProfile?.email ? gravatarUrl(userProfile.email) : null),
     gender: userProfile?.gender,
     birthdate: userProfile?.birthdate,
     preferredThemes: userProfile?.preferredThemes,
@@ -1129,6 +1174,8 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         handlePasswordUpdate={handlePasswordUpdate}
         handleNicknameUpdate={handleProfileSubmit}
         handleImageUpload={handleImageChange}
+        onRemoveImage={handleImageRemove}
+        isUploadingImage={isUploadingImage}
         dummyUser={dummyUser}
         userStats={userStats}
         LEVEL_CONFIG={LEVEL_CONFIG}
