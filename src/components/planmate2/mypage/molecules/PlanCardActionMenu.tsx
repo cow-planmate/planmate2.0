@@ -1,5 +1,6 @@
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { LogOut, MoreVertical, Pencil, Share2, Trash2 } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface PlanCardActionMenuProps {
@@ -18,24 +19,7 @@ export const PlanCardActionMenu: React.FC<PlanCardActionMenuProps> = ({
   onDelete,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const closeMenu = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) setIsOpen(false);
-    };
-    const closeOnScroll = () => setIsOpen(false);
-
-    document.addEventListener("mousedown", closeMenu);
-    window.addEventListener("scroll", closeOnScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", closeMenu);
-      window.removeEventListener("scroll", closeOnScroll, true);
-    };
-  }, [isOpen]);
 
   const run = (action: () => void) => {
     setIsOpen(false);
@@ -44,52 +28,58 @@ export const PlanCardActionMenu: React.FC<PlanCardActionMenuProps> = ({
 
   return (
     <div
-      ref={menuRef}
       className="relative z-30"
       onClick={(event) => event.stopPropagation()}
     >
-      <button
-        type="button"
-        aria-label="일정 메뉴 열기"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((open) => !open)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+      <DropdownMenuPrimitive.Root
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        modal={false}
       >
-        <MoreVertical className="h-5 w-5" />
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 top-9 z-50 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+        <DropdownMenuPrimitive.Trigger asChild>
+          <button
+            type="button"
+            aria-label="일정 메뉴 열기"
+            onPointerDown={(event) => event.stopPropagation()}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+          >
+            <MoreVertical className="h-5 w-5" />
+          </button>
+        </DropdownMenuPrimitive.Trigger>
+        <DropdownMenuPrimitive.Portal>
+          <DropdownMenuPrimitive.Content
+            align="end"
+            sideOffset={4}
+            collisionPadding={12}
+            onCloseAutoFocus={(event) => event.preventDefault()}
+            className="z-50 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl"
+          >
           {isOwner && (
-            <button
-              type="button"
-              onClick={() => run(onRename)}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+            <DropdownMenuPrimitive.Item
+              onSelect={() => run(onRename)}
+              className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 outline-none hover:bg-gray-50 focus:bg-gray-50"
             >
               <Pencil className="h-4 w-4" />
               제목 변경
-            </button>
+            </DropdownMenuPrimitive.Item>
           )}
-          <button
-            type="button"
-            onClick={() => run(() => navigate(`/create?id=${planId}`))}
-            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+          <DropdownMenuPrimitive.Item
+            onSelect={() => run(() => navigate(`/create?id=${planId}`))}
+            className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 outline-none hover:bg-gray-50 focus:bg-gray-50"
           >
             <Pencil className="h-4 w-4" />
             일정 수정
-          </button>
-          <button
-            type="button"
-            onClick={() => run(onShare)}
-            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+          </DropdownMenuPrimitive.Item>
+          <DropdownMenuPrimitive.Item
+            onSelect={() => run(onShare)}
+            className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 outline-none hover:bg-gray-50 focus:bg-gray-50"
           >
             <Share2 className="h-4 w-4" />
             공유 및 초대
-          </button>
-          <button
-            type="button"
-            onClick={() => run(onDelete)}
-            className="flex w-full items-center gap-3 border-t border-gray-100 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+          </DropdownMenuPrimitive.Item>
+          <DropdownMenuPrimitive.Item
+            onSelect={() => run(onDelete)}
+            className="flex w-full cursor-pointer items-center gap-3 border-t border-gray-100 px-4 py-2.5 text-left text-sm text-red-600 outline-none hover:bg-red-50 focus:bg-red-50"
           >
             {isOwner ? (
               <Trash2 className="h-4 w-4" />
@@ -97,9 +87,10 @@ export const PlanCardActionMenu: React.FC<PlanCardActionMenuProps> = ({
               <LogOut className="h-4 w-4" />
             )}
             {isOwner ? "일정 삭제" : "공유 일정 나가기"}
-          </button>
-        </div>
-      )}
+          </DropdownMenuPrimitive.Item>
+          </DropdownMenuPrimitive.Content>
+        </DropdownMenuPrimitive.Portal>
+      </DropdownMenuPrimitive.Root>
     </div>
   );
 };

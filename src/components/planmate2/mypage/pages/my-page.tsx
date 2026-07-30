@@ -36,6 +36,12 @@ import Theme from "../../../Mypage/changeTheme";
 import TitleModal from "../../../Mypage/TitleModal";
 // @ts-ignore
 import ShareModal from "../../../common/ShareModal";
+// @ts-ignore
+import {
+  ErrorToast,
+  SuccessToast,
+  WarningToast,
+} from "../../../common/Toast";
 
 interface MyPageProps {
   onNavigate: (view: any, data?: any) => void;
@@ -392,7 +398,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         if (newNickname !== userProfile?.nickname) {
           setStoreNickname(newNickname);
         }
-        alert("프로필 정보가 성공적으로 업데이트되었습니다.");
+        SuccessToast("프로필 정보가 성공적으로 업데이트되었습니다.");
 
         // 프로필 정보 다시 가져오기
         const profileData = await get(`${BASE_URL}/api/user/profile`);
@@ -402,18 +408,18 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       setActiveModal(null);
     } catch (err: any) {
       console.error("프로필 업데이트 실패:", err);
-      alert(err.response?.data?.message || "프로필 변경에 실패했습니다.");
+      ErrorToast(err.response?.data?.message || "프로필 변경에 실패했습니다.");
     }
   };
 
   const handlePasswordUpdate = async () => {
     if (!currentPassword) {
-      alert("현재 비밀번호를 입력해주세요.");
+      WarningToast("현재 비밀번호를 입력해주세요.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      alert("새 비밀번호 확인이 일치하지 않습니다.");
+      WarningToast("새 비밀번호 확인이 일치하지 않습니다.");
       return;
     }
 
@@ -429,7 +435,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       !hasNumber ||
       !hasSpecialChar
     ) {
-      alert(
+      WarningToast(
         "비밀번호 형식이 올바르지 않습니다. (8~64자 영문, 숫자, 특수문자 조합)",
       );
       return;
@@ -442,11 +448,11 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         newPassword: newPassword,
         confirmPassword: confirmPassword,
       });
-      alert("비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.");
+      SuccessToast("비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.");
       handleLogout();
     } catch (err: any) {
       console.error("비밀번호 변경 실패:", err);
-      alert(err.response?.data?.message || "비밀번호 변경에 실패했습니다.");
+      ErrorToast(err.response?.data?.message || "비밀번호 변경에 실패했습니다.");
     }
   };
 
@@ -487,10 +493,16 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         );
       }
 
-      alert(isOwner ? "일정이 삭제되었습니다." : "일정에서 나갔습니다.");
+      SuccessToast(
+        isOwner ? "일정이 삭제되었습니다." : "일정에서 나갔습니다.",
+      );
     } catch (err) {
       console.error("일정 삭제 실패:", err);
-      alert("일정 삭제에 실패했습니다.");
+      ErrorToast(
+        isOwner
+          ? "일정 삭제에 실패했습니다."
+          : "일정에서 나가는 데 실패했습니다.",
+      );
     }
   };
 
@@ -574,6 +586,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       plans.map((plan) => (plan.planId === planId ? { ...plan, planName } : plan)),
     );
     setActionPlan((plan: any) => (plan ? { ...plan, title: planName } : plan));
+    SuccessToast("제목이 변경되었습니다.");
   };
 
   useEffect(() => {
@@ -1059,7 +1072,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         <Theme
           isOpen={isThemeOpen}
           onClose={() => setIsThemeOpen(false)}
-          initialKeywords={selectedThemeKeywords}
+          initialSelected={selectedThemeKeywords}
           onComplete={(keywords: any) => {
             setSelectedThemeKeywords(keywords);
             setIsThemeOpen(false);

@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
 import { ErrorToast, SuccessToast } from "./Toast";
 import useConfirmStore from "../../store/Confirm";
 
 const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
-  const { post, get, del } = useApiClient();
+  const { post, get, patch, del } = useApiClient();
   const [editors, setEditors] = useState([]);
   const [receiverNickname, setreceiverNickname] = useState("");
   const [shareURL, setShareURL] = useState("");
@@ -12,11 +12,39 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
   const BASE_URL = import.meta.env.VITE_API_URL;
   const { showConfirm } = useConfirmStore();
 
+  const getEditors = useCallback(async () => {
+    try {
+      const response = await get(`${BASE_URL}/api/plan/${id}/editors`);
+      console.log(response);
+      setEditors(response.editors || []);
+    } catch (error) {
+      console.error("에디터 조회에 실패했습니다:", error);
+    }
+  }, [BASE_URL, get, id]);
+
+  const getShareStatus = useCallback(async () => {
+    try {
+      const response = await get(`${BASE_URL}/api/plan/${id}/share`);
+      const payload = response?.data || response;
+      const nextIsShared = payload?.isShared === true;
+
+      setIsShared(nextIsShared);
+      setShareURL(
+        nextIsShared
+          ? `${window.location.origin}/complete?id=${encodeURIComponent(id)}`
+          : "",
+      );
+    } catch (error) {
+      ErrorToast(error.message || "공유 상태 조회에 실패했습니다.");
+    }
+  }, [BASE_URL, get, id]);
+
   useEffect(() => {
+    getShareStatus();
     if (isOwner) {
       getEditors();
     }
-  }, [id]);
+  }, [getEditors, getShareStatus, isOwner]);
 
   const removeEditorAccessByOwner = async (targetUserId) => {
     try {
@@ -27,16 +55,6 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
       getEditors();
     } catch (err) {
       console.error("에디터 제거에 실패했습니다:", err);
-    }
-  };
-
-  const getEditors = async () => {
-    try {
-      const response = await get(`${BASE_URL}/api/plan/${id}/editors`);
-      console.log(response);
-      setEditors(response.editors || []);
-    } catch (error) {
-      console.error("에디터 조회에 실패했습니다:", error);
     }
   };
 
@@ -56,43 +74,32 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
     }
   };
 
-  const getShareLink = async () => {
-    const response = await get(`${BASE_URL}/api/plan/${id}/share`);
-    const payload = response?.data || response;
-    const sharedPlanUrl =
-      payload?.sharedPlanUrl ||
-      payload?.sharedPlanURL ||
-      payload?.shareURL ||
-      (payload?.isShared
-        ? `${window.location.origin}/complete?id=${encodeURIComponent(id)}`
-        : "");
-
-    if (!sharedPlanUrl) {
-      throw new Error("서버에서 공유 링크를 반환하지 않았습니다.");
-    }
-
-    setIsShared(true);
-    setShareURL(sharedPlanUrl);
-    return sharedPlanUrl;
-  };
-
   const toggleShare = async () => {
-    if (isShared) {
-      setIsShared(false);
-      setShareURL("");
-      SuccessToast("일정 공유를 껐습니다.");
-      return;
-    }
+    const nextIsShared = !isShared;
 
     try {
-      await getShareLink();
-      SuccessToast("일정 공유를 켰습니다.");
+      await patch(`${BASE_URL}/api/plan/${id}/share`, {
+        isShared: nextIsShared,
+      });
+      setIsShared(nextIsShared);
+      setShareURL(
+        nextIsShared
+          ? `${window.location.origin}/complete?id=${encodeURIComponent(id)}`
+          : "",
+      );
+      SuccessToast(
+        nextIsShared ? "일정 공유를 켰습니다." : "일정 공유를 껐습니다.",
+      );
     } catch (error) {
-      ErrorToast(error.message || "공유 링크 생성에 실패했습니다.");
+      ErrorToast(error.message || "공유 상태 변경에 실패했습니다.");
     }
   };
 
   const copyToClipboard = () => {
+    if (!shareURL) {
+      ErrorToast("현재 사용할 수 있는 공유 링크가 없습니다.");
+      return;
+    }
     navigator.clipboard.writeText(shareURL);
     SuccessToast("링크가 복사되었습니다!");
   };
@@ -145,7 +152,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
               복사
             </button>
           </div>
-          {isOwner && (
+          {isOwner ? (
             <button
               onClick={toggleShare}
               className={`mt-3 w-full rounded-xl px-4 py-3 font-medium transition-colors ${
@@ -156,6 +163,12 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
             >
               {isShared ? "공유 링크 끄기" : "공유 링크 켜기"}
             </button>
+          ) : (
+            <p className="mt-3 text-sm text-gray-500">
+              {isShared
+                ? "일정 소유자가 공유 링크를 켜두었습니다."
+                : "일정 소유자가 공유 링크를 꺼두었습니다."}
+            </p>
           )}
         </div>
 

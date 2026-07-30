@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import MapIcon from "../../../assets/imgs/googlemaps.svg?react"; // 경로 확인 필요
+import defaultImg from "../../../assets/imgs/default.png";
 
 export const SidebarItem = ({
   place,
@@ -14,7 +16,12 @@ export const SidebarItem = ({
     disabled: isMobile,
   });
 
-  const imageUrl = place.photoUrl || place.iconUrl;
+  const imageUrl = place.photoUrl?.replace(/^http:\/\//i, "https://");
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
 
   return (
     <div
@@ -26,12 +33,9 @@ export const SidebarItem = ({
     >
       <div className="size-10 md:size-12 bg-gray-300 rounded-lg mr-4 flex items-center justify-center">
         <img
-          src={imageUrl}
+          src={!imageFailed && imageUrl ? imageUrl : defaultImg}
           alt={place.name}
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = place.iconUrl;
-          }}
+          onError={() => setImageFailed(true)}
           className="w-full h-full object-cover rounded-lg"
         />
       </div>

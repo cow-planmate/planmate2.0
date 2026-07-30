@@ -71,7 +71,9 @@ export const useApiClient = () => {
       }
 
       // 인증 에러 처리
-      if (response.status === 401) {
+      const isLoginRequest = url === `${BASE_URL}/api/auth/login`;
+
+      if (response.status === 401 && !isLoginRequest) {
         try {
           await refreshTokens();
 
@@ -129,7 +131,7 @@ export const useApiClient = () => {
       setIsLoading(false);
     }
   },
-  [getAuthHeaders, refreshTokens, clearAuth, setServerDown]
+  [BASE_URL, getAuthHeaders, refreshTokens, clearAuth, setServerDown]
 );
 
   // 5. 편의 메서드들

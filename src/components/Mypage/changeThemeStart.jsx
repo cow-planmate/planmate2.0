@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { useApiClient } from "../../hooks/useApiClient";
 import { toThemeUpdatesPayload } from "../../shared/theme/category";
+import { ErrorToast, SuccessToast } from "../common/Toast";
 import { X, Heart, Check, ChevronRight } from "lucide-react";
 
 export default function Themestart({
@@ -35,6 +36,7 @@ export default function Themestart({
         themeUpdates,
       });
 
+      SuccessToast("선호 테마가 변경되었습니다.");
       onClose();
 
       if (onComplete) {
@@ -43,6 +45,7 @@ export default function Themestart({
       }
     } catch (err) {
       console.error("선호 테마 저장 실패:", err);
+      ErrorToast(err?.response?.data?.message || "선호 테마 변경에 실패했습니다.");
     } finally {
       setIsSaving(false);
     }

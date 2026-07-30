@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faStar, faMapMarkerAlt, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
+import { faStar, faMapMarkerAlt, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
+import defaultImg from "../../../assets/imgs/default.png";
 
 const DetailPopup = ({ isOpen, onClose, item, onUpdateMemo, readOnly = false }) => {
   const [memo, setMemo] = useState(item?.memo || "");
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageUrl = item?.place?.photoUrl?.replace(/^http:\/\//i, "https://");
 
   useEffect(() => {
     if (isOpen) {
@@ -23,12 +25,13 @@ const DetailPopup = ({ isOpen, onClose, item, onUpdateMemo, readOnly = false }) 
     };
   }, [isOpen, item?.id]); // item 대신 item.id를 사용하여 메모 입력 도중 리렌더링으로 인한 초기화 방지
 
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
+
   if (!isOpen || !item) return null;
 
   const { place } = item;
-  const imageUrl = place.placeId
-    ? `${BASE_URL}/image/place/${encodeURIComponent(place.placeId)}`
-    : (place.photoUrl || place.iconUrl);
 
   const content = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-60 font-pretendard">
@@ -41,13 +44,10 @@ const DetailPopup = ({ isOpen, onClose, item, onUpdateMemo, readOnly = false }) 
         {/* Header Photo */}
         <div className="h-48 w-full bg-gray-200 relative">
           <img 
-            src={imageUrl} 
+            src={!imageFailed && imageUrl ? imageUrl : defaultImg}
             alt={place.name}
             className="w-full h-full object-cover"
-            onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = place.iconUrl;
-            }}
+            onError={() => setImageFailed(true)}
           />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
             <h2 className="text-white text-2xl font-bold truncate">{place.name}</h2>
