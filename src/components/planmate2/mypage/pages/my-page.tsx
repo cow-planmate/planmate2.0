@@ -35,6 +35,12 @@ import { ProfileHeader } from "../organisms/ProfileHeader";
 import { TravelLogsSection } from "../organisms/TravelLogsSection";
 import { TripSection } from "../organisms/TripSection";
 import type { Gender, Plan, UserProfile } from "../types";
+import {
+  getDDayLabel,
+  getPlanStatus,
+  getPlanStatusLabel,
+  groupPlansByStatus,
+} from "../../../../utils/planSchedule";
 
 // @ts-ignore
 import gravatarUrl from "../../../../utils/gravatarUrl";
@@ -609,12 +615,13 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     }
   };
 
-  const toggleSelectAll = () => {
-    if (selectedPlanIds.length === allPlans.length) {
-      setSelectedPlanIds([]);
-    } else {
-      setSelectedPlanIds(allPlans.map((p) => p.id));
-    }
+  // 탭으로 나뉜 뒤로는 "전체 선택"이 화면에 보이지 않는 일정까지 삭제 대상으로 잡으면 안 된다.
+  // TripSection이 현재 탭의 목록을 넘겨준다.
+  const toggleSelectAll = (visiblePlans: any[]) => {
+    const visibleIds = visiblePlans.map((p) => p.id);
+    const allSelected =
+      visibleIds.length > 0 && visibleIds.every((id) => selectedPlanIds.includes(id));
+    setSelectedPlanIds(allSelected ? [] : visibleIds);
   };
 
   const togglePlanSelection = (id: string) => {
@@ -793,23 +800,8 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     const endDate = hasDates ? new Date(plan.endDate) : null;
     if (endDate) endDate.setHours(0, 0, 0, 0);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    let dDayStr = "D-Day";
-    if (startDate) {
-      const diffTime = startDate.getTime() - today.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      dDayStr =
-        diffDays === 0
-          ? "D-Day"
-          : diffDays > 0
-            ? `D-${diffDays}`
-            : `D+${Math.abs(diffDays)}`;
-    }
-
-    const isPast = hasDates && endDate && endDate < today;
-    const isOngoing = hasDates && !isPast && startDate && startDate <= today;
+    // 분류·D-Day 계산은 utils/planSchedule로 추출했다 (TripSection 탭과 공유)
+    const status = getPlanStatus(plan.startDate, plan.endDate);
 
     return {
       id: plan.planId,
@@ -820,8 +812,8 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         ? `${plan.startDate} - ${plan.endDate}`
         : "날짜 확인 필요",
       duration: plan.duration,
-      dDay: dDayStr,
-      status: isPast ? "완료" : isOngoing ? "진행 중" : "예정됨",
+      dDay: getDDayLabel(plan.startDate),
+      status: getPlanStatusLabel(status),
       hasDates: hasDates,
       theme: plan.isOwner ? "blue" : "orange",
       isOwner: plan.isOwner,
@@ -859,9 +851,11 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     });
   })();
 
-  const ongoingPlans = allPlans.filter((plan) => plan.status === "진행 중");
-  const upcomingPlans = allPlans.filter((plan) => plan.status === "예정됨");
-  const pastPlans = allPlans.filter((plan) => plan.status === "완료");
+  const {
+    ongoing: ongoingPlans,
+    upcoming: upcomingPlans,
+    past: pastPlans,
+  } = groupPlansByStatus(allPlans);
 
   const SCHEDULED_TRIPS = [...ongoingPlans, ...upcomingPlans];
   const PAST_TRIPS = pastPlans;

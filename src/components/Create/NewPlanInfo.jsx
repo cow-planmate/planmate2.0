@@ -348,9 +348,10 @@ const MapModal = ({setMapModalOpen, schedule, selectedDay}) => {
           {positions.slice(0, -1).map((pos, idx) => {
             return (
               <Polyline
+                key={`polyline-${idx}`}
                 path={[
                   [
-                    pos, 
+                    pos,
                     positions[idx + 1],
                   ],
                 ]}

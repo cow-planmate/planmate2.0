@@ -1,5 +1,5 @@
 import { MapPin, Navigation } from 'lucide-react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { CustomOverlayMap, Map, Polyline } from 'react-kakao-maps-sdk';
 
 interface RoutePreviewProps {
@@ -8,6 +8,16 @@ interface RoutePreviewProps {
 }
 
 export const RoutePreview: React.FC<RoutePreviewProps> = ({ route, title }) => {
+  const [map, setMap] = useState<any>(null);
+
+  // 경로 전체가 보이도록 bounds 자동 맞춤 (Complete / 상세 일정 지도와 동일)
+  useEffect(() => {
+    if (!map || !route?.length || !window.kakao?.maps) return;
+    const bounds = new window.kakao.maps.LatLngBounds();
+    route.forEach(p => bounds.extend(new window.kakao.maps.LatLng(p.lat, p.lng)));
+    map.setBounds(bounds);
+  }, [map, route]);
+
   if (!route || route.length === 0) return null;
 
   // Calculate center of the route
@@ -29,29 +39,33 @@ export const RoutePreview: React.FC<RoutePreviewProps> = ({ route, title }) => {
         zoomable={false}
         disableDoubleClick={true}
         disableDoubleClickZoom={true}
+        onCreate={setMap}
       >
-        <Polyline
-          path={[route.map(p => ({ lat: p.lat, lng: p.lng }))]}
-          strokeWeight={4}
-          strokeColor="#1344FF"
-          strokeOpacity={0.8}
-          strokeStyle="solid"
-        />
+        {route.slice(0, -1).map((pos, idx) => (
+          <Polyline
+            key={`polyline-${idx}`}
+            path={[
+              { lat: pos.lat, lng: pos.lng },
+              { lat: route[idx + 1].lat, lng: route[idx + 1].lng },
+            ]}
+            strokeWeight={4}
+            strokeColor={'#1344FF'}
+            strokeOpacity={0.5}
+            strokeStyle={'arrow'}
+            endArrow={true}
+          />
+        ))}
         {route.map((p, i) => (
           <CustomOverlayMap
             key={i}
             position={{ lat: p.lat, lng: p.lng }}
           >
-            <div className="flex flex-col items-center">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shadow-lg border-2 border-white ${i === 0 ? 'bg-[#1344FF] text-white' :
-                  i === route.length - 1 ? 'bg-red-500 text-white' :
-                    'bg-white text-[#1344FF]'
-                }`}>
+            {/* 미리보기(320px)라 말풍선 대신 압축된 형태지만, 색/번호 배지는 상세 지도와 동일 */}
+            <div className="flex items-center gap-1 bg-white px-1.5 py-1 rounded-lg shadow-sm border border-gray-100">
+              <div className="w-[18px] h-[18px] shrink-0 border border-main text-main text-[10px] font-semibold rounded-full flex items-center justify-center">
                 {i + 1}
               </div>
-              <div className="mt-1 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm border border-gray-100">
-                <p className="text-[9px] font-bold text-gray-800 whitespace-nowrap">{p.name}</p>
-              </div>
+              <p className="text-[10px] font-semibold text-gray-800 whitespace-nowrap max-w-[90px] truncate">{p.name}</p>
             </div>
           </CustomOverlayMap>
         ))}
