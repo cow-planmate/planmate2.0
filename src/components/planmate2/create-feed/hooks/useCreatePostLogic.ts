@@ -153,10 +153,15 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
             items: placeBlocks
               .filter((pb: any) => (pb.timeTableId ?? pb.timetableId) === timetableId)
               .sort((a: any, b: any) => blockStartTime(a).localeCompare(blockStartTime(b)))
+              // 좌표/카테고리/썸네일도 함께 담아야 여행기 상세의 일정 지도가 그려진다
               .map((pb: any) => ({
                 time: blockStartTime(pb) ? blockStartTime(pb).substring(0, 5) : '00:00',
                 place: pb.placeName,
-                description: pb.placeAddress
+                description: pb.placeAddress,
+                lat: pb.latitude != null ? Number(pb.latitude) : null,
+                lng: pb.longitude != null ? Number(pb.longitude) : null,
+                category: pb.blockCategory ?? null,
+                photoUrl: pb.placeThumbnailUrl ?? null,
               }))
           };
         });
@@ -221,6 +226,10 @@ export const useCreatePostLogic = (onSubmitCallback: () => void) => {
           time: item.time,
           place: item.place,
           description: item.description ?? null,
+          lat: item.lat ?? null,
+          lng: item.lng ?? null,
+          category: item.category ?? null,
+          photoUrl: item.photoUrl ?? null,
         })),
       }));
 

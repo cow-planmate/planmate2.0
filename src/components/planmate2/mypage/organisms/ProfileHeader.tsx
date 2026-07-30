@@ -1,4 +1,4 @@
-import { Award, Camera, MessageSquare, Settings, User, UserPlus } from 'lucide-react';
+import { Award, Camera, Globe, Lock, MessageSquare, Settings, User, UserPlus } from 'lucide-react';
 import React from 'react';
 // @ts-ignore
 
@@ -12,6 +12,10 @@ interface ProfileHeaderProps {
   myPlansCount: number;
   editablePlansCount: number;
   isOtherUser?: boolean;
+  /** 내 프로필 공개 여부 (본인 프로필에서만 의미 있음) */
+  isProfilePublic?: boolean;
+  isSavingVisibility?: boolean;
+  onToggleVisibility?: (nextPublic: boolean) => void;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -24,6 +28,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   myPlansCount,
   editablePlansCount,
   isOtherUser = false,
+  isProfilePublic = true,
+  isSavingVisibility = false,
+  onToggleVisibility,
 }) => {
   const age = dummyUser.birthdate
     ? Math.max(
@@ -97,6 +104,38 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </button>
             </div>
 
+            {/* 프로필 공개 범위 — 본인만 변경할 수 있다 */}
+            {!isOtherUser && onToggleVisibility && (
+              <button
+                onClick={() => onToggleVisibility(!isProfilePublic)}
+                disabled={isSavingVisibility}
+                title={
+                  isProfilePublic
+                    ? '다른 사용자가 내 프로필을 볼 수 있습니다. 클릭하면 비공개로 바뀝니다.'
+                    : '다른 사용자가 내 프로필을 볼 수 없습니다. 클릭하면 공개로 바뀝니다.'
+                }
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isProfilePublic
+                    ? 'bg-blue-50 text-[#1344FF] border-[#1344FF]/30 hover:bg-blue-100'
+                    : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
+                }`}
+              >
+                {isProfilePublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                {isProfilePublic ? '공개 프로필' : '비공개 프로필'}
+                <span
+                  className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+                    isProfilePublic ? 'bg-[#1344FF]' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${
+                      isProfilePublic ? 'translate-x-3.5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </span>
+              </button>
+            )}
+
             {isOtherUser && (
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <button 
@@ -117,26 +156,35 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             )}
           </div>
           
-          <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
-            <p className="text-[#666666] font-medium">{dummyUser.email}</p>
-            <span className="text-gray-300">|</span>
-            <span className="px-2 py-0.5 bg-gray-50 text-gray-500 text-xs font-semibold rounded border border-gray-100">
-              {genderLabel} · {age === null ? '연령미설정' : `${age}세`}
-            </span>
-          </div>
+          {/* 이메일·나이·성별은 본인 프로필에서만 보인다. 타인 프로필 응답에는 이 값들이 아예 없다 */}
+          {!isOtherUser && (
+            <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+              <p className="text-[#666666] font-medium">{dummyUser.email}</p>
+              <span className="text-gray-300">|</span>
+              <span className="px-2 py-0.5 bg-gray-50 text-gray-500 text-xs font-semibold rounded border border-gray-100">
+                {genderLabel} · {age === null ? '연령미설정' : `${age}세`}
+              </span>
+            </div>
+          )}
           
-          {/* 레벨 진행바 */}
-          <div className="max-w-xs mx-auto md:mx-0 mb-6">
+          {/* 레벨 진행바 — 활동 통계는 본인만 조회할 수 있어 타인 프로필에서는 감춘다 */}
+          <div className={`max-w-xs mx-auto md:mx-0 mb-6 ${isOtherUser ? 'hidden' : ''}`}>
             <div className="flex justify-between text-xs mb-1.5">
               <span className="text-[#1344FF] font-bold text-xs uppercase tracking-tighter">현재 경험치</span>
-              <span className="text-gray-400 font-medium">{userStats.exp} / {userStats.maxExp} EXP</span>
+              <span className="text-gray-400 font-medium">
+                {userStats.exp} / {userStats.maxExp} 점
+              </span>
             </div>
             <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-[#1344FF] to-[#4B70FF] transition-all duration-1000"
                 style={{ width: `${userStats.progress}%` }}
               />
             </div>
+            <p className="mt-1.5 text-[11px] text-gray-400">
+              여행기·게시글 {userStats.stats?.postCount ?? 0}개 · 댓글 {userStats.stats?.commentCount ?? 0}개
+              {userStats.expToNext > 0 && ` · 다음 레벨까지 ${userStats.expToNext}점`}
+            </p>
           </div>
 
           {/* 취향 태그 */}

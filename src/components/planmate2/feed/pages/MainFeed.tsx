@@ -6,6 +6,8 @@ import useKakaoLoader from '../../../../hooks/useKakaoLoader';
 import { mapFeedPost, reactToPost } from '../../community/api/communityApi';
 import { useFeedPosts, useFeedRegionCounts } from '../../community/hooks/queries';
 import { useMainFeedFilters } from '../hooks/useMainFeedLogic';
+import { useRegionMarkers } from '../hooks/useRegionMarkers';
+import { DEFAULT_MAP_CENTER, getRegionCoords } from '../utils/region';
 import { SearchBar } from '../molecules/SearchBar';
 import { DetailFilterPanel } from '../organisms/DetailFilterPanel';
 import { MainFeedHeader } from '../organisms/MainFeedHeader';
@@ -31,39 +33,42 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
     [data],
   );
   const totalElements = data?.pages[0]?.totalElements ?? 0;
-  const regionCounts = useMemo(
-    () => Object.fromEntries((regionCountList ?? []).map(rc => [rc.region, rc.count])),
-    [regionCountList],
-  );
+  // 게시글이 있는 모든 여행지를 지도에 표시 (좌표 미상 지역은 지오코딩으로 보완)
+  const regionMarkers = useRegionMarkers(regionCountList);
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   // 눌림 표시는 세션 로컬 (목록 요약에는 myReaction이 없음) — 카운트는 서버 값 그대로 표시
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
   const [dislikedPosts, setDislikedPosts] = useState<Set<number>>(new Set());
   const [mapState, setMapState] = useState({
-    center: { lat: 35.95, lng: 128.25 },
+    center: DEFAULT_MAP_CENTER,
     level: 14
   });
 
   const tags = ['#뚜벅이최적화', '#극한의J', '#여유로운P', '#동선낭비없는'];
-  const regions = ['전체', '서울', '부산', '제주도', '강릉', '경주', '전주'];
   const durations = ['전체', '1일', '2-3일', '4일 이상'];
   const sortOptions = ['최신순', '인기순', '좋아요순', '가져가기순'];
 
+  // 필터 지역 목록도 실제 게시글이 있는 지역에서 뽑는다 (선택 중인 지역은 항상 포함)
+  const regions = useMemo(() => {
+    const names = (regionCountList ?? []).filter(rc => rc.count > 0).map(rc => rc.region);
+    const withSelected = filters.selectedRegion !== '전체' && !names.includes(filters.selectedRegion)
+      ? [filters.selectedRegion, ...names]
+      : names;
+    return ['전체', ...withSelected];
+  }, [regionCountList, filters.selectedRegion]);
+
   useEffect(() => {
-    const coords: Record<string, any> = {
-      '서울': { lat: 37.5665, lng: 126.9780 },
-      '부산': { lat: 35.1796, lng: 129.0756 },
-      '제주도': { lat: 33.4996, lng: 126.5312 },
-      '전체': { lat: 35.95, lng: 128.25 }
-    };
-    if (coords[filters.selectedRegion]) {
-      setMapState({
-        center: coords[filters.selectedRegion],
-        level: filters.selectedRegion === '전체' ? 14 : 11
-      });
+    if (filters.selectedRegion === '전체') {
+      setMapState({ center: DEFAULT_MAP_CENTER, level: 14 });
+      return;
     }
-  }, [filters.selectedRegion]);
+    const coords = getRegionCoords(filters.selectedRegion)
+      ?? regionMarkers.find(marker => marker.name === filters.selectedRegion);
+    if (coords) {
+      setMapState({ center: { lat: coords.lat, lng: coords.lng }, level: 11 });
+    }
+  }, [filters.selectedRegion, regionMarkers]);
 
   const react = async (postId: number, type: 'like' | 'dislike') => {
     try {
@@ -266,7 +271,8 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
           onRegionSelect={setters.handleRegionSelect}
           selectedRegion={filters.selectedRegion}
           onNavigate={onNavigate}
-          regionCounts={regionCounts}
+          regionMarkers={regionMarkers}
+          isAuthenticated={isAuthenticated()}
         />
       </div>
     </div>
