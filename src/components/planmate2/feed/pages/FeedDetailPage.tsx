@@ -1,10 +1,16 @@
-import { ArrowLeft, Calendar, Camera, ChevronDown, ChevronUp, Clock, Coffee, Copy, CornerDownRight, Landmark, MapPin, Send, Share2, ShoppingBag, ThumbsDown, ThumbsUp, Trash2, Utensils } from 'lucide-react';
+import { ArrowLeft, Calendar, Camera, ChevronDown, ChevronUp, Clock, Coffee, Copy, CornerDownRight, Landmark, MapPin, Pencil, Send, Share2, ShoppingBag, ThumbsDown, ThumbsUp, Trash2, Utensils } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Map as KakaoMap, MapMarker, Polyline } from 'react-kakao-maps-sdk';
+import { useNavigate } from 'react-router-dom';
+import { useApiClient } from '../../../../hooks/useApiClient';
 import useKakaoLoader from '../../../../hooks/useKakaoLoader';
 import type { CommunityComment, ItineraryDay } from '../../community/api/communityApi';
 import { LevelBadge } from '../../community/atoms/LevelBadge';
-import { useComments, useCreateComment, useDeleteComment, useForkPost, usePost, useReactToPost } from '../../community/hooks/queries';
+import { useComments, useCreateComment, useDeleteComment, useDeletePost, useForkPost, usePost, useReactToPost } from '../../community/hooks/queries';
+import { PostContentViewer } from '../../community/organisms/PostContentViewer';
+import { ForkDateModal } from '../organisms/ForkDateModal';
+import { ForkResultModal } from '../organisms/ForkResultModal';
+import { buildCreatePlanRequest, canForkItinerary } from '../utils/itineraryToPlan';
 
 interface PostDetailProps {
   postId: number | string;
@@ -23,6 +29,13 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
   const [selectedDay, setSelectedDay] = useState(1);
   const [isScheduleOpen, setIsScheduleOpen] = useState(true);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [isForkDateOpen, setIsForkDateOpen] = useState(false);
+  const [isCreatingPlan, setIsCreatingPlan] = useState(false);
+  const [forkResult, setForkResult] = useState<{ planId: string; adjustedBlocks: number } | null>(null);
+
+  const navigate = useNavigate();
+  const { apiRequest } = useApiClient();
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   const { data: post, isLoading, isError } = usePost(postId);
   const { data: commentsPage } = useComments(postId);
@@ -30,9 +43,11 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
   const deleteComment = useDeleteComment(postId);
   const reactMutation = useReactToPost(postId);
   const forkMutation = useForkPost(postId);
+  const deletePostMutation = useDeletePost();
 
   const myUserId = localStorage.getItem('userId');
   const isLoggedIn = !!localStorage.getItem('accessToken');
+  const isAuthor = !!post && myUserId === post.userId;
 
   // 평면 목록(parentId 포함)을 부모-대댓글로 그룹핑. 부모가 현재 페이지에 없으면 최상위로 노출
   const { topLevelComments, repliesByParent } = useMemo(() => {
@@ -55,6 +70,15 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
   const itineraryDays: ItineraryDay[] = post?.itinerary?.days ?? [];
   const currentSchedule = itineraryDays.find(d => d.day === selectedDay) ?? itineraryDays[0];
 
+  // 지도에 찍을 좌표(선택된 일차 기준) — 마커/경로선 공통으로 사용
+  const dayPositions = useMemo(
+    () =>
+      (currentSchedule?.items ?? [])
+        .filter(item => item.lat && item.lng)
+        .map(item => ({ lat: item.lat!, lng: item.lng! })),
+    [currentSchedule]
+  );
+
   const isLiked = post?.myReaction === 'like';
   const isDisliked = post?.myReaction === 'dislike';
 
@@ -75,13 +99,51 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
     }
   };
 
-  const handleFork = async () => {
+  const isForkable = canForkItinerary(post?.itinerary);
+
+  const handleFork = () => {
     if (!requireLogin()) return;
+    if (!isForkable) return;
+    setIsForkDateOpen(true);
+  };
+
+  /**
+   * 가져가기 = 실제 복제.
+   * 스냅샷으로 Backend-v2에 새 플랜을 만든 뒤에야 Community에 포크를 기록한다
+   * (복제가 실패했는데 가져간 것으로 집계되면 안 되므로 순서가 중요하다).
+   */
+  const handleForkConfirm = async (startDate: Date) => {
+    if (!post?.itinerary) return;
+    setIsCreatingPlan(true);
     try {
+      const { body, adjustedBlocks } = buildCreatePlanRequest(post.itinerary, startDate);
+      const created = await apiRequest(`${BASE_URL}/api/plan/full`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      const planId = created?.planId;
+      if (!planId) throw new Error('플랜 생성 응답에 planId가 없습니다.');
+
+      // 플랜 이름은 목적지명으로 생성되므로 여행기 제목으로 바꿔 목록에서 찾기 쉽게 한다.
+      // 실패해도 복제 자체는 성공이므로 막지 않는다.
+      try {
+        await apiRequest(`${BASE_URL}/api/plan/${planId}/name`, {
+          method: 'PATCH',
+          // 플랜 이름은 100자 제한, 여행기 제목은 255자까지 가능
+          body: JSON.stringify({ planName: post.title.slice(0, 100) }),
+        });
+      } catch {
+        /* 이름 변경 실패는 무시 */
+      }
+
       await forkMutation.mutateAsync();
-      alert('일정을 가져왔습니다! 나만의 일정으로 활용해보세요.');
+
+      setIsForkDateOpen(false);
+      setForkResult({ planId, adjustedBlocks });
     } catch (error) {
-      alert((error as Error).message);
+      alert(`일정을 가져오지 못했습니다: ${(error as Error).message}`);
+    } finally {
+      setIsCreatingPlan(false);
     }
   };
 
@@ -91,6 +153,17 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       alert('링크가 클립보드에 복사되었습니다!');
     } catch {
       alert('링크 복사에 실패했습니다.');
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!post || !confirm('여행기를 삭제할까요? 삭제하면 되돌릴 수 없습니다.')) return;
+    try {
+      await deletePostMutation.mutateAsync(post.id);
+      alert('여행기가 삭제되었습니다.');
+      onNavigate('feed');
+    } catch (error) {
+      alert(`여행기 삭제에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -186,6 +259,9 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
 
   const tags = post.tags ?? [];
   const description = post.contentText || '';
+  // 본문은 BlockNote 블록으로 저장된다 — contentText만 쓰면 본문에 넣은 사진이 사라진다
+  const contentBlocks = Array.isArray(post.content) ? (post.content as any[]) : null;
+  const hasContent = !!contentBlocks?.length || !!description;
   const destination = post.location || post.region || '전국';
   const duration = post.durationDays
     ? (post.durationDays === 1 ? '1일' : `${post.durationDays - 1}박 ${post.durationDays}일`)
@@ -220,6 +296,25 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
         >
           <ArrowLeft className="w-6 h-6 text-[#1a1a1a]" />
         </button>
+
+        {/* 작성자 전용 수정/삭제 */}
+        {isAuthor && (
+          <div className="absolute top-6 right-6 flex items-center gap-2 z-20">
+            <button
+              onClick={() => onNavigate('feed-edit', { post })}
+              className="flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-4 py-2.5 rounded-full hover:bg-white transition-all shadow-lg text-sm font-bold text-[#1a1a1a]"
+            >
+              <Pencil className="w-4 h-4" />수정
+            </button>
+            <button
+              onClick={handleDeletePost}
+              disabled={deletePostMutation.isPending}
+              className="flex items-center gap-1.5 bg-white/90 backdrop-blur-sm px-4 py-2.5 rounded-full hover:bg-white transition-all shadow-lg text-sm font-bold text-red-500 disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />삭제
+            </button>
+          </div>
+        )}
 
         {/* 제목 & 기본 정보 */}
         <div className="absolute bottom-0 left-0 right-0 p-6 pb-8">
@@ -288,11 +383,11 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
             </div>
 
             {/* 여행기 본문 */}
-            {description && (
+            {hasContent && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-5">
                 <h2 className="text-lg font-bold text-[#1a1a1a] mb-4 border-b border-gray-100 pb-3">여행기</h2>
-                <div className="prose max-w-none text-[#4a4a4a] leading-relaxed text-base whitespace-pre-wrap">
-                  {description}
+                <div className="prose max-w-none text-[#4a4a4a] leading-relaxed text-base">
+                  <PostContentViewer content={contentBlocks} contentText={description} />
                 </div>
               </div>
             )}
@@ -338,46 +433,44 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                     </div>
 
                     {/* 지도 — 좌표가 있는 항목이 있을 때만 */}
-                    {(currentSchedule.items ?? []).some(item => item.lat && item.lng) && (
+                    {dayPositions.length > 0 && (
                       <div className="mb-6 h-[300px] w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner relative group">
                         <KakaoMap
-                          center={{
-                            lat: currentSchedule.items.find(i => i.lat)?.lat ?? 37.5665,
-                            lng: currentSchedule.items.find(i => i.lng)?.lng ?? 126.9780,
-                          }}
+                          center={dayPositions[0]}
                           level={5}
                           style={{ width: '100%', height: '100%' }}
                           onCreate={setMap}
                         >
-                          {(currentSchedule.items ?? []).map((item, idx) => {
-                            if (!item.lat || !item.lng) return null;
-
-                            return (
+                          {(currentSchedule.items ?? [])
+                            .filter(item => item.lat && item.lng)
+                            .map((item, idx) => (
                               <MapMarker
                                 key={idx}
-                                position={{ lat: item.lat, lng: item.lng }}
-                                image={{
-                                  src: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
-                                  size: { width: 24, height: 35 }
-                                }}
+                                position={{ lat: item.lat!, lng: item.lng! }}
                               >
-                                <div className="p-1 px-2 text-[10px] font-bold text-[#1344FF] bg-white rounded border border-[#1344FF] -mt-10">
-                                  {idx + 1}. {item.place}
+                                <div className="p-2 w-[159px]">
+                                  <p className="text-sm font-semibold truncate">{item.place}</p>
+                                  <div className="flex items-center space-x-1">
+                                    <div className="text-xs w-[22px] h-[22px] border border-main text-main font-semibold rounded-full flex items-center justify-center shrink-0">
+                                      {idx + 1}
+                                    </div>
+                                  </div>
                                 </div>
                               </MapMarker>
-                            );
-                          })}
+                            ))}
 
-                          <Polyline
-                            path={(currentSchedule.items ?? [])
-                              .filter(item => item.lat && item.lng)
-                              .map(item => ({ lat: item.lat!, lng: item.lng! }))
-                            }
-                            strokeWeight={3}
-                            strokeColor="#1344FF"
-                            strokeOpacity={0.6}
-                            strokeStyle="shortdashdot"
-                          />
+                          {dayPositions.length > 1 &&
+                            dayPositions.slice(0, -1).map((pos, idx) => (
+                              <Polyline
+                                key={`polyline-${idx}`}
+                                path={[pos, dayPositions[idx + 1]]}
+                                strokeWeight={4}
+                                strokeColor={'#1344FF'}
+                                strokeOpacity={0.5}
+                                strokeStyle={'arrow'}
+                                endArrow={true}
+                              />
+                            ))}
                         </KakaoMap>
 
                         <div className="absolute bottom-2 right-2 z-10 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-[9px] font-bold text-gray-500 shadow-sm border border-gray-100 uppercase tracking-tighter">
@@ -596,20 +689,33 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
           <div className="space-y-4">
             {/* 액션 버튼 */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-24">
+              {/* 가져가기는 몇 번이든 가능하다 — 누를 때마다 내 여행에 새 플랜이 생긴다 */}
               <button
                 onClick={handleFork}
-                disabled={post.myFork || forkMutation.isPending}
-                className={`w-full py-3 rounded-lg transition-all shadow-sm font-bold text-sm mb-3 flex items-center justify-center gap-2 ${post.myFork
+                disabled={!isForkable || isCreatingPlan || forkMutation.isPending}
+                className={`w-full py-3 rounded-lg transition-all shadow-sm font-bold text-sm flex items-center justify-center gap-2 ${!isForkable
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-[#1344FF] text-white hover:bg-[#0d34cc]'
+                  : 'bg-[#1344FF] text-white hover:bg-[#0d34cc] disabled:opacity-60'
                   }`}
               >
                 <Copy className="w-4 h-4" />
-                {post.myFork ? '가져간 일정' : '이 일정 가져가기'}
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${post.myFork ? 'bg-gray-200' : 'bg-white/20'}`}>
+                이 일정 가져가기
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${!isForkable ? 'bg-gray-200' : 'bg-white/20'}`}>
                   {post.forks ?? 0}
                 </span>
               </button>
+
+              {!isForkable ? (
+                <p className="mt-2 mb-3 text-xs text-gray-400 text-center leading-relaxed">
+                  이 여행기에는 가져갈 수 있는 일정 정보가 없어요
+                </p>
+              ) : post.myFork ? (
+                <p className="mt-2 mb-3 text-xs text-gray-400 text-center">
+                  이전에 가져간 일정이에요
+                </p>
+              ) : (
+                <div className="mb-3" />
+              )}
 
               <div className="flex gap-2 mb-4">
                 <button
@@ -670,6 +776,23 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
           </div>
         </div>
       </div>
+
+      <ForkDateModal
+        isOpen={isForkDateOpen}
+        onClose={() => setIsForkDateOpen(false)}
+        dayCount={itineraryDays.length}
+        isSubmitting={isCreatingPlan || forkMutation.isPending}
+        onConfirm={handleForkConfirm}
+      />
+
+      <ForkResultModal
+        isOpen={forkResult != null}
+        onClose={() => setForkResult(null)}
+        planName={post.title}
+        adjustedBlocks={forkResult?.adjustedBlocks ?? 0}
+        onEdit={() => navigate(`/complete?id=${forkResult?.planId}`)}
+        onGoToMyTrips={() => navigate('/mypage')}
+      />
     </div>
   );
 }

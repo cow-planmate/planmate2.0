@@ -29,6 +29,7 @@ export default function PlanmateV2() {
       if (path.split('/').length > 3) return 'detail'; // /community/category/id
       return 'board-list';
     }
+    if (path.startsWith('/travel/edit/')) return 'feed-edit';
     if (path.startsWith('/travel')) return 'detail';
     if (path === '/plan-maker') return 'plan-maker';
     if (path === '/create-post') return 'create';
@@ -41,7 +42,7 @@ export default function PlanmateV2() {
     return 'free';
   };
 
-  const [currentView, setCurrentView] = useState<'feed' | 'detail' | 'create' | 'mypage' | 'board-list' | 'plan-maker' | 'community-create' | 'community-edit' | 'recommend-detail' | 'social'>(getInitialView() as any);
+  const [currentView, setCurrentView] = useState<'feed' | 'detail' | 'create' | 'feed-edit' | 'mypage' | 'board-list' | 'plan-maker' | 'community-create' | 'community-edit' | 'recommend-detail' | 'social'>(getInitialView() as any);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [boardType, setBoardType] = useState<'free' | 'qna' | 'mate' | 'recommend'>('free');
   const [filterRegion, setFilterRegion] = useState<string>(region ? decodeURIComponent(region) : '전체');
@@ -93,6 +94,8 @@ export default function PlanmateV2() {
         setCurrentView('board-list');
         setBoardType('free');
       }
+    } else if (path.startsWith('/travel/edit/')) {
+      setCurrentView('feed-edit');
     } else if (path.startsWith('/travel')) {
       setCurrentView('detail');
     } else if (path.startsWith('/feed')) {
@@ -108,9 +111,9 @@ export default function PlanmateV2() {
     }
   }, [location.pathname, category, id, region, userId]);
 
-  const handleViewChange = (view: 'feed' | 'detail' | 'create' | 'mypage' | 'board-list' | 'plan-maker' | 'community-create' | 'community-edit' | 'community' | 'social', data?: any) => {
+  const handleViewChange = (view: 'feed' | 'detail' | 'create' | 'feed-edit' | 'mypage' | 'board-list' | 'plan-maker' | 'community-create' | 'community-edit' | 'community' | 'social', data?: any) => {
     // view가 'community'인 경우 바로 'board-list'로 상태를 설정하여 이전 뷰가 보이는 현상 방지
-    const targetView = (view === 'community' ? 'board-list' : view) as 'feed' | 'detail' | 'create' | 'mypage' | 'board-list' | 'plan-maker' | 'community-create' | 'community-edit' | 'social';
+    const targetView = (view === 'community' ? 'board-list' : view) as 'feed' | 'detail' | 'create' | 'feed-edit' | 'mypage' | 'board-list' | 'plan-maker' | 'community-create' | 'community-edit' | 'social';
     setCurrentView(targetView);
     window.scrollTo(0, 0);
     
@@ -135,6 +138,9 @@ export default function PlanmateV2() {
     else if (view === 'community-create') {
       const type = data?.boardType || boardType;
       navigate(`/community/create/${type}`);
+    }
+    else if (view === 'feed-edit' && data?.post) {
+      navigate(`/travel/edit/${data.post.id}`);
     }
     else if (view === 'community-edit' && data?.post) {
       const type = data.post.category || boardType;
@@ -215,6 +221,14 @@ export default function PlanmateV2() {
           <CreatePost 
             onBack={() => handleViewChange('feed')}
             onSubmit={() => handleViewChange('feed')}
+          />
+        )}
+        {/* 여행기 수정 — 작성 화면을 수정 모드로 재사용 */}
+        {currentView === 'feed-edit' && id && (
+          <CreatePost
+            editPostId={id}
+            onBack={() => navigate(`/travel/${id}`)}
+            onSubmit={() => handleViewChange('detail', { post: { id, category: 'feed' } })}
           />
         )}
         {currentView === 'mypage' && (

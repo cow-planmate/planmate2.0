@@ -224,19 +224,33 @@ export default function MapComponent({ schedule }) {
               </div>
             </MapMarker>
           )}
-          {positions.length > 1 && (
-            <Polyline
-              path={
-                routePath.length > 0
-                  ? routePath.map(pos => ({ lat: pos.lat, lng: pos.lng }))
-                  : positions.map(pos => ({ lat: pos.lat, lng: pos.lng }))
-              }
-              strokeWeight={4}
-              strokeColor="#1344FF"
-              strokeOpacity={0.5}
-              strokeStyle={routePath.length > 0 ? "solid" : "dash"}
-            />
-          )}
+          {positions.length > 1 &&
+            (routePath.length > 0 ? (
+              // 도로 경로가 있으면 실제 길을 따라 한 줄로 그린다
+              <Polyline
+                path={routePath.map((pos) => ({ lat: pos.lat, lng: pos.lng }))}
+                strokeWeight={4}
+                strokeColor="#1344FF"
+                strokeOpacity={0.5}
+                strokeStyle="solid"
+              />
+            ) : (
+              // 폴백(직선)은 Complete 페이지와 동일하게 구간별 화살표로 그린다
+              positions.slice(0, -1).map((pos, idx) => (
+                <Polyline
+                  key={`polyline-${idx}`}
+                  path={[
+                    { lat: pos.lat, lng: pos.lng },
+                    { lat: positions[idx + 1].lat, lng: positions[idx + 1].lng },
+                  ]}
+                  strokeWeight={4}
+                  strokeColor={"#1344FF"}
+                  strokeOpacity={0.5}
+                  strokeStyle={"arrow"}
+                  endArrow={true}
+                />
+              ))
+            ))}
           {transitLanes.map((lane, i) => (
             <Polyline
               key={i}
