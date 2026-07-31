@@ -1,6 +1,7 @@
 import { Clock, Copy, Eye, MapPin, MessageCircle, Shield, ThumbsUp } from 'lucide-react';
 import React from 'react';
 import { TravelPost } from '../../../../types/planmate2';
+import { UserAvatar } from '../../common/UserAvatar';
 import { StatItem } from '../atoms/StatItem';
 import { TagBadge } from '../atoms/TagBadge';
 
@@ -66,9 +67,14 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onClick, onNav
             }
           }}
         >
-          <div className="w-5 h-5 bg-blue-50 rounded-full flex items-center justify-center text-[#1344FF] font-bold text-[10px]">
-            {post.author[0]}
-          </div>
+          <UserAvatar
+            name={post.author}
+            imageUrl={post.authorImage}
+            avatarHash={post.authorAvatarHash}
+            sizeClass="w-5 h-5"
+            className="text-[10px]"
+            fallbackClassName="bg-blue-50 text-[#1344FF]"
+          />
           <span className="text-[11px] text-gray-600 font-bold">{post.author}</span>
         </div>
 

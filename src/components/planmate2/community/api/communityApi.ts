@@ -62,6 +62,10 @@ export interface CommunityPostSummary {
   category: 'free' | 'qna' | 'mate' | 'recommend' | 'feed';
   title: string;
   author: string;
+  /** 작성자가 올린 프로필 사진 (없으면 생략) */
+  authorImage?: string | null;
+  /** 작성자 이메일 해시 — Gravatar 폴백용 (없으면 생략) */
+  authorAvatarHash?: string | null;
   level: number;
   likes: number;
   dislikes: number;
@@ -104,6 +108,8 @@ export interface CommunityComment {
   parentId?: number | null; // 대댓글이면 부모 댓글 ID
   userId: string;
   author: string;
+  authorImage?: string | null;
+  authorAvatarHash?: string | null;
   level: number;
   content: string;
   // 내 활동 목록에서만 내려온다 (원문 표시 + 원문으로 이동)
@@ -262,7 +268,6 @@ export const mapFeedPost = (post: CommunityPostSummary & { createdAtIso: string 
   forks: post.forks ?? 0,
   image: post.image ?? FEED_FALLBACK_IMAGE,
   description: post.description ?? '',
-  authorImage: undefined as string | undefined, // 레거시 User에 프로필 이미지 없음 → 카드에서 이니셜 폴백
 });
 
 export type FeedCardPost = ReturnType<typeof mapFeedPost>;

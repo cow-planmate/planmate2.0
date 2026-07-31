@@ -1,5 +1,6 @@
 import { Clock, Eye, MessageCircle, ThumbsUp } from 'lucide-react';
 import React from 'react';
+import { UserAvatar } from '../../common/UserAvatar';
 
 interface CompactPostCardProps {
     post: any;
@@ -35,7 +36,16 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({
                 </p>
 
                 <div className="flex items-center gap-3 text-[12px] text-gray-400 mt-1">
-                    <span className="font-bold text-gray-700">{post.author}</span>
+                    <div className="flex items-center gap-1.5">
+                        <UserAvatar
+                            name={post.author}
+                            imageUrl={post.authorImage}
+                            avatarHash={post.authorAvatarHash}
+                            sizeClass="w-5 h-5"
+                            className="text-[10px]"
+                        />
+                        <span className="font-bold text-gray-700">{post.author}</span>
+                    </div>
                     <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold">LV.{post.level ?? 1}</span>
                     <span>•</span>
                     <span>{post.createdAt || '방금 전'}</span>

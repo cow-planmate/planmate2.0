@@ -10,6 +10,7 @@ import { useComments, useCreateComment, useDeleteComment, useDeletePost, useFork
 import { PostContentViewer } from '../../community/organisms/PostContentViewer';
 import { ForkDateModal } from '../organisms/ForkDateModal';
 import { ForkResultModal } from '../organisms/ForkResultModal';
+import { UserAvatar } from '../../common/UserAvatar';
 import { buildCreatePlanRequest, canForkItinerary } from '../utils/itineraryToPlan';
 
 interface PostDetailProps {
@@ -269,13 +270,19 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
   const totalPlaces = itineraryDays.reduce((acc, d) => acc + (d.items?.length ?? 0), 0);
   const commentCount = commentsPage?.totalElements ?? 0;
 
-  const renderAvatar = (name: string, sizeClass: string, onClick?: () => void) => (
-    <div
+  // 작성자 아이콘 — 프로필 사진 → Gravatar → 이니셜 순
+  const renderAvatar = (
+    author: { author: string; authorImage?: string | null; authorAvatarHash?: string | null },
+    sizeClass: string,
+    onClick?: () => void,
+  ) => (
+    <UserAvatar
+      name={author.author}
+      imageUrl={author.authorImage}
+      avatarHash={author.authorAvatarHash}
+      sizeClass={sizeClass}
       onClick={onClick}
-      className={`${sizeClass} rounded-full bg-[#1344FF] text-white flex items-center justify-center font-bold shrink-0 ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
-    >
-      {(name || '?').charAt(0)}
-    </div>
+    />
   );
 
   return (
@@ -336,7 +343,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
               className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => onNavigate('mypage', { userId: post.userId })}
             >
-              {renderAvatar(post.author, 'w-10 h-10 border-2 border-white shadow-sm text-sm')}
+              {renderAvatar(post, 'w-10 h-10 border-2 border-white shadow-sm text-sm')}
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-white text-sm font-bold drop-shadow-sm">{post.author}</p>
@@ -578,7 +585,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                   <div key={c.id} className="group">
                     {/* 상위 댓글 */}
                     <div className="flex gap-2.5">
-                      {renderAvatar(c.author, 'w-8 h-8 text-xs', () => onNavigate('mypage', { userId: c.userId }))}
+                      {renderAvatar(c, 'w-8 h-8 text-xs', () => onNavigate('mypage', { userId: c.userId }))}
                       <div className="flex-1">
                         <div className="bg-[#f8f9fa] rounded-xl p-3">
                           <div className="flex items-center justify-between mb-1">
@@ -648,7 +655,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                       <div className="ml-10 mt-3 space-y-3 border-l-2 border-gray-100 pl-3">
                         {repliesByParent.get(c.id)!.map((reply) => (
                           <div key={reply.id} className="flex gap-2">
-                            {renderAvatar(reply.author, 'w-7 h-7 text-[10px]', () => onNavigate('mypage', { userId: reply.userId }))}
+                            {renderAvatar(reply, 'w-7 h-7 text-[10px]', () => onNavigate('mypage', { userId: reply.userId }))}
                             <div className="flex-1">
                               <div className="bg-[#f8f9fa] rounded-xl p-2.5">
                                 <div className="flex items-center justify-between mb-0.5">

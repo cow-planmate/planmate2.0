@@ -1,4 +1,5 @@
 import { Eye, Star, ThumbsUp } from 'lucide-react';
+import { UserAvatar } from '../../common/UserAvatar';
 
 interface HotPostCardProps {
   post: any;
@@ -65,9 +66,14 @@ export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostC
                 onNavigate('mypage', { userId: post.userId });
               }}
             >
-              <div className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-500">
-                {post.author?.[0] || 'U'}
-              </div>
+              <UserAvatar
+                name={post.author}
+                imageUrl={post.authorImage}
+                avatarHash={post.authorAvatarHash}
+                sizeClass="w-5 h-5"
+                className="text-[10px]"
+                fallbackClassName="bg-gray-100 text-gray-500"
+              />
               <span className="text-[11px] font-bold text-gray-600">{post.author}</span>
             </div>
             <div className="flex items-center gap-2">

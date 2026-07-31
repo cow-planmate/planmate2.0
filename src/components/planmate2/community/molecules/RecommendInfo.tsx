@@ -1,14 +1,17 @@
 import { Bookmark, Share2 } from 'lucide-react';
+import { UserAvatar } from '../../common/UserAvatar';
 
 interface RecommendInfoProps {
   author: string;
+  authorImage?: string | null;
+  authorAvatarHash?: string | null;
   userId?: string;
   createdAt: string;
   views: number;
   onNavigate?: (view: any, data?: any) => void;
 }
 
-export const RecommendInfo = ({ author, userId, createdAt, views, onNavigate }: RecommendInfoProps) => {
+export const RecommendInfo = ({ author, authorImage, authorAvatarHash, userId, createdAt, views, onNavigate }: RecommendInfoProps) => {
   return (
     <div className="p-8 border-b border-gray-50">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -16,9 +19,15 @@ export const RecommendInfo = ({ author, userId, createdAt, views, onNavigate }: 
           className="flex items-center gap-3 cursor-pointer hover:opacity-70 transition-opacity"
           onClick={() => onNavigate && userId && onNavigate('mypage', { userId })}
         >
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-[#1344FF] text-xl font-bold">
-            {author[0]}
-          </div>
+          <UserAvatar
+            name={author}
+            imageUrl={authorImage}
+            avatarHash={authorAvatarHash}
+            sizeClass="w-12 h-12"
+            className="text-xl"
+            shapeClass="rounded-2xl"
+            fallbackClassName="bg-blue-50 text-[#1344FF]"
+          />
           <div>
             <p className="font-bold text-gray-900">{author}</p>
             <div className="flex items-center gap-2 text-xs text-gray-400">

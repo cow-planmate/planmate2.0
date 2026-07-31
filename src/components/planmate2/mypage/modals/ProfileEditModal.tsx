@@ -13,6 +13,9 @@ interface ProfileEditModalProps {
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveImage?: () => void;
   isUploadingImage?: boolean;
+  /** 저장 전 미리보기까지 반영한 아바타 이미지 (없으면 저장된 프로필 사진) */
+  profileEditImage?: string | null;
+  canRemoveProfileImage?: boolean;
   newNickname: string;
   setNewNickname: (val: string) => void;
   nicknameValid: boolean | null;
@@ -36,6 +39,8 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   handleImageUpload,
   onRemoveImage,
   isUploadingImage = false,
+  profileEditImage,
+  canRemoveProfileImage,
   newNickname,
   setNewNickname,
   nicknameValid,
@@ -51,6 +56,13 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   handleNicknameUpdate,
   isNicknameVerified,
 }) => {
+  const avatarImage =
+    profileEditImage !== undefined ? profileEditImage : dummyUser.profileLogo;
+  const showRemoveButton =
+    canRemoveProfileImage !== undefined
+      ? canRemoveProfileImage
+      : Boolean(dummyUser.profileLogo);
+
   return (
     <ModalFrame 
       isOpen={isOpen} 
@@ -61,9 +73,9 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-20">
         <div className="relative group">
           <div className="w-32 h-32 rounded-full border-[6px] border-white overflow-hidden bg-gray-100 shadow-xl transition-transform hover:scale-105 flex items-center justify-center">
-            {dummyUser.profileLogo ? (
+            {avatarImage ? (
               <img
-                src={dummyUser.profileLogo}
+                src={avatarImage}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
@@ -91,7 +103,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               onChange={handleImageUpload}
             />
           </label>
-          {dummyUser.profileLogo && onRemoveImage && (
+          {showRemoveButton && onRemoveImage && (
             <button
               onClick={onRemoveImage}
               disabled={isUploadingImage}
@@ -198,9 +210,12 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         fullWidth
         className="mt-6"
         onClick={handleNicknameUpdate}
-        disabled={newNickname !== dummyUser.nickName && !isNicknameVerified}
+        disabled={
+          isUploadingImage ||
+          (newNickname !== dummyUser.nickName && !isNicknameVerified)
+        }
       >
-        변경사항 저장하기
+        {isUploadingImage ? '저장 중...' : '변경사항 저장하기'}
       </Button>
 
       <div className="mt-8 pt-6 border-t border-gray-100 flex justify-center">
