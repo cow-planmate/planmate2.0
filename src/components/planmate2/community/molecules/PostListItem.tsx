@@ -1,4 +1,5 @@
 import { Eye, MapPin, MessageCircle, Star, ThumbsUp, Users } from 'lucide-react';
+import { UserAvatar } from '../../common/UserAvatar';
 import { LevelBadge } from '../atoms/LevelBadge';
 
 interface PostListItemProps {
@@ -56,6 +57,17 @@ export const PostListItem = ({ post, type, onClick, onNavigate }: PostListItemPr
         
         <div className="flex items-center justify-between text-[11px] text-[#666666]">
           <div className="flex items-center gap-2">
+            <UserAvatar
+              name={post.author}
+              imageUrl={post.authorImage}
+              avatarHash={post.authorAvatarHash}
+              sizeClass="w-5 h-5"
+              className="text-[10px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigate('mypage', { userId: post.userId });
+              }}
+            />
             <button 
               className="font-medium text-[#1a1a1a] hover:text-[#1344FF] hover:underline transition-colors"
               onClick={(e) => {

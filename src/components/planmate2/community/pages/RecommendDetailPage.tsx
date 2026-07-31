@@ -91,6 +91,8 @@ export const RecommendDetailPage = ({ post: initialPost, postId, onBack, onNavig
 
         <RecommendInfo
           author={post.author}
+          authorImage={post.authorImage}
+          authorAvatarHash={post.authorAvatarHash}
           userId={post.userId}
           createdAt={post.createdAt}
           views={post.views}

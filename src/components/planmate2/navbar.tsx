@@ -45,7 +45,9 @@ export default function Navbar({
 
   // 인증 관련 상태
   const { get, post, isAuthenticated, logout } = useApiClient();
-  const { gravatar, nickname } = useNicknameStore();
+  const { gravatar, nickname, profileImage } = useNicknameStore();
+  // 프로필 사진을 올렸으면 그것을, 아니면 이메일 기반 gravatar를 쓴다
+  const avatarUrl = profileImage || gravatar;
 
   // 환경변수 중복 사용 방지를 위한 변수화
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -203,11 +205,11 @@ export default function Navbar({
                       : "hover:bg-gray-50"
                   }`}
                 >
-                  {gravatar ? (
+                  {avatarUrl ? (
                     <img
-                      src={gravatar}
+                      src={avatarUrl}
                       alt="Profile"
-                      className="w-8 h-8 rounded-full border border-gray-100 shadow-sm"
+                      className="w-8 h-8 rounded-full border border-gray-100 shadow-sm object-cover"
                     />
                   ) : (
                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
@@ -462,11 +464,11 @@ export default function Navbar({
                       : "text-[#666666] hover:bg-[#f0f4ff] hover:text-[#1344FF]"
                   }`}
                 >
-                  {gravatar ? (
+                  {avatarUrl ? (
                     <img
-                      src={gravatar}
+                      src={avatarUrl}
                       alt="Profile"
-                      className="w-8 h-8 rounded-full"
+                      className="w-8 h-8 rounded-full object-cover"
                     />
                   ) : (
                     <User className="w-5 h-5" />

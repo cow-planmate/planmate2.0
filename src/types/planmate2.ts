@@ -3,6 +3,10 @@ export interface TravelPost {
   title: string;
   author: string;
   authorAvatar: string;
+  /** 작성자가 올린 프로필 사진 (커뮤니티 API 응답) */
+  authorImage?: string | null;
+  /** 작성자 이메일 해시 — Gravatar 폴백용 (커뮤니티 API 응답) */
+  authorAvatarHash?: string | null;
   location: string;
   duration: string;
   coverImage: string;

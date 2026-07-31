@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Lock } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -344,6 +345,32 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  // 프로필 사진은 '변경사항 저장하기'를 눌러야 서버에 반영된다.
+  // 그전까지는 고른 파일과 삭제 여부만 들고 있다가 저장 시점에 한 번에 처리한다.
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(
+    null,
+  );
+  const [pendingImageRemoved, setPendingImageRemoved] = useState(false);
+
+  // 미리보기용 objectURL은 교체·해제 시점에 반드시 반환한다
+  useEffect(
+    () => () => {
+      if (pendingImagePreview) URL.revokeObjectURL(pendingImagePreview);
+    },
+    [pendingImagePreview],
+  );
+
+  // 커뮤니티·피드 목록은 작성자 아이콘(authorImage)을 응답에 담아 캐싱한다.
+  // 프로필을 바꾸면 서버 캐시는 즉시 무효화되지만 이미 받아둔 react-query 캐시는
+  // 그대로라, 여기서 같이 버려야 커뮤니티 화면의 내 아이콘이 바로 갱신된다.
+  const queryClient = useQueryClient();
+
+  const resetPendingImage = () => {
+    setPendingImageFile(null);
+    setPendingImagePreview(null);
+    setPendingImageRemoved(false);
+  };
 
   useEffect(() => {
     if (newNickname === userProfile?.nickname) {
@@ -361,6 +388,13 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   const setStoreNickname = useNicknameStore(
     (state: any) => (state as any).setNickname,
   );
+  // 네비바 아이콘도 같은 사진을 쓴다. 타인 프로필을 보고 있을 때는 건드리면 안 된다
+  const setStoreProfileImage = useNicknameStore(
+    (state: any) => (state as any).setProfileImage,
+  );
+  const syncMyProfileImage = (url: string | null) => {
+    if (!isOtherUser) setStoreProfileImage(url);
+  };
 
   // 레벨/경험치 — 서버 통계를 그대로 사용한다.
   // 본인은 /api/community/me/stats, 타인은 공개 목록과 같은 게이트를 쓰는
@@ -376,53 +410,48 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   const handleLogout = () => {
     logout();
     setStoreNickname("");
+    setStoreProfileImage("");
     navigate("/");
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // 같은 파일을 다시 골라도 change 이벤트가 발생하도록 초기화한다
+    e.target.value = "";
     if (!file) return;
 
-    // 업로드가 끝나기 전까지 고른 사진을 즉시 보여준다 (실패하면 되돌린다)
-    const previousImage = profileImage;
-    const preview = URL.createObjectURL(file);
-    setProfileImage(preview);
-    setIsUploadingImage(true);
+    // 서버 반영은 저장 버튼에서. 여기서는 미리보기만 바꾼다
+    setPendingImageFile(file);
+    setPendingImagePreview(URL.createObjectURL(file));
+    setPendingImageRemoved(false);
+  };
 
-    try {
-      const url = await uploadProfileImage(file);
+  const handleImageRemove = () => {
+    // 저장 전이라 되돌리기 쉬우니 확인 없이 삭제 예약만 한다
+    setPendingImageFile(null);
+    setPendingImagePreview(null);
+    setPendingImageRemoved(Boolean(profileImage));
+  };
+
+  // 저장 시점에 예약된 사진 변경/삭제를 실제로 반영한다
+  const submitPendingImage = async () => {
+    if (pendingImageFile) {
+      const url = await uploadProfileImage(pendingImageFile);
       setProfileImage(url);
+      syncMyProfileImage(url);
       setUserProfile((profile) =>
         profile ? { ...profile, profileImageUrl: url } : profile,
       );
-    } catch (err) {
-      setProfileImage(previousImage);
-      alert(`프로필 이미지 변경에 실패했습니다: ${(err as Error).message}`);
-    } finally {
-      URL.revokeObjectURL(preview);
-      setIsUploadingImage(false);
-      // 같은 파일을 다시 골라도 change 이벤트가 발생하도록 초기화한다
-      e.target.value = "";
+      return;
     }
-  };
 
-  const handleImageRemove = async () => {
-    if (!profileImage) return;
-    if (!confirm("프로필 사진을 삭제할까요? 기본 이미지로 돌아갑니다.")) return;
-
-    const previousImage = profileImage;
-    setProfileImage(null);
-    setIsUploadingImage(true);
-    try {
+    if (pendingImageRemoved) {
       await deleteProfileImage();
+      setProfileImage(null);
+      syncMyProfileImage(null);
       setUserProfile((profile) =>
         profile ? { ...profile, profileImageUrl: null } : profile,
       );
-    } catch (err) {
-      setProfileImage(previousImage);
-      alert(`프로필 이미지 삭제에 실패했습니다: ${(err as Error).message}`);
-    } finally {
-      setIsUploadingImage(false);
     }
   };
 
@@ -464,6 +493,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   };
 
   const handleProfileSubmit = async () => {
+    const hasImageChange = Boolean(pendingImageFile) || pendingImageRemoved;
     try {
       const updates = [];
 
@@ -495,17 +525,35 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         if (newNickname !== userProfile?.nickname) {
           setStoreNickname(newNickname);
         }
+      }
+
+      // 사진은 multipart라 별도 엔드포인트다. 텍스트 정보가 모두 저장된 뒤에
+      // 마지막으로 올려야, 중간에 실패했을 때 사진만 바뀌는 상태가 남지 않는다.
+      if (hasImageChange) {
+        setIsUploadingImage(true);
+        await submitPendingImage();
+        resetPendingImage();
+      }
+
+      if (updates.length > 0 || hasImageChange) {
         SuccessToast("프로필 정보가 성공적으로 업데이트되었습니다.");
 
         // 프로필 정보 다시 가져오기
         const profileData = await get(`${BASE_URL}/api/user/profile`);
         setUserProfile(profileData);
+        setProfileImage(profileData.profileImageUrl ?? null);
+        syncMyProfileImage(profileData.profileImageUrl ?? null);
+
+        // 사진·닉네임은 커뮤니티 응답에도 박혀 있으므로 캐시를 통째로 버린다
+        queryClient.invalidateQueries({ queryKey: ["community"] });
       }
 
       setActiveModal(null);
     } catch (err: any) {
       console.error("프로필 업데이트 실패:", err);
       ErrorToast(err.response?.data?.message || "프로필 변경에 실패했습니다.");
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -720,6 +768,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
 
           setUserProfile(profileData as UserProfile);
           setProfileImage(profileData.profileImageUrl ?? null);
+          syncMyProfileImage(profileData.profileImageUrl ?? null);
           setOtherUserPlanCounts(
             isOtherUser
               ? {
@@ -1005,6 +1054,19 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     preferredThemes: userProfile?.preferredThemes,
   };
 
+  // 프로필 수정 모달의 아바타는 저장 전 미리보기를 반영한다 (페이지 헤더는 저장된 사진 그대로)
+  const defaultProfileLogo = userProfile?.email
+    ? gravatarUrl(userProfile.email)
+    : null;
+  const profileEditImage = pendingImagePreview
+    ? pendingImagePreview
+    : pendingImageRemoved
+      ? defaultProfileLogo
+      : dummyUser.profileLogo;
+  const canRemoveProfileImage = Boolean(
+    pendingImageFile || (profileImage && !pendingImageRemoved),
+  );
+
   const userStats = {
     userLevel,
     level: levelName,
@@ -1170,6 +1232,13 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         handleImageUpload={handleImageChange}
         onRemoveImage={handleImageRemove}
         isUploadingImage={isUploadingImage}
+        profileEditImage={profileEditImage}
+        canRemoveProfileImage={canRemoveProfileImage}
+        onCloseProfileEdit={() => {
+          // 저장하지 않고 닫으면 고른 사진은 버린다
+          resetPendingImage();
+          setActiveModal(null);
+        }}
         dummyUser={dummyUser}
         userStats={userStats}
         LEVEL_CONFIG={LEVEL_CONFIG}
