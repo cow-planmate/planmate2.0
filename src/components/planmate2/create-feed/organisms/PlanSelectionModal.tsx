@@ -1,26 +1,104 @@
-import { Calendar, MapPin, Search, X } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Search, X } from 'lucide-react';
 import React from 'react';
+import { SchedulePreview } from './SchedulePreview';
 
 interface PlanSelectionModalProps {
   showPlanModal: boolean;
-  setShowPlanModal: (val: boolean) => void;
+  onClose: () => void;
   planSearch: string;
   setPlanSearch: (val: string) => void;
   loadingPlans: boolean;
   filteredPlans: any[];
-  handlePlanSelect: (plan: any) => void;
+  /** 플랜을 고르면 곧바로 넣지 않고 미리보기를 띄운다 */
+  onPreviewPlan: (plan: any) => void;
+  pendingPlan: any | null;
+  loadingPlanPreview: boolean;
+  onConfirm: () => void;
+  onCancelPreview: () => void;
 }
 
 export const PlanSelectionModal: React.FC<PlanSelectionModalProps> = ({
   showPlanModal,
-  setShowPlanModal,
+  onClose,
   planSearch,
   setPlanSearch,
   loadingPlans,
   filteredPlans,
-  handlePlanSelect,
+  onPreviewPlan,
+  pendingPlan,
+  loadingPlanPreview,
+  onConfirm,
+  onCancelPreview,
 }) => {
   if (!showPlanModal) return null;
+
+  // 확인 단계 — 어떤 일정이 들어가는지 보여주고 나서 넣는다
+  if (pendingPlan) {
+    const placeCount = (pendingPlan.schedule ?? []).reduce(
+      (sum: number, day: any) => sum + (day.items?.length ?? 0), 0,
+    );
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="bg-white rounded-xl max-w-3xl w-full p-6 my-8">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onCancelPreview}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                aria-label="플랜 목록으로"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#666666]" />
+              </button>
+              <h3 className="text-xl font-bold text-[#1a1a1a]">{pendingPlan.planName}</h3>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              <X className="w-6 h-6 text-[#666666]" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4 text-sm text-[#666666] mb-5 pl-1">
+            {pendingPlan.destination && (
+              <span className="flex items-center gap-1">
+                <MapPin className="w-4 h-4" />
+                {pendingPlan.destination}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              {pendingPlan.duration} · {placeCount}개 장소
+            </span>
+          </div>
+
+          <div className="max-h-[55vh] overflow-y-auto pr-2 mb-6">
+            <SchedulePreview schedule={pendingPlan.schedule ?? []} />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onCancelPreview}
+              className="flex-1 py-3 border border-[#e5e7eb] text-[#666666] rounded-xl hover:bg-gray-50 transition-all font-bold"
+            >
+              다른 플랜 고르기
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="flex-[2] py-3 bg-[#1344FF] text-white rounded-xl hover:bg-[#0d34cc] transition-all font-bold shadow-lg shadow-blue-100"
+            >
+              이 일정으로 넣기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -29,7 +107,7 @@ export const PlanSelectionModal: React.FC<PlanSelectionModalProps> = ({
           <h3 className="text-xl font-bold text-[#1a1a1a]">내 플랜 선택</h3>
           <button
             type="button"
-            onClick={() => setShowPlanModal(false)}
+            onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
           >
             <X className="w-6 h-6 text-[#666666]" />
@@ -49,16 +127,18 @@ export const PlanSelectionModal: React.FC<PlanSelectionModalProps> = ({
         </div>
 
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-          {loadingPlans ? (
+          {loadingPlans || loadingPlanPreview ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1344FF] mx-auto mb-4"></div>
-              <p className="text-gray-500">내 플랜을 불러오는 중...</p>
+              <p className="text-gray-500">
+                {loadingPlanPreview ? '일정을 불러오는 중...' : '내 플랜을 불러오는 중...'}
+              </p>
             </div>
           ) : filteredPlans.length > 0 ? (
             filteredPlans.map((plan) => (
               <div
                 key={plan.planId || plan.id}
-                onClick={() => handlePlanSelect(plan)}
+                onClick={() => onPreviewPlan(plan)}
                 className="border border-[#e5e7eb] rounded-xl p-4 hover:border-[#1344FF] hover:bg-blue-50 cursor-pointer transition-all"
               >
                 <div className="flex items-start justify-between mb-3">

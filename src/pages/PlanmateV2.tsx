@@ -46,6 +46,12 @@ export default function PlanmateV2() {
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [boardType, setBoardType] = useState<'free' | 'qna' | 'mate' | 'recommend'>('free');
   const [filterRegion, setFilterRegion] = useState<string>(region ? decodeURIComponent(region) : '전체');
+  // 마이페이지로 전환할 때 currentView는 즉시 바뀌지만 useParams().userId는 navigate가 커밋된
+  // 다음 렌더에야 들어온다. 그 한 프레임 동안 MyPage가 옛 userId로 마운트되어 엉뚱한 프로필이
+  // 잠깐 보이므로, 이동 시점의 대상을 여기 먼저 담아둔다.
+  //   undefined = 대기 중인 이동 없음(useParams가 진실) / null = 내 마이페이지 / string = 상대 id
+  const [pendingUserId, setPendingUserId] = useState<string | null | undefined>(undefined);
+  const activeProfileUserId = pendingUserId !== undefined ? (pendingUserId ?? undefined) : userId;
 
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
@@ -60,6 +66,8 @@ export default function PlanmateV2() {
     
     if (path.startsWith('/mypage')) {
       setCurrentView('mypage');
+      // URL이 커밋됐으므로 useParams().userId가 진실이 된다 — 임시값은 여기서 버린다
+      setPendingUserId(undefined);
     } else if (path === '/social') {
       setCurrentView('social');
     } else if (path.startsWith('/community')) {
@@ -119,6 +127,7 @@ export default function PlanmateV2() {
     
     // URL 업데이트
     if (view === 'mypage') {
+      setPendingUserId(data?.userId ? String(data.userId) : null);
       if (data?.userId) navigate(`/mypage/${data.userId}`);
       else navigate('/mypage');
     }
@@ -232,7 +241,13 @@ export default function PlanmateV2() {
           />
         )}
         {currentView === 'mypage' && (
-          <MyPage onNavigate={handleViewChange} userId={userId} />
+          // key로 사용자마다 새 인스턴스를 만든다 — 내 마이페이지 → 상대 마이페이지처럼
+          // 같은 컴포넌트가 유지되면 이전 사용자의 프로필 state가 남아 그대로 보인다.
+          <MyPage
+            key={activeProfileUserId ?? 'me'}
+            onNavigate={handleViewChange}
+            userId={activeProfileUserId}
+          />
         )}
         {currentView === 'social' && (
           <SocialPage 

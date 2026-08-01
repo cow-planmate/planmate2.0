@@ -258,7 +258,6 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
     );
   }
 
-  const tags = post.tags ?? [];
   const description = post.contentText || '';
   // 본문은 BlockNote 블록으로 저장된다 — contentText만 쓰면 본문에 넣은 사진이 사라진다
   const contentBlocks = Array.isArray(post.content) ? (post.content as any[]) : null;
@@ -272,7 +271,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
 
   // 작성자 아이콘 — 프로필 사진 → Gravatar → 이니셜 순
   const renderAvatar = (
-    author: { author: string; authorImage?: string | null; authorAvatarHash?: string | null },
+    author: { author: string; authorImage?: string | null; authorAvatarHash?: string | null; authorDeleted?: boolean },
     sizeClass: string,
     onClick?: () => void,
   ) => (
@@ -281,9 +280,14 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       imageUrl={author.authorImage}
       avatarHash={author.authorAvatarHash}
       sizeClass={sizeClass}
-      onClick={onClick}
+      fallbackClassName={author.authorDeleted ? 'bg-gray-200 text-gray-500' : undefined}
+      onClick={author.authorDeleted ? undefined : onClick}
     />
   );
+
+  /** 탈퇴한 작성자는 프로필로 보내지 않는다 (프로필 조회가 실패한다) */
+  const goToProfile = (author: { userId: string; authorDeleted?: boolean }) =>
+    author.authorDeleted ? undefined : () => onNavigate('mypage', { userId: author.userId });
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] pb-8">
@@ -326,27 +330,17 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
         {/* 제목 & 기본 정보 */}
         <div className="absolute bottom-0 left-0 right-0 p-6 pb-8">
           <div className="max-w-5xl mx-auto">
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {tags.map((tag: string) => (
-                <span
-                  key={tag}
-                  className="px-2 py-0.5 bg-white/90 backdrop-blur-sm text-[#1344FF] text-[11px] rounded-lg font-bold"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
             <h1 className="text-2xl font-bold text-white mb-2 drop-shadow-md">{post.title}</h1>
 
             {/* 작성자 정보 */}
             <div
-              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => onNavigate('mypage', { userId: post.userId })}
+              className={`inline-flex items-center gap-2 w-fit transition-opacity ${post.authorDeleted ? '' : 'cursor-pointer hover:opacity-80'}`}
+              onClick={goToProfile(post)}
             >
               {renderAvatar(post, 'w-10 h-10 border-2 border-white shadow-sm text-sm')}
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-white text-sm font-bold drop-shadow-sm">{post.author}</p>
+                  <p className={`text-sm font-bold drop-shadow-sm ${post.authorDeleted ? 'text-white/70 italic' : 'text-white'}`}>{post.author}</p>
                   <LevelBadge level={post.level} />
                 </div>
                 <div className="flex items-center gap-2 text-white/80 text-[11px]">
@@ -585,7 +579,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                   <div key={c.id} className="group">
                     {/* 상위 댓글 */}
                     <div className="flex gap-2.5">
-                      {renderAvatar(c, 'w-8 h-8 text-xs', () => onNavigate('mypage', { userId: c.userId }))}
+                      {renderAvatar(c, 'w-8 h-8 text-xs', goToProfile(c))}
                       <div className="flex-1">
                         <div className="bg-[#f8f9fa] rounded-xl p-3">
                           <div className="flex items-center justify-between mb-1">
@@ -655,7 +649,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                       <div className="ml-10 mt-3 space-y-3 border-l-2 border-gray-100 pl-3">
                         {repliesByParent.get(c.id)!.map((reply) => (
                           <div key={reply.id} className="flex gap-2">
-                            {renderAvatar(reply, 'w-7 h-7 text-[10px]', () => onNavigate('mypage', { userId: reply.userId }))}
+                            {renderAvatar(reply, 'w-7 h-7 text-[10px]', goToProfile(reply))}
                             <div className="flex-1">
                               <div className="bg-[#f8f9fa] rounded-xl p-2.5">
                                 <div className="flex items-center justify-between mb-0.5">

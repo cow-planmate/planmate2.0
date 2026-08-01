@@ -13,6 +13,41 @@ import { blocksToText } from '../../community/utils/blocksToText';
 import { fileToDataUrl, resolveContentImages } from '../../community/utils/pendingImages';
 import { normalizeRegion } from '../../feed/utils/region';
 
+/** 플랜 상세를 폼 형태로 변환해 둔 것. 사용자가 확인을 누르면 그대로 state에 커밋된다. */
+interface PendingPlan {
+  planId: string | null;
+  planName: string;
+  destination: string;
+  duration: string;
+  days: number;
+  nights: number;
+  schedule: any[];
+  planSnapshot: ItineraryPlanSnapshot | null;
+}
+
+/**
+ * BlockNote 문서에서 첫 번째 이미지 URL을 찾는다 (children까지 재귀).
+ * 문서 구조는 ImageService#collectImageUrls(서버)가 보는 것과 동일하다.
+ */
+const findFirstImageUrl = (blocks: any[] | undefined): string | undefined => {
+  for (const block of blocks ?? []) {
+    if (block?.type === 'image' && block?.props?.url) return block.props.url;
+    const nested = findFirstImageUrl(block?.children);
+    if (nested) return nested;
+  }
+  return undefined;
+};
+
+/** 일정에서 첫 번째 장소 사진을 찾는다 (일차 → 장소 순서 그대로) */
+const findFirstPlacePhoto = (schedule: any[]): string | undefined => {
+  for (const day of schedule ?? []) {
+    for (const item of day?.items ?? []) {
+      if (item?.photoUrl) return item.photoUrl;
+    }
+  }
+  return undefined;
+};
+
 export const useCreatePostLogic = (
   onSubmitCallback: () => void,
   /** 지정하면 수정 모드로 동작한다 (기존 여행기를 불러와 프리필 후 PATCH) */
@@ -22,13 +57,10 @@ export const useCreatePostLogic = (
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [destination, setDestination] = useState('');
   const [duration, setDuration] = useState('');
   const [nights, setNights] = useState(0);
   const [days, setDays] = useState(1);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [availableTravels, setAvailableTravels] = useState<any[]>([]);
   const [travelCategories, setTravelCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('서울특별시');
@@ -39,6 +71,9 @@ export const useCreatePostLogic = (
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [schedule, setSchedule] = useState<any[]>([]);
   const [sourcePlanId, setSourcePlanId] = useState<string | null>(null);
+  // 플랜을 고르면 곧바로 폼에 넣지 않고 여기 담아 미리보기를 띄운다 (확인 후 커밋)
+  const [pendingPlan, setPendingPlan] = useState<PendingPlan | null>(null);
+  const [loadingPlanPreview, setLoadingPlanPreview] = useState(false);
   // 읽는 사람이 이 일정을 "가져가기"로 복제할 수 있게 하는 플랜 스냅샷 (destinationId 등)
   const [planSnapshot, setPlanSnapshot] = useState<ItineraryPlanSnapshot | null>(null);
   // 블록 메모는 개인 기록일 수 있으므로 기본은 비공개, 켜야 스냅샷에 포함된다
@@ -48,8 +83,6 @@ export const useCreatePostLogic = (
   const { data: existingPost } = usePost(isEditMode ? editPostId : undefined);
   const createPost = useCreatePost();
   const updatePost = useUpdatePost(Number(editPostId));
-
-  const tags = ['#뚜벅이최적화', '#극한의J', '#여유로운P', '#동선낭비없는'];
 
   useEffect(() => {
     const fetchDestinations = async () => {
@@ -108,15 +141,13 @@ export const useCreatePostLogic = (
   });
 
   // 수정 모드: 조회된 여행기를 폼과 에디터에 한 번만 채워 넣는다.
-  // '간단 설명'은 등록 시 본문 맨 앞 블록으로 합쳐지므로 여기서는 비워둔다 (중복 방지).
+  // 대표 이미지는 등록/수정 시 일정·본문에서 다시 뽑으므로 여기서 불러오지 않는다.
   const [isPrefilled, setIsPrefilled] = useState(false);
   useEffect(() => {
     if (!isEditMode || !existingPost || isPrefilled) return;
 
     setTitle(existingPost.title ?? '');
     setDestination(existingPost.location || existingPost.region || '');
-    setCoverImage(existingPost.image ?? null);
-    setSelectedTags(existingPost.tags ?? []);
     setSourcePlanId(existingPost.sourcePlanId ?? null);
     // 수정 시 plan 스냅샷을 다시 담지 않으면 저장과 동시에 가져가기가 불가능해진다
     setPlanSnapshot(existingPost.itinerary?.plan ?? null);
@@ -164,28 +195,25 @@ export const useCreatePostLogic = (
     }
   };
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    );
-  };
-
-  const handlePlanSelect = async (plan: any) => {
+  /**
+   * 1단계 — 플랜 상세를 받아 미리보기로만 담는다. 폼은 아직 건드리지 않는다.
+   * 사용자가 어떤 일정이 들어가는지 보고 결정할 수 있게 하기 위함이다.
+   */
+  const previewPlan = async (plan: any) => {
     if (plan.planId) {
+      setLoadingPlanPreview(true);
       try {
-        setSourcePlanId(plan.planId);
         const details = await apiRequest(`${BASE_URL}/api/plan/${plan.planId}/complete`);
         const { planFrame, timetables, placeBlocks } = details;
-        
+
         // v2: destinationName(평면), 레거시: travelCategoryName + travelName(계층)
         const travelName = planFrame.destinationName ?? planFrame.travelName ?? '';
         const fullDestination = planFrame.travelCategoryName && travelName
           ? (travelName.includes(planFrame.travelCategoryName) ? travelName : `${planFrame.travelCategoryName} ${travelName}`)
           : travelName;
-        setDestination(fullDestination);
 
         // 가져가기가 이 스냅샷만으로 플랜을 새로 만든다 → POST /api/plan/full의 planFrame을 그대로 보존
-        setPlanSnapshot(
+        const snapshot: ItineraryPlanSnapshot | null =
           planFrame.destinationId != null
             ? {
                 destinationId: Number(planFrame.destinationId),
@@ -194,17 +222,11 @@ export const useCreatePostLogic = (
                 adultCount: planFrame.adultCount ?? 0,
                 childCount: planFrame.childCount ?? 0,
               }
-            : null
-        );
+            : null;
 
-        if (timetables && timetables.length > 0) {
-          const d = timetables.length;
-          const n = Math.max(0, d - 1);
-          setDays(d);
-          setNights(n);
-          setDuration(`${n}박 ${d}일`);
-        }
-        
+        const d = timetables && timetables.length > 0 ? timetables.length : days;
+        const n = Math.max(0, d - 1);
+
         // v2 필드명: timeTableId / blockStartTime (레거시: timetableId / startTime)
         const blockStartTime = (pb: any) => pb.blockStartTime ?? pb.startTime ?? '';
         const blockEndTime = (pb: any) => pb.blockEndTime ?? pb.endTime ?? '';
@@ -238,39 +260,59 @@ export const useCreatePostLogic = (
               }))
           };
         });
-        setSchedule(scheduleData);
+
+        setPendingPlan({
+          planId: plan.planId,
+          planName: plan.planName || plan.title || '선택한 플랜',
+          destination: fullDestination,
+          duration: `${n}박 ${d}일`,
+          days: d,
+          nights: n,
+          schedule: scheduleData,
+          planSnapshot: snapshot,
+        });
       } catch (err) {
         console.error('플랜 상세 정보 로드 실패:', err);
+        alert('플랜 상세 정보를 불러오지 못했습니다.');
+      } finally {
+        setLoadingPlanPreview(false);
       }
     } else {
-      setDestination(plan.destination);
-      setDuration(plan.duration);
-      
-      const match = plan.duration.match(/(\d+)박\s*(\d+)일/);
-      if (match) {
-        setNights(parseInt(match[1]));
-        setDays(parseInt(match[2]));
-      }
-      
-      setSchedule(plan.schedule);
+      const match = (plan.duration ?? '').match(/(\d+)박\s*(\d+)일/);
+      setPendingPlan({
+        planId: null,
+        planName: plan.planName || plan.title || '선택한 플랜',
+        destination: plan.destination,
+        duration: plan.duration,
+        days: match ? parseInt(match[2]) : days,
+        nights: match ? parseInt(match[1]) : nights,
+        schedule: plan.schedule ?? [],
+        planSnapshot: null,
+      });
     }
+  };
+
+  /** 2단계 — 미리보기에서 확인을 누르면 그때 폼에 반영한다 */
+  const confirmPlanSelection = () => {
+    if (!pendingPlan) return;
+    setSourcePlanId(pendingPlan.planId);
+    setDestination(pendingPlan.destination);
+    setDuration(pendingPlan.duration);
+    setDays(pendingPlan.days);
+    setNights(pendingPlan.nights);
+    setSchedule(pendingPlan.schedule);
+    setPlanSnapshot(pendingPlan.planSnapshot);
+    setPendingPlan(null);
     setShowPlanModal(false);
   };
+
+  /** 미리보기를 버리고 플랜 목록으로 돌아간다 */
+  const cancelPlanPreview = () => setPendingPlan(null);
 
   const filteredPlans = plans.filter(plan => 
     (plan.planName || plan.title || '').toLowerCase().includes(planSearch.toLowerCase()) ||
     (plan.destination || '').toLowerCase().includes(planSearch.toLowerCase())
   );
-
-  // 커버 이미지가 data URL이면 MinIO에 업로드해 공개 URL로 교체
-  const resolveThumbnailUrl = async (): Promise<string | undefined> => {
-    if (!coverImage) return undefined;
-    if (!coverImage.startsWith('data:')) return coverImage;
-    const blob = await (await fetch(coverImage)).blob();
-    const ext = blob.type.split('/')[1] || 'png';
-    const file = new File([blob], `cover.${ext}`, { type: blob.type });
-    return uploadImage(file);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,22 +323,16 @@ export const useCreatePostLogic = (
 
     const uploadedUrls: string[] = [];
     try {
-      const thumbnailUrl = await resolveThumbnailUrl();
-      // 커버가 data: URL이었다면 이번에 새로 업로드된 것 → 실패 시 정리 대상
-      if (thumbnailUrl && coverImage?.startsWith('data:')) {
-        uploadedUrls.push(thumbnailUrl);
-      }
       // 등록 시점에만 본문의 data: 이미지를 MinIO에 업로드해 URL로 교체한다
       const resolved = await resolveContentImages(editor.document as any[], uploadImage);
       uploadedUrls.push(...resolved.uploadedUrls);
-      // '간단 설명'은 본문 블록 맨 앞에 넣는다. contentText에만 담으면 상세에서 블록을 렌더할 때 사라진다.
-      const blocks = description.trim()
-        ? [
-            { type: 'paragraph', content: [{ type: 'text', text: description.trim(), styles: {} }] },
-            ...resolved.blocks,
-          ]
-        : resolved.blocks;
+      const blocks = resolved.blocks;
       const contentText = blocksToText(blocks).trim();
+
+      // 대표 이미지는 따로 받지 않고 여기서 고른다: 일정의 첫 장소 사진 → 본문 첫 이미지 → 없음.
+      // 본문 이미지는 resolveContentImages를 거친 뒤라야 data: URL이 아닌 공개 URL이므로
+      // 반드시 업로드 이후에 뽑아야 한다. 둘 다 없으면 목록이 기본 이미지로 떨어진다.
+      const thumbnailUrl = findFirstPlacePhoto(schedule) ?? findFirstImageUrl(blocks);
 
       const itineraryDays: ItineraryDay[] = schedule.map((d: any) => ({
         day: d.day,
@@ -335,18 +371,18 @@ export const useCreatePostLogic = (
       };
 
       if (isEditMode) {
-        // 수정에서는 일정·태그를 비울 수 있어야 하므로 항상 명시적으로 보낸다
+        // 수정에서는 일정을 비울 수 있어야 하므로 항상 명시적으로 보낸다.
+        // tags는 생략한다 — 작성 화면에서 태그 입력을 없앴으므로 빈 배열을 보내면
+        // 기존 글에 달려 있던 태그를 지우게 된다 (필드를 빼면 서버가 기존 값을 유지한다).
         await updatePost.mutateAsync({
           ...payload,
           itinerary,
-          tags: selectedTags,
         });
       } else {
         await createPost.mutateAsync({
           ...payload,
           category: 'feed',
           itinerary: itinerary ?? undefined,
-          tags: selectedTags.length > 0 ? selectedTags : undefined,
           sourcePlanId: sourcePlanId ?? undefined,
         });
       }
@@ -354,21 +390,24 @@ export const useCreatePostLogic = (
       alert(isEditMode ? '여행기가 수정되었습니다!' : '여행기가 성공적으로 작성되었습니다!');
       onSubmitCallback();
     } catch (err) {
-      // 저장 실패 시 방금 올린 커버/본문 이미지는 고아가 되므로 정리한다
+      // 저장 실패 시 방금 올린 본문 이미지는 고아가 되므로 정리한다
       uploadedUrls.forEach((url) => deleteImage(url).catch(() => {}));
       alert(`여행기 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(err as Error).message}`);
     }
   };
 
+  /** 모달을 닫을 때 미리보기도 함께 버린다 — 다음에 열었을 때 옛 플랜이 떠 있으면 안 된다 */
+  const closePlanModal = () => {
+    setPendingPlan(null);
+    setShowPlanModal(false);
+  };
+
   return {
     title, setTitle,
-    description, setDescription,
     destination, setDestination,
     duration, setDuration,
     nights, setNights,
     days, setDays,
-    selectedTags, setSelectedTags,
-    coverImage, setCoverImage,
     availableTravels,
     travelCategories,
     selectedCategory, setSelectedCategory,
@@ -381,12 +420,16 @@ export const useCreatePostLogic = (
     includeMemo, setIncludeMemo,
     // plan 스냅샷이 없으면 다른 사용자가 이 일정을 가져갈 수 없다 (작성 화면에서 안내)
     isForkable: planSnapshot?.destinationId != null,
-    tags,
     editor,
     isEditMode,
     isSubmitting: createPost.isPending || updatePost.isPending,
-    toggleTag,
-    handlePlanSelect,
+    // 플랜 선택은 미리보기(previewPlan) → 확인(confirmPlanSelection) 2단계다
+    pendingPlan,
+    loadingPlanPreview,
+    previewPlan,
+    confirmPlanSelection,
+    cancelPlanPreview,
+    closePlanModal,
     filteredPlans,
     handleSubmit
   };

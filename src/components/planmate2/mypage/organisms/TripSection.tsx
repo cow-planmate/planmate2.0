@@ -10,9 +10,15 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { PlanCardActionMenu } from "../molecules/PlanCardActionMenu";
-import type { PlanStatus } from "../../../../utils/planSchedule";
+import { getPlanStatusLabel } from "../../../../utils/planSchedule";
+
+/** 진행 중 + 예정을 하나로 묶었으므로 탭은 PlanStatus가 아닌 2종이다 */
+type TripTab = "upcoming" | "past";
+
+// 카드에 실린 status 라벨은 getPlanStatusLabel이 만든 값이라 이 상수와 항상 같다
+const isOngoing = (trip: any) => trip.status === getPlanStatusLabel("ongoing");
 
 interface TripSectionProps {
   isDeleteMode: boolean;
@@ -62,30 +68,24 @@ export const TripSection: React.FC<TripSectionProps> = ({
   onSharePlan,
   onNavigateToPlanMaker,
 }) => {
-  const [activeTab, setActiveTab] = useState<PlanStatus>("ongoing");
+  // 진행 중과 예정을 한 탭으로 묶는다 — 사용자 입장에서 둘 다 "아직 안 끝난 여행"이고,
+  // 진행 중 여부는 카드의 '진행 중' 배지(trip.status)로 이미 구분된다.
+  const [activeTab, setActiveTab] = useState<TripTab>("upcoming");
 
-  // 진행 중인 여행이 있으면 그걸 먼저 보여주고, 없으면 앞으로의 일정으로 연다.
-  // 데이터가 늦게 도착하므로 첫 로드 시 한 번만 맞춘다.
-  const [didInitTab, setDidInitTab] = useState(false);
-  useEffect(() => {
-    if (didInitTab || allPlans.length === 0) return;
-    setActiveTab(ongoingPlans.length > 0 ? "ongoing" : "upcoming");
-    setDidInitTab(true);
-  }, [didInitTab, allPlans.length, ongoingPlans.length]);
+  // 진행 중인 여행을 항상 위로 (그 안에서는 원래 순서 유지)
+  const scheduledPlans = useMemo(
+    () => [...ongoingPlans, ...upcomingPlans],
+    [ongoingPlans, upcomingPlans],
+  );
 
-  const visiblePlans = useMemo(() => {
-    if (activeTab === "ongoing") return ongoingPlans;
-    if (activeTab === "upcoming") return upcomingPlans;
-    return pastPlans;
-  }, [activeTab, ongoingPlans, upcomingPlans, pastPlans]);
+  const visiblePlans = activeTab === "upcoming" ? scheduledPlans : pastPlans;
 
   const isAllVisibleSelected =
     visiblePlans.length > 0 &&
     visiblePlans.every((plan) => selectedPlanIds.includes(plan.id));
 
-  const TABS: { key: PlanStatus; label: string; count: number }[] = [
-    { key: "ongoing", label: "진행 중인 일정", count: ongoingPlans.length },
-    { key: "upcoming", label: "앞으로의 일정", count: upcomingPlans.length },
+  const TABS: { key: TripTab; label: string; count: number }[] = [
+    { key: "upcoming", label: "예정된 일정", count: scheduledPlans.length },
     { key: "past", label: "지난 일정", count: pastPlans.length },
   ];
 
@@ -166,156 +166,19 @@ export const TripSection: React.FC<TripSectionProps> = ({
       </div>
 
       <div className="space-y-8">
-        {activeTab === "ongoing" && ongoingPlans.length > 0 && (
-          <div className="space-y-4 pb-2">
-            <h4 className="text-lg font-bold text-[#1344FF] flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 animate-pulse" />
-              진행 중인 여행
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {ongoingPlans.map((trip) => (
-                <div
-                  key={trip.id}
-                  onClick={() => !isDeleteMode && onNavigateTrip(trip.id)}
-                  className={`bg-white rounded-xl p-5 border-2 border-[#1344FF]/20 relative overflow-hidden group transition-all shadow-sm ${isDeleteMode ? "cursor-default ring-2 ring-offset-2 " + (selectedPlanIds.includes(trip.id) ? "ring-white" : "ring-transparent") : "cursor-pointer hover:shadow-md hover:-translate-y-1"}`}
-                >
-                  {isDeleteMode && (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePlanSelection(trip.id);
-                      }}
-                      className="absolute top-3 left-3 z-20 cursor-pointer"
-                    >
-                      <div
-                        className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${selectedPlanIds.includes(trip.id) ? "bg-[#1344FF] border-[#1344FF] text-white" : "bg-transparent border-gray-300"}`}
-                      >
-                        {selectedPlanIds.includes(trip.id) && (
-                          <Check className="w-4 h-4" />
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="relative z-10 flex flex-col gap-6">
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`flex h-2.5 w-2.5 rounded-full ${trip.isOwner ? "bg-[#1344FF]" : "bg-orange-500"}`}
-                          />
-                          <span
-                            className={`text-xs font-black tracking-widest ${trip.isOwner ? "text-[#1344FF]" : "text-orange-500"}`}
-                          >
-                            {trip.isOwner ? "나의 일정" : "초대된 일정"}
-                          </span>
-                        </div>
-                        {!isDeleteMode && (
-                          <PlanCardActionMenu
-                            planId={trip.id}
-                            isOwner={trip.isOwner}
-                            onRename={() => onRenamePlan(trip)}
-                            onShare={() => onSharePlan(trip)}
-                            onDelete={() =>
-                              handleDeletePlan(trip.id, trip.isOwner)
-                            }
-                          />
-                        )}
-                      </div>
-
-                      <div className="text-left">
-                        <h4 className="text-xl font-black text-[#1a1a1a] mb-1 tracking-tight truncate">
-                          {trip.title}
-                        </h4>
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <CalendarIcon className="w-4 h-4 flex-shrink-0" />
-                          <p className="text-sm font-bold">{trip.dateStr}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-50/50 rounded-2xl p-4 border border-blue-100/30 flex flex-col">
-                      <div className="flex items-center justify-between mb-3 px-1">
-                        <span className="text-[10px] font-black text-[#1344FF] uppercase tracking-widest opacity-60">
-                          Check List
-                        </span>
-                        <span className="text-[10px] font-bold text-gray-400">
-                          {trip.checklist.filter((i: any) => i.done).length}/
-                          {trip.checklist.length}
-                        </span>
-                      </div>
-                      <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1 custom-scrollbar">
-                        {trip.checklist.map((item: any) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-2.5 group/checkItem"
-                          >
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleChecklist(trip.id, item.id);
-                              }}
-                              className={`w-4 h-4 rounded-md flex-shrink-0 border-2 transition-all flex items-center justify-center cursor-pointer ${item.done ? "bg-[#1344FF] border-[#1344FF]" : "border-gray-200 bg-white hover:border-[#1344FF]/30"}`}
-                            >
-                              {item.done && (
-                                <Check className="w-3 h-3 text-white" />
-                              )}
-                            </div>
-                            <input
-                              type="text"
-                              value={item.text}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) =>
-                                handleUpdateChecklistText(
-                                  trip.id,
-                                  item.id,
-                                  e.target.value,
-                                )
-                              }
-                              className={`flex-1 bg-transparent text-xs font-bold outline-none border-b border-transparent focus:border-[#1344FF]/20 transition-all py-0.5 ${item.done ? "text-gray-300 line-through" : "text-gray-600"}`}
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteChecklistItem(trip.id, item.id);
-                              }}
-                              className="opacity-0 group-hover/checkItem:opacity-100 p-1 text-gray-300 hover:text-red-500 transition-all"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddChecklistItem(trip.id);
-                        }}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 mt-4 border border-dashed border-gray-200 rounded-xl text-[11px] font-bold text-gray-400 hover:text-[#1344FF] hover:border-[#1344FF]/30 hover:bg-white transition-all shadow-sm"
-                      >
-                        <Plus className="w-3 h-3" />할 일 추가
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === "upcoming" && upcomingPlans.length > 0 && (
+        {activeTab === "upcoming" && scheduledPlans.length > 0 && (
           <div className="space-y-4">
             <h4 className="text-lg font-bold text-[#1a1a1a] flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-gray-400" />
               예정된 여행
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {upcomingPlans.map((trip) => (
+              {scheduledPlans.map((trip) => (
                 <div
                   key={trip.id}
                   onClick={() => !isDeleteMode && onNavigateTrip(trip.id)}
-                  className={`bg-white rounded-xl p-5 border-2 relative overflow-hidden group transition-all shadow-sm ${trip.theme === "blue" ? "border-blue-50 hover:border-blue-200" : "border-orange-50 hover:border-orange-200"} ${isDeleteMode ? "cursor-default ring-2 ring-offset-2 " + (selectedPlanIds.includes(trip.id) ? "ring-[#1344FF]" : "ring-transparent") : "cursor-pointer hover:shadow-md hover:-translate-y-1"}`}
+                  // 진행 중인 여행은 테두리를 진하게 줘서 예정된 여행과 한눈에 구분되게 한다
+                  className={`bg-white rounded-xl p-5 border-2 relative overflow-hidden group transition-all shadow-sm ${isOngoing(trip) ? "border-[#1344FF]/30 hover:border-[#1344FF]/50" : trip.theme === "blue" ? "border-blue-50 hover:border-blue-200" : "border-orange-50 hover:border-orange-200"} ${isDeleteMode ? "cursor-default ring-2 ring-offset-2 " + (selectedPlanIds.includes(trip.id) ? "ring-[#1344FF]" : "ring-transparent") : "cursor-pointer hover:shadow-md hover:-translate-y-1"}`}
                 >
                   {isDeleteMode && (
                     <div
@@ -352,7 +215,17 @@ export const TripSection: React.FC<TripSectionProps> = ({
                           >
                             {trip.dDay}
                           </span>
-                          <span className="text-gray-400 text-[10px] font-black uppercase tracking-wider">
+                          {/* 진행 중인 여행만 강조 — 두 탭을 합친 뒤 이 배지가 유일한 구분 표시다 */}
+                          <span
+                            className={
+                              isOngoing(trip)
+                                ? "flex items-center gap-1 px-2 py-1 bg-[#1344FF]/10 text-[#1344FF] text-[10px] font-black rounded"
+                                : "text-gray-400 text-[10px] font-black uppercase tracking-wider"
+                            }
+                          >
+                            {isOngoing(trip) && (
+                              <TrendingUp className="w-3 h-3 animate-pulse" />
+                            )}
                             {trip.status}
                           </span>
                         </div>
@@ -450,16 +323,7 @@ export const TripSection: React.FC<TripSectionProps> = ({
           </div>
         )}
 
-        {activeTab === "ongoing" && ongoingPlans.length === 0 && (
-          <div className="py-12 text-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-            <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">
-              지금 진행 중인 여행이 없어요.
-            </p>
-          </div>
-        )}
-
-        {activeTab === "upcoming" && upcomingPlans.length === 0 && (
+        {activeTab === "upcoming" && scheduledPlans.length === 0 && (
           <div className="py-12 text-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
             <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500 font-medium">

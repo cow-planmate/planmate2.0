@@ -46,17 +46,25 @@ export const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = 
   '경기도': { lat: 37.4138, lng: 127.5183 },
   '강원': { lat: 37.8228, lng: 128.1555 },
   '강원도': { lat: 37.8228, lng: 128.1555 },
+  // '충청북'류는 normalizeRegion이 '충청북도'에서 접미사 '도'만 떼어내며 만들어내는 형태다.
+  // 게시글 region에 실제로 저장되는 값이므로 좌표 키에도 반드시 있어야 한다.
   '충북': { lat: 36.6357, lng: 127.4913 },
+  '충청북': { lat: 36.6357, lng: 127.4913 },
   '충청북도': { lat: 36.6357, lng: 127.4913 },
   '충남': { lat: 36.5184, lng: 126.8000 },
+  '충청남': { lat: 36.5184, lng: 126.8000 },
   '충청남도': { lat: 36.5184, lng: 126.8000 },
   '전북': { lat: 35.7175, lng: 127.1530 },
+  '전라북': { lat: 35.7175, lng: 127.1530 },
   '전라북도': { lat: 35.7175, lng: 127.1530 },
   '전남': { lat: 34.8679, lng: 126.9910 },
+  '전라남': { lat: 34.8679, lng: 126.9910 },
   '전라남도': { lat: 34.8679, lng: 126.9910 },
   '경북': { lat: 36.4919, lng: 128.8889 },
+  '경상북': { lat: 36.4919, lng: 128.8889 },
   '경상북도': { lat: 36.4919, lng: 128.8889 },
   '경남': { lat: 35.4606, lng: 128.2132 },
+  '경상남': { lat: 35.4606, lng: 128.2132 },
   '경상남도': { lat: 35.4606, lng: 128.2132 },
   '제주도': { lat: 33.4996, lng: 126.5312 },
   '제주': { lat: 33.4996, lng: 126.5312 },
@@ -93,6 +101,38 @@ export const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = 
 
 export const getRegionCoords = (region: string) =>
   REGION_COORDINATES[region] ?? REGION_COORDINATES[normalizeRegion(region)];
+
+/**
+ * 피드 지역 필터에 항상 노출할 광역자치단체 목록.
+ *
+ * 값을 손으로 적지 않고 정식 명칭을 normalizeRegion에 통과시켜 만든다 — 게시글의 region은
+ * 작성 시 normalizeRegion(destination)으로 저장되므로(useCreatePostLogic), 같은 함수를 거쳐야
+ * 필터 값과 저장 값이 어긋나지 않는다. 손으로 '충북'이라 적으면 저장된 '충청북'과 매칭되지 않는다.
+ */
+const REGION_FULL_NAMES = [
+  '서울특별시', '부산광역시', '인천광역시', '대구광역시', '대전광역시',
+  '광주광역시', '울산광역시', '세종특별자치시',
+  '경기도', '강원특별자치도', '충청북도', '충청남도',
+  '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도',
+];
+
+export const FEED_REGIONS: string[] = Array.from(
+  new Set(REGION_FULL_NAMES.map(normalizeRegion)),
+);
+
+// normalizeRegion이 만들어내는 축약형 ↔ 사람이 읽는 이름. 필터 버튼 표시에만 쓰고,
+// 서버로 보내는 값은 축약형 그대로여야 한다.
+const REGION_LABELS: Record<string, string> = {
+  '충청북': '충북',
+  '충청남': '충남',
+  '전라북': '전북',
+  '전라남': '전남',
+  '경상북': '경북',
+  '경상남': '경남',
+  '제주도': '제주',
+};
+
+export const regionLabel = (region: string): string => REGION_LABELS[region] ?? region;
 
 /** 지도 마커 색상 — 지역명 해시로 고정 배정 (렌더마다 색이 바뀌지 않도록) */
 const MARKER_COLORS = [
