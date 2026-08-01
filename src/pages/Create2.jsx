@@ -34,8 +34,12 @@ import Main from "../components/Create2/Main/Main";
 import PlanInfo from "../components/Create2/PlanInfo/PlanInfo";
 import useNicknameStore from "../store/Nickname";
 import useItemsStore from "../store/Schedules";
-import { convertBlock, mapPlaceSummary, resetAllStores } from "../utils/createUtils";
-import { ErrorToast, SuccessToast } from '../components/common/Toast';
+import {
+  convertBlock,
+  mapPlaceSummary,
+  resetAllStores,
+} from "../utils/createUtils";
+import { ErrorToast, SuccessToast } from "../components/common/Toast";
 
 function App() {
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -78,6 +82,7 @@ function App() {
   const { lastSelectedDay } = useNicknameStore();
   const { isConnected } = useSocketStore();
   const [noACL, setNoACL] = useState(false);
+  const [hasPlanAccess, setHasPlanAccess] = useState(() => !id);
   const [showTempPlanPrompt, setShowTempPlanPrompt] = useState(false); // Alert state
   const [isTempLoaded, setIsTempLoaded] = useState(false); // Prevent auto-save until loaded
   const [isPlaceLoading, setIsPlaceLoading] = useState(false);
@@ -133,9 +138,10 @@ function App() {
             const convert = convertBlock(item);
             addItemFromWebsocket(convert);
           });
+          setHasPlanAccess(true);
         } catch (err) {
           console.error("일정 정보를 가져오는데 실패했습니다:", err);
-          if (err.message == "요청 권한이 없습니다") {
+          if (err.message === "접근 권한이 없습니다.") {
             setNoACL(true);
           }
         }
@@ -153,6 +159,11 @@ function App() {
   useEffect(() => {
     const updatePlace = async () => {
       setPlacesLoading(true);
+      // 기존 일정은 편집 권한 확인이 끝난 뒤에만 추천 장소를 조회한다.
+      if (id && !hasPlanAccess) {
+        setPlacesLoading(false);
+        return;
+      }
       // 비로그인 유저의 경우 임시 저장 로드 여부 확인
       if (!isAuthenticated() && !isTempLoaded) {
         setPlacesLoading(false);
@@ -188,17 +199,17 @@ function App() {
     };
 
     if (destinationId) updatePlace();
-  }, [destinationId, isTempLoaded, isAuthenticated]);
+  }, [destinationId, hasPlanAccess, id, isTempLoaded, isAuthenticated]);
 
   useEffect(() => {
-    if (id && isAuthenticated() && planId && planId !== -1) {
+    if (id && hasPlanAccess && isAuthenticated() && planId && planId !== -1) {
       initStompClient(id);
 
       return () => {
         disconnectStompClient();
       };
     }
-  }, [id, planId, isAuthenticated]);
+  }, [hasPlanAccess, id, planId, isAuthenticated]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -357,7 +368,7 @@ function App() {
 
   const requestEdit = async () => {
     try {
-      await post(`${BASE_URL}/api/plan/${id}/request-access`)
+      await post(`${BASE_URL}/api/plan/${id}/request-access`);
       SuccessToast("편집 권한을 요청했습니다.");
     } catch (err) {
       console.error("요청에 실패했습니다.", err);
@@ -369,6 +380,7 @@ function App() {
   }, [isConnected]);
 
   if (
+    noACL ||
     !planId ||
     !isPlaceLoading ||
     (planId !== -1 && isAuthenticated() && !isConnected)
@@ -382,11 +394,8 @@ function App() {
             content="여행 일정을 직접 편집하고 친구들과 실시간으로 협업해보세요."
           />
         </Helmet>
-        <div className="hidden md:block">
-          <Navbar
-            currentView="plan-maker"
-            onNavigate={handleNavbarNavigate}
-          />
+        <div>
+          <Navbar currentView="plan-maker" onNavigate={handleNavbarNavigate} />
         </div>
         {showTempPlanPrompt && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -421,10 +430,10 @@ function App() {
             </div>
             <div className="space-x-3">
               <button
-                onClick={() => navigate("/mypage")}
+                onClick={() => window.location.reload()}
                 className="font-semibold border border-gray-500 text-gray-700 hover:bg-gray-200 py-2 px-4 rounded-lg"
               >
-                마이페이지로 가기
+                새로고침하기
               </button>
               <button
                 onClick={requestEdit}
@@ -443,11 +452,8 @@ function App() {
 
   return (
     <div className="font-pretendard h-screen">
-      <div className="hidden md:block">
-        <Navbar
-          currentView="plan-maker"
-          onNavigate={handleNavbarNavigate}
-        />
+      <div>
+        <Navbar currentView="plan-maker" onNavigate={handleNavbarNavigate} />
       </div>
       <PlanInfo id={id} />
       <div
@@ -456,7 +462,7 @@ function App() {
           md:px-8 md:py-6 py-3
           mx-auto
           md:h-[calc(100vh-134px)]
-          h-[calc(100vh-48px)]
+          h-[calc(100vh-112px)]
         "
       >
         <div className="flex md:flex-row flex-col md:space-x-6 space-y-4 md:space-y-0 h-full">

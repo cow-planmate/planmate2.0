@@ -119,10 +119,9 @@ function Home({ hideNavbar = false }) {
         }
       } else {
         setPlanAll({
-          planName:
-            destinationLocation?.name.split(" ")[1] || "제목을 입력하세요",
+          planName: destinationLocation?.name || "제목을 입력하세요",
           planId: -1,
-          destinationName: destinationLocation?.name.split(" ")[1] || "",
+          destinationName: destinationLocation?.name || "",
           destinationId: destinationLocation?.id || null,
           departure: departureLocation?.name || "",
           transportationType: selectedTransport === "car" ? "PRIVATE" : "PUBLIC",

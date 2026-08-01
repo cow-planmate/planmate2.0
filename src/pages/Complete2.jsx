@@ -213,7 +213,7 @@ function App() {
   if (!finishLoading) {
     return (
       <div className="font-pretendard h-screen">
-        <div className="md:block hidden">
+        <div>
           <Navbar currentView="" onNavigate={handleNavbarNavigate} />
         </div>
         <Loading />
@@ -230,7 +230,7 @@ function App() {
           content="완성된 여행 일정을 한눈에 확인하고 공유해보세요."
         />
       </Helmet>
-      <div className="md:block hidden">
+      <div>
         <Navbar currentView="" onNavigate={handleNavbarNavigate} />
       </div>
       <PlanInfo planFrame={planFrame} />
@@ -240,7 +240,7 @@ function App() {
           md:px-8 md:py-6 py-3
           mx-auto
           md:h-[calc(100vh-134px)]
-          h-[calc(100vh-48px)]
+          h-[calc(100vh-112px)]
         "
       >
         <div className="flex md:flex-row flex-col md:space-x-6 space-y-4 md:space-y-0 h-full">

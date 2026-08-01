@@ -33,6 +33,7 @@ export default function Sidebar({
   const [searchText, setSearchText] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [nextLoading, setNextLoading] = useState(false);
+  const nextRequestInFlightRef = useRef(false);
 
   const [hasSearched, setHasSearched] = useState(false);
   const searchTimerRef = useRef(null);
@@ -119,10 +120,13 @@ export default function Sidebar({
   // }, [searchText, selectedTab, planId]);
 
   const handleNext = async () => {
+    if (nextRequestInFlightRef.current) return;
+
     const currentTab = selectedTab;
     const nextPage = store[`${currentTab}Next`];
     if (!nextPage) return;
     try {
+      nextRequestInFlightRef.current = true;
       setNextLoading(true);
       const res = await get(
         `${BASE_URL}/api/place?destinationId=${destinationId}&category=${CATEGORY_PARAM[currentTab]}&page=${nextPage}&size=20`,
@@ -135,6 +139,7 @@ export default function Sidebar({
     } catch (err) {
       console.error("실패!", err);
     } finally {
+      nextRequestInFlightRef.current = false;
       setNextLoading(false);
     }
   };
@@ -202,8 +207,9 @@ export default function Sidebar({
         <div className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden divide-y divide-gray-300`}>
           {!(isLoading && ["tour", "lodging", "restaurant"].includes(selectedTab)) && currentPlaces?.map((place) => (
             <SidebarItem
-              key={place.placeId}
+              key={`${selectedTab}-${place.placeId}`}
               place={place}
+              sourceCategory={selectedTab}
               isMobile={isMobile}
               onMobileAdd={() => handleMobileAdd(place)}
               onDelete={
@@ -290,6 +296,8 @@ export default function Sidebar({
                 <button
                   className="text-3xl text-main hover:text-mainDark"
                   onClick={handleNext}
+                  disabled={nextLoading}
+                  aria-label="추천 장소 더보기"
                 >
                   {nextLoading ? (
                     <LoadingRing className="w-[30px]" />

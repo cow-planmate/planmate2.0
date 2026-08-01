@@ -5,13 +5,14 @@ import defaultImg from "../../../assets/imgs/default.png";
 
 export const SidebarItem = ({
   place,
+  sourceCategory,
   duration,
   isMobile,
   onMobileAdd,
   onDelete,
 }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `sidebar-${place.placeId}`,
+    id: `sidebar-${sourceCategory}-${place.placeId}`,
     data: { type: "sidebar", place, duration, originalId: place.placeId },
     disabled: isMobile,
   });

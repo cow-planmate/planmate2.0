@@ -1,5 +1,18 @@
 import { create } from 'zustand';
 
+const mergeUniquePlaces = (currentPlaces, newPlaces) => {
+  const seenPlaceIds = new Set();
+
+  return [...(currentPlaces ?? []), ...(newPlaces ?? [])].filter((place) => {
+    // placeId가 없는 비정상 데이터는 여기서 임의로 하나로 합치지 않는다.
+    if (place?.placeId == null) return true;
+    if (seenPlaceIds.has(place.placeId)) return false;
+
+    seenPlaceIds.add(place.placeId);
+    return true;
+  });
+};
+
 const usePlacesStore = create((set) => ({
   isLoading: false,
 
@@ -41,10 +54,7 @@ const usePlacesStore = create((set) => ({
   setAddNext: (field, value, nextPageTokens) =>
     set((state) => ({
       ...state,
-      [field]: [
-        ...(state[field] ?? []),
-        ...value
-      ],
+      [field]: mergeUniquePlaces(state[field], value),
       [`${field}Next`]: nextPageTokens,
     })),
 

@@ -47,6 +47,10 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
   }, [getEditors, getShareStatus, isOwner]);
 
   const removeEditorAccessByOwner = async (targetUserId) => {
+    if (!(await showConfirm("해당 사용자의 편집 권한을 삭제하시겠습니까?"))) {
+      return;
+    }
+
     try {
       const response = await del(
         `${BASE_URL}/api/plan/${id}/editors/${targetUserId}`,

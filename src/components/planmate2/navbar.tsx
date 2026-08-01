@@ -66,6 +66,7 @@ export default function Navbar({
     collaborationRequestId: number;
     senderNickname: string;
     planName: string;
+    type?: "INVITE" | "REQUEST";
   }
 
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -82,6 +83,7 @@ export default function Navbar({
               request.collaborationRequestId ?? request.requestId ?? request.id,
             senderNickname: request.senderNickname,
             planName: request.planName,
+            type: request.type,
           }))
           .filter(
             (request: Invitation) =>
@@ -274,7 +276,9 @@ export default function Navbar({
                                   <span className="font-bold text-[#1344FF]">
                                     '{invitation.planName}'
                                   </span>{" "}
-                                  협업 초대를 보냈습니다.
+                                  {invitation.type === "REQUEST"
+                                    ? "일정의 편집 권한을 요청했습니다."
+                                    : "일정 편집 초대를 보냈습니다."}
                                 </p>
                                 <div className="flex gap-2">
                                   <button
@@ -397,7 +401,7 @@ export default function Navbar({
 
         {/* 모바일 메뉴 */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-2 border-t border-[#e5e7eb]">
+          <div className="absolute inset-x-0 top-full md:hidden max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-[#e5e7eb] bg-white px-6 py-4 shadow-lg space-y-2">
             <button
               onClick={() => {
                 onNavigate("feed");

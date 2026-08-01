@@ -1,7 +1,8 @@
 import { toast, Slide } from "react-toastify";
 
-export function ErrorToast(str) {
-  return toast.error(str, {
+const APP_TOAST_ID = "app-notification";
+
+const defaultToastOptions = {
     position: "top-center",
     autoClose: 3000,
     hideProgressBar: false,
@@ -12,37 +13,36 @@ export function ErrorToast(str) {
     theme: "light",
     transition: Slide,
     className: "font-pretendard text-gray-700 sm:w-[400px] break-keep",
+};
+
+function showToast(type, message) {
+  if (toast.isActive(APP_TOAST_ID)) {
+    toast.update(APP_TOAST_ID, {
+      ...defaultToastOptions,
+      render: message,
+      type,
+    });
+
+    return APP_TOAST_ID;
+  }
+
+  return toast(message, {
+    ...defaultToastOptions,
+    toastId: APP_TOAST_ID,
+    type,
   });
+}
+
+export function ErrorToast(str) {
+  return showToast("error", str);
 }
 
 export function SuccessToast(str) {
-  return toast.success(str, {
-    position: "top-center",
-    autoClose: 3000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    progress: undefined,
-    theme: "light",
-    transition: Slide,
-    className: "font-pretendard text-gray-700 sm:w-[400px] break-keep",
-  });
+  return showToast("success", str);
 }
 
 export function WarningToast(str) {
-  return toast.warning(str, {
-    position: "top-center",
-    autoClose: 3000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    progress: undefined,
-    theme: "light",
-    transition: Slide,
-    className: "font-pretendard text-gray-700 sm:w-[400px] break-keep",
-  });
+  return showToast("warning", str);
 }
 
 export function ServerDownToast() {

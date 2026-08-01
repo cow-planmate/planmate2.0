@@ -154,6 +154,7 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
     3: "text-violet-900",
     4: "text-gray-900",
   };
+  const isMinimized = localState.height <= SLOT_HEIGHT;
 
   const sendWebsocket = (block, action = "delete") => {
     if (client && client.connected) {
@@ -226,7 +227,7 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
             {...listeners}
             className={`w-full h-full ${tripColor1[categoryId]} border-l-4 ${tripColor3[categoryId]} rounded shadow-sm overflow-hidden select-none ${tripColor2[categoryId]} transition-colors cursor-move
               ${isDragging ? "shadow-xl ring-2 ring-blue-300" : ""}
-              ${localState.height <= 80 ? "flex flex-col items-start justify-center px-5" : "p-5"}`}
+              ${isMinimized ? "flex flex-col items-start justify-center px-5" : "p-5"}`}
           >
             <div className="w-full flex items-center gap-2 min-w-0">
               <div className="flex-1 min-w-0">
@@ -236,16 +237,18 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
                   {place.name}
                 </div>
 
-                <div
-                  className={`text-xs ${tripColor4[categoryId]} font-medium pointer-events-none`}
-                >
-                  <p>
-                    {tripCategory[categoryId]} | {formatTime(item.start)} -{" "}
-                    {formatTime(
-                      item.start + Math.round(localState.height / SLOT_HEIGHT),
-                    )}
-                  </p>
-                </div>
+                {!isMinimized && (
+                  <div
+                    className={`text-xs ${tripColor4[categoryId]} font-medium pointer-events-none`}
+                  >
+                    <p>
+                      {tripCategory[categoryId]} | {formatTime(item.start)} -{" "}
+                      {formatTime(
+                        item.start + Math.round(localState.height / SLOT_HEIGHT),
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex shrink-0 gap-1 mt-[-4px]">
@@ -273,7 +276,7 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
                 </button>
               </div>
             </div>
-            {item.memo && localState.height > 80 && (
+            {item.memo && !isMinimized && (
               <div className="mt-2 text-xs text-black line-clamp-2 pointer-events-none">
                 {item.memo}
               </div>

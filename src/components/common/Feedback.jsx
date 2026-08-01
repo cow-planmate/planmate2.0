@@ -20,21 +20,17 @@ export default function FeedbackModal({ isOpen, onClose }) {
         }),
       });
 
-      const data = await response.json();
-      console.log("서버 응답:", data);
       if (!response.ok) {
-        throw new Error("서버 응답 실패");
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || "서버 응답 실패");
       }
 
       SuccessToast("피드백이 성공적으로 전송되었습니다. 감사합니다!");
+      setContent("");
+      onClose();
     } catch (error) {
       console.error("에러 발생:", error);
     }
-
-    console.log("피드백 내용:", content);
-
-    setContent("");
-    onClose();
   };
 
   return (

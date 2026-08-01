@@ -1,6 +1,6 @@
 import useTimetableStore from "../../../store/Timetables";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCalendarDays } from "@fortawesome/free-solid-svg-icons";
+import { faGear } from "@fortawesome/free-solid-svg-icons";
 import DaySelectorModal from "./DaySelectorModal";
 import { useState } from "react";
 
@@ -63,7 +63,7 @@ export default function DaySelector() {
           md:sticky md:bottom-0
         "
       >
-        <FontAwesomeIcon icon={faCalendarDays} />
+        <FontAwesomeIcon icon={faGear} />
       </button>
 
       {isModalOpen && <DaySelectorModal setIsModalOpen={setIsModalOpen} />}

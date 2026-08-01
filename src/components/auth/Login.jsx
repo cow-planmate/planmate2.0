@@ -90,7 +90,10 @@ export default function Login({
 
   // 🌍 SNS 로그인 처리
   const handleSNSLogin = (provider) => {
-    sessionStorage.setItem("redirectAfterLogin", location.pathname);
+    sessionStorage.setItem(
+      "redirectAfterLogin",
+      `${location.pathname}${location.search}`,
+    );
 
     window.location.href = `${API_BASE_URL}/api/oauth/${provider}`;
   };
