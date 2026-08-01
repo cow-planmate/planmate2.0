@@ -23,17 +23,7 @@ export default function CreatePost({ onBack, onSubmit, editPostId }: CreatePostP
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form onSubmit={logic.handleSubmit} className="space-y-6">
-          <BasicInfoSection
-            title={logic.title}
-            setTitle={logic.setTitle}
-            description={logic.description}
-            setDescription={logic.setDescription}
-            coverImage={logic.coverImage}
-            setCoverImage={logic.setCoverImage}
-            tags={logic.tags}
-            selectedTags={logic.selectedTags}
-            toggleTag={logic.toggleTag}
-          />
+          <BasicInfoSection title={logic.title} setTitle={logic.setTitle} />
 
           <TravelDetailsSection
             destination={logic.destination}
@@ -80,12 +70,16 @@ export default function CreatePost({ onBack, onSubmit, editPostId }: CreatePostP
 
       <PlanSelectionModal
         showPlanModal={logic.showPlanModal}
-        setShowPlanModal={logic.setShowPlanModal}
+        onClose={logic.closePlanModal}
         planSearch={logic.planSearch}
         setPlanSearch={logic.setPlanSearch}
         loadingPlans={logic.loadingPlans}
         filteredPlans={logic.filteredPlans}
-        handlePlanSelect={logic.handlePlanSelect}
+        onPreviewPlan={logic.previewPlan}
+        pendingPlan={logic.pendingPlan}
+        loadingPlanPreview={logic.loadingPlanPreview}
+        onConfirm={logic.confirmPlanSelection}
+        onCancelPreview={logic.cancelPlanPreview}
       />
     </div>
   );
