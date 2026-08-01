@@ -24,6 +24,13 @@ interface MyPageModalsProps {
   handleCheckNickname: () => void;
   nicknameValid: boolean | null;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemoveImage?: () => void;
+  isUploadingImage?: boolean;
+  /** 저장 전 미리보기를 반영한 아바타 이미지 */
+  profileEditImage?: string | null;
+  canRemoveProfileImage?: boolean;
+  /** 저장하지 않고 닫을 때 (예약된 사진 변경을 버린다) */
+  onCloseProfileEdit?: () => void;
   dummyUser: any;
   onOpenThemeEditor: () => void;
   
@@ -63,6 +70,11 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
   nicknameValid,
   handleCheckNickname,
   handleImageUpload,
+  onRemoveImage,
+  isUploadingImage,
+  profileEditImage,
+  canRemoveProfileImage,
+  onCloseProfileEdit,
   dummyUser,
   userStats,
   LEVEL_CONFIG,
@@ -84,9 +96,13 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
     <>
       <ProfileEditModal
         isOpen={activeModal === 'profile'}
-        onClose={() => setActiveModal(null)}
+        onClose={onCloseProfileEdit ?? (() => setActiveModal(null))}
         dummyUser={dummyUser}
         handleImageUpload={handleImageUpload}
+        onRemoveImage={onRemoveImage}
+        isUploadingImage={isUploadingImage}
+        profileEditImage={profileEditImage}
+        canRemoveProfileImage={canRemoveProfileImage}
         newNickname={newNickname}
         setNewNickname={setNewNickname}
         nicknameValid={nicknameValid}

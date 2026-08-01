@@ -1,4 +1,4 @@
-import { BookOpen, Copy, Heart, MessageCircle, PenTool } from 'lucide-react';
+import { BookOpen, Copy, Heart, MessageCircle, Pencil, PenTool, Trash2 } from 'lucide-react';
 import React from 'react';
 import { Pagination } from '../../community/atoms/Pagination';
 
@@ -15,6 +15,9 @@ interface TravelLogsSectionProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   onNavigateDetail: (post: any) => void;
+  /** 내 프로필에서만 — 작성한 여행기 카드의 수정/삭제 */
+  onEditPost?: (post: any) => void;
+  onDeletePost?: (post: any) => void;
 }
 
 const EmptyState: React.FC<{ message: string }> = ({ message }) => (
@@ -36,6 +39,8 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
   totalPages,
   onPageChange,
   onNavigateDetail,
+  onEditPost,
+  onDeletePost,
 }) => {
   const currentTab = isOtherUser ? 'created' : travelTab;
 
@@ -117,6 +122,29 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
               <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium shadow-sm">
                 {post.destination}
               </div>
+              {/* 내 여행기에만 노출 — 카드 클릭(상세 이동)과 겹치지 않도록 전파를 막는다 */}
+              {!isOtherUser && (onEditPost || onDeletePost) && (
+                <div className="absolute bottom-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {onEditPost && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEditPost(post); }}
+                      className="bg-white/95 backdrop-blur-sm p-2 rounded-full shadow-md hover:bg-white text-[#1a1a1a]"
+                      aria-label="여행기 수정"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
+                  {onDeletePost && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeletePost(post); }}
+                      className="bg-white/95 backdrop-blur-sm p-2 rounded-full shadow-md hover:bg-white text-red-500"
+                      aria-label="여행기 삭제"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             <div className="p-5">
               <h3 className="text-lg font-bold text-[#1a1a1a] mb-3 line-clamp-2 leading-tight">

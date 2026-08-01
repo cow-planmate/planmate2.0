@@ -10,14 +10,16 @@ import { TravelDetailsSection } from '../organisms/TravelDetailsSection';
 interface CreatePostProps {
   onBack: () => void;
   onSubmit: () => void;
+  /** 지정하면 수정 모드 */
+  editPostId?: number | string;
 }
 
-export default function CreatePost({ onBack, onSubmit }: CreatePostProps) {
-  const logic = useCreatePostLogic(onSubmit);
+export default function CreatePost({ onBack, onSubmit, editPostId }: CreatePostProps) {
+  const logic = useCreatePostLogic(onSubmit, editPostId);
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] pb-12">
-      <CreatePostHeader onBack={onBack} />
+      <CreatePostHeader onBack={onBack} isEditMode={logic.isEditMode} />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form onSubmit={logic.handleSubmit} className="space-y-6">
@@ -49,6 +51,9 @@ export default function CreatePost({ onBack, onSubmit }: CreatePostProps) {
             setDuration={logic.setDuration}
             schedule={logic.schedule}
             onShowPlanModal={() => logic.setShowPlanModal(true)}
+            includeMemo={logic.includeMemo}
+            setIncludeMemo={logic.setIncludeMemo}
+            isForkable={logic.isForkable}
           />
 
           <PostEditorSection editor={logic.editor} />
@@ -64,9 +69,10 @@ export default function CreatePost({ onBack, onSubmit }: CreatePostProps) {
             </button>
             <button
               type="submit"
-              className="flex-[2] py-5 bg-[#1344FF] text-white rounded-2xl hover:bg-[#0d34cc] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-100 font-black text-lg"
+              disabled={logic.isSubmitting}
+              className="flex-[2] py-5 bg-[#1344FF] text-white rounded-2xl hover:bg-[#0d34cc] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-100 font-black text-lg disabled:opacity-50 disabled:hover:scale-100"
             >
-              피드 등록하기
+              {logic.isEditMode ? '수정 완료' : '피드 등록하기'}
             </button>
           </div>
         </form>

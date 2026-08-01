@@ -1,5 +1,6 @@
 import { Clock, Copy, Eye, MessageCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
 import React, { useState } from 'react';
+import { UserAvatar } from '../../common/UserAvatar';
 
 interface MainFeedPostCardProps {
   post: any;
@@ -46,13 +47,13 @@ export const MainFeedPostCard: React.FC<MainFeedPostCardProps> = ({
             onNavigate('mypage', { userId: post.userId });
           }}
         >
-          {post.authorImage ? (
-            <img src={post.authorImage} alt={post.author} className="w-8 h-8 rounded-full mr-2 group-hover/author:ring-2 group-hover/author:ring-[#1344FF] transition-all" />
-          ) : (
-            <div className="w-8 h-8 rounded-full mr-2 bg-[#1344FF] text-white flex items-center justify-center text-xs font-bold group-hover/author:ring-2 group-hover/author:ring-[#1344FF] transition-all">
-              {(post.author || '?').charAt(0)}
-            </div>
-          )}
+          <UserAvatar
+            name={post.author}
+            imageUrl={post.authorImage}
+            avatarHash={post.authorAvatarHash}
+            sizeClass="w-8 h-8"
+            className="mr-2 text-xs group-hover/author:ring-2 group-hover/author:ring-[#1344FF] transition-all"
+          />
           <div>
             <p className="text-sm font-bold text-[#1a1a1a] leading-none mb-1 group-hover/author:text-[#1344FF] transition-colors">{post.author}</p>
             <p className="text-[11px] text-[#666666]">{post.createdAt}</p>

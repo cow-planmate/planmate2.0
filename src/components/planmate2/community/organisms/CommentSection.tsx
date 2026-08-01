@@ -1,6 +1,7 @@
 import { CornerDownRight, MessageCircle, Pencil, Send, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CommunityComment } from '../api/communityApi';
+import { UserAvatar } from '../../common/UserAvatar';
 import { LevelBadge } from '../atoms/LevelBadge';
 import { useComments, useCreateComment, useDeleteComment, useUpdateComment } from '../hooks/queries';
 
@@ -94,6 +95,13 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
     <div className={`bg-white rounded-xl border border-gray-100 ${isReply ? 'p-3' : 'p-4'}`}>
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
+          <UserAvatar
+            name={comment.author}
+            imageUrl={comment.authorImage}
+            avatarHash={comment.authorAvatarHash}
+            sizeClass={isReply ? 'w-6 h-6' : 'w-7 h-7'}
+            className={isReply ? 'text-[10px]' : 'text-xs'}
+          />
           <span className={`font-bold text-gray-800 ${isReply ? 'text-[13px]' : 'text-sm'}`}>{comment.author}</span>
           <LevelBadge level={comment.level} />
           <span className="text-xs text-gray-400">{comment.createdAt}</span>

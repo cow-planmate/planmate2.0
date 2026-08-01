@@ -11,20 +11,49 @@ const COMMUNITY_BASE_URL: string =
   import.meta.env.VITE_COMMUNITY_API_URL || import.meta.env.VITE_API_URL;
 
 // ── 응답 타입 (백엔드 DTO와 1:1) ─────────────────────────────────────────
+
+/**
+ * 여행기에 박아두는 플랜 스냅샷.
+ * "가져가기"가 이 스냅샷만으로 Backend-v2에 플랜을 새로 만들기 때문에,
+ * POST /api/plan/full이 요구하는 정보를 빠짐없이 담아야 한다.
+ * 구 스키마 게시글에는 없으므로 전부 optional이며, plan이 없으면 가져가기가 불가능하다.
+ */
+export interface ItineraryPlanSnapshot {
+  destinationId: number;
+  destinationName?: string | null;
+  transportationType: string;
+  adultCount?: number | null;
+  childCount?: number | null;
+}
+
 export interface ItineraryItem {
-  time: string;
+  time: string; // 블록 시작 시각 HH:mm
   place: string;
   description?: string | null;
   lat?: number | null;
   lng?: number | null;
-  category?: string | null;
+  category?: string | null; // BlockCategory enum (ATTRACTION/ACCOMMODATION/RESTAURANT/FREE/SEARCH)
   photoUrl?: string | null;
+  // 아래는 완전 복제를 위한 확장 필드 (구 스키마 게시글에는 없음)
+  endTime?: string | null; // 블록 종료 시각 HH:mm
+  placeId?: string | null;
+  placeContentTypeId?: string | null;
+  placeAddress?: string | null;
+  placeCopyrightDivCd?: string | null;
+  memo?: string | null; // 작성자가 "메모도 함께 공개"를 켠 경우에만 존재
 }
 
 export interface ItineraryDay {
   day: number;
-  date?: string | null;
+  date?: string | null; // 원본 여행 날짜 (가져갈 때는 사용자가 고른 시작일로 시프트됨)
+  startTime?: string | null; // 타임테이블 시작 HH:mm
+  endTime?: string | null; // 타임테이블 종료 HH:mm
   items: ItineraryItem[];
+}
+
+export interface Itinerary {
+  plan?: ItineraryPlanSnapshot | null;
+  days: ItineraryDay[];
 }
 
 export interface CommunityPostSummary {
@@ -33,6 +62,10 @@ export interface CommunityPostSummary {
   category: 'free' | 'qna' | 'mate' | 'recommend' | 'feed';
   title: string;
   author: string;
+  /** 작성자가 올린 프로필 사진 (없으면 생략) */
+  authorImage?: string | null;
+  /** 작성자 이메일 해시 — Gravatar 폴백용 (없으면 생략) */
+  authorAvatarHash?: string | null;
   level: number;
   likes: number;
   dislikes: number;
@@ -64,7 +97,7 @@ export interface CommunityPostDetail extends CommunityPostSummary {
   updatedAt?: string;
   myReaction?: 'like' | 'dislike' | null;
   // FEED 전용
-  itinerary?: { days: ItineraryDay[] } | null;
+  itinerary?: Itinerary | null;
   sourcePlanId?: string;
   myFork?: boolean;
 }
@@ -75,6 +108,8 @@ export interface CommunityComment {
   parentId?: number | null; // 대댓글이면 부모 댓글 ID
   userId: string;
   author: string;
+  authorImage?: string | null;
+  authorAvatarHash?: string | null;
   level: number;
   content: string;
   // 내 활동 목록에서만 내려온다 (원문 표시 + 원문으로 이동)
@@ -233,7 +268,6 @@ export const mapFeedPost = (post: CommunityPostSummary & { createdAtIso: string 
   forks: post.forks ?? 0,
   image: post.image ?? FEED_FALLBACK_IMAGE,
   description: post.description ?? '',
-  authorImage: undefined as string | undefined, // 레거시 User에 프로필 이미지 없음 → 카드에서 이니셜 폴백
 });
 
 export type FeedCardPost = ReturnType<typeof mapFeedPost>;
@@ -273,7 +307,8 @@ export interface CreatePostPayload {
   maxParticipants?: number | null;
   // FEED 전용
   durationDays?: number;
-  itinerary?: { days: ItineraryDay[] };
+  // null을 명시하면 수정 시 일정 스냅샷을 비운다 (필드를 생략하면 기존 값 유지)
+  itinerary?: Itinerary | null;
   tags?: string[];
   sourcePlanId?: string;
 }

@@ -9,7 +9,12 @@ interface PostEditorSectionProps {
 export const PostEditorSection: React.FC<PostEditorSectionProps> = ({ editor }) => {
   // 에디터 본문(첫 줄)이 아니라 네모칸 여백 아무 곳이나 눌러도 작성이 시작되도록 한다.
   const focusEditorAtEnd = (e: React.MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest('.bn-editor')) return;
+    // 슬래시 메뉴/툴바 같은 BlockNote UI는 .bn-container 안에 에디터와 형제로 렌더된다.
+    // 그 위에서 preventDefault + focus 를 하면 메뉴가 닫혀 click 이 발생하지 않으므로
+    // 진짜 빈 여백(래퍼 자신 또는 .bn-container)일 때만 포커스를 옮긴다.
+    const target = e.target as HTMLElement;
+    const isBlankArea = target === e.currentTarget || target.classList.contains('bn-container');
+    if (!isBlankArea) return;
     e.preventDefault();
     const blocks = editor.document;
     const last = blocks[blocks.length - 1];

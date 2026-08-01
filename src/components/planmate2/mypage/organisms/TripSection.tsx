@@ -10,14 +10,16 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { PlanCardActionMenu } from "../molecules/PlanCardActionMenu";
+import type { PlanStatus } from "../../../../utils/planSchedule";
 
 interface TripSectionProps {
   isDeleteMode: boolean;
   setIsDeleteMode: (mode: boolean) => void;
   selectedPlanIds: string[];
-  toggleSelectAll: () => void;
+  /** 현재 탭에 보이는 일정만 전체 선택 대상이 된다 */
+  toggleSelectAll: (visiblePlans: any[]) => void;
   togglePlanSelection: (id: string) => void;
   handleBulkDelete: () => void;
   allPlans: any[];
@@ -60,6 +62,33 @@ export const TripSection: React.FC<TripSectionProps> = ({
   onSharePlan,
   onNavigateToPlanMaker,
 }) => {
+  const [activeTab, setActiveTab] = useState<PlanStatus>("ongoing");
+
+  // 진행 중인 여행이 있으면 그걸 먼저 보여주고, 없으면 앞으로의 일정으로 연다.
+  // 데이터가 늦게 도착하므로 첫 로드 시 한 번만 맞춘다.
+  const [didInitTab, setDidInitTab] = useState(false);
+  useEffect(() => {
+    if (didInitTab || allPlans.length === 0) return;
+    setActiveTab(ongoingPlans.length > 0 ? "ongoing" : "upcoming");
+    setDidInitTab(true);
+  }, [didInitTab, allPlans.length, ongoingPlans.length]);
+
+  const visiblePlans = useMemo(() => {
+    if (activeTab === "ongoing") return ongoingPlans;
+    if (activeTab === "upcoming") return upcomingPlans;
+    return pastPlans;
+  }, [activeTab, ongoingPlans, upcomingPlans, pastPlans]);
+
+  const isAllVisibleSelected =
+    visiblePlans.length > 0 &&
+    visiblePlans.every((plan) => selectedPlanIds.includes(plan.id));
+
+  const TABS: { key: PlanStatus; label: string; count: number }[] = [
+    { key: "ongoing", label: "진행 중인 일정", count: ongoingPlans.length },
+    { key: "upcoming", label: "앞으로의 일정", count: upcomingPlans.length },
+    { key: "past", label: "지난 일정", count: pastPlans.length },
+  ];
+
   return (
     <div className="bg-white rounded-xl shadow-md p-6 mb-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -72,10 +101,10 @@ export const TripSection: React.FC<TripSectionProps> = ({
           {isDeleteMode ? (
             <>
               <button
-                onClick={toggleSelectAll}
+                onClick={() => toggleSelectAll(visiblePlans)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
               >
-                {selectedPlanIds.length === allPlans.length ? (
+                {isAllVisibleSelected ? (
                   <CheckSquare className="w-4 h-4" />
                 ) : (
                   <Square className="w-4 h-4" />
@@ -111,8 +140,33 @@ export const TripSection: React.FC<TripSectionProps> = ({
         </div>
       </div>
 
+      {/* 여행이 쌓이면 세로로 계속 길어지므로 시점별 탭으로 나눈다 */}
+      <div className="flex items-center gap-1 border-b border-gray-100 mb-6 -mx-1 overflow-x-auto">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`relative px-4 py-3 text-sm font-bold whitespace-nowrap transition-colors ${
+              activeTab === tab.key
+                ? "text-[#1344FF]"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            {tab.label}
+            <span
+              className={`ml-1.5 text-xs ${activeTab === tab.key ? "text-[#1344FF]" : "text-gray-300"}`}
+            >
+              {tab.count}
+            </span>
+            {activeTab === tab.key && (
+              <span className="absolute left-2 right-2 -bottom-px h-0.5 bg-[#1344FF] rounded-full" />
+            )}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-8">
-        {ongoingPlans.length > 0 && (
+        {activeTab === "ongoing" && ongoingPlans.length > 0 && (
           <div className="space-y-4 pb-2">
             <h4 className="text-lg font-bold text-[#1344FF] flex items-center gap-2">
               <TrendingUp className="w-5 h-5 animate-pulse" />
@@ -250,7 +304,7 @@ export const TripSection: React.FC<TripSectionProps> = ({
           </div>
         )}
 
-        {upcomingPlans.length > 0 && (
+        {activeTab === "upcoming" && upcomingPlans.length > 0 && (
           <div className="space-y-4">
             <h4 className="text-lg font-bold text-[#1a1a1a] flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-gray-400" />
@@ -396,11 +450,20 @@ export const TripSection: React.FC<TripSectionProps> = ({
           </div>
         )}
 
-        {ongoingPlans.length === 0 && upcomingPlans.length === 0 && (
+        {activeTab === "ongoing" && ongoingPlans.length === 0 && (
           <div className="py-12 text-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
             <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500 font-medium">
-              진행 중이거나 예정된 여행 일정이 없습니다.
+              지금 진행 중인 여행이 없어요.
+            </p>
+          </div>
+        )}
+
+        {activeTab === "upcoming" && upcomingPlans.length === 0 && (
+          <div className="py-12 text-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+            <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 font-medium">
+              다음 여행을 계획해보세요.
             </p>
             <button
               onClick={onNavigateToPlanMaker}
@@ -411,11 +474,12 @@ export const TripSection: React.FC<TripSectionProps> = ({
           </div>
         )}
 
+        {activeTab === "past" && (
         <div className="bg-[#f8f9fa] rounded-xl p-6">
           <h4 className="text-lg font-bold text-[#1a1a1a] mb-4">
             지난 여행 기록
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {pastPlans.length > 0 ? (
               pastPlans.map((trip) => (
                 <div
@@ -482,12 +546,13 @@ export const TripSection: React.FC<TripSectionProps> = ({
                 </div>
               ))
             ) : (
-              <p className="col-span-full text-center text-gray-400 py-4 text-sm">
-                지난 여행 기록이 없습니다.
+              <p className="col-span-full text-center text-gray-400 py-8 text-sm">
+                아직 다녀온 여행이 없어요.
               </p>
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

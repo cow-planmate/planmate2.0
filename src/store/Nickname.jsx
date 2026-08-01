@@ -18,6 +18,8 @@ const useNicknameStore = create(
     (set) => ({
       nickname: '',
       gravatar: '',
+      // 사용자가 올린 프로필 사진 URL. 있으면 gravatar보다 우선한다
+      profileImage: '',
       lastSelectedDay: {},
       customPlaces: {},
 
@@ -31,6 +33,12 @@ const useNicknameStore = create(
         set((state) => ({
           ...state,
           gravatar: gravatarUrl(value)
+        })),
+
+      setProfileImage: (value) =>
+        set((state) => ({
+          ...state,
+          profileImage: value || ''
         })),
 
       setLastSelectedDay: (id, day) => 

@@ -3,10 +3,12 @@ import React from 'react';
 
 interface SchedulePreviewProps {
   schedule: any[];
+  /** 메모 공개를 켠 경우에만 미리보기에 노출한다 (실제 저장 여부와 화면을 일치시키기 위함) */
+  showMemo?: boolean;
 }
 
 // 카드/헤더는 TravelDetailsSection이 담당하고, 여기서는 일정 본문만 렌더한다.
-export const SchedulePreview: React.FC<SchedulePreviewProps> = ({ schedule }) => {
+export const SchedulePreview: React.FC<SchedulePreviewProps> = ({ schedule, showMemo = false }) => {
   if (schedule.length === 0) {
     return (
       <div className="text-center py-12 border-2 border-dashed border-[#e5e7eb] rounded-xl">
@@ -42,6 +44,11 @@ export const SchedulePreview: React.FC<SchedulePreviewProps> = ({ schedule }) =>
                     <span className="text-[11px] font-bold text-[#1344FF] bg-blue-50 px-2 py-0.5 rounded-md">{item.time}</span>
                   </div>
                   <p className="text-sm text-[#666666] line-clamp-1">{item.description}</p>
+                  {showMemo && item.memo && (
+                    <p className="mt-2 text-xs text-[#1344FF] bg-blue-50 rounded-lg px-2 py-1 whitespace-pre-wrap">
+                      {item.memo}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

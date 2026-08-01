@@ -1,6 +1,7 @@
 import {
   ArrowLeft, CheckCircle2, Eye, MapPin, Pencil, ThumbsDown, ThumbsUp, Trash2, Users,
 } from 'lucide-react';
+import { UserAvatar } from '../../common/UserAvatar';
 import { LevelBadge } from '../atoms/LevelBadge';
 import {
   useChangeMateStatus, useDeletePost, useJoinMate, useLeaveMate, usePost, useReactToPost, useUpdateAnswered,
@@ -81,6 +82,14 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-gray-500">
+              <UserAvatar
+                name={post.author}
+                imageUrl={post.authorImage}
+                avatarHash={post.authorAvatarHash}
+                sizeClass="w-7 h-7"
+                className="text-xs"
+                onClick={() => onNavigate?.('mypage', { userId: post.userId })}
+              />
               <span className="font-bold text-gray-700">{post.author}</span>
               <LevelBadge level={post.level} />
               <span>·</span>

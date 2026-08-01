@@ -22,6 +22,8 @@ export interface UserProfile {
   nickname: string;
   birthdate: string | null;
   gender: Gender | null;
+  /** 프로필 이미지 공개 URL. null이면 Gravatar로 대체한다 */
+  profileImageUrl: string | null;
   isSocialLogin: boolean;
   /** 프로필 공개 여부 — 비공개면 타인이 마이페이지를 열 수 없다 */
   profilePublic?: boolean;

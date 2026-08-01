@@ -14,6 +14,8 @@ const BASE_URL: string = (import.meta as any).env.VITE_API_URL;
 export interface PublicUserProfile {
   userId: string;
   nickname: string;
+  /** null이면 클라이언트가 Gravatar로 대체한다 */
+  profileImageUrl: string | null;
   preferredThemes: PreferredTheme[];
   myPlanCount: number;
   editablePlanCount: number;
@@ -30,7 +32,8 @@ export class ProfilePrivateError extends Error {
 const request = async <T>(path: string, options: RequestInit = {}, retried = false): Promise<T> => {
   const token = getAccessToken();
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json; charset=utf-8',
+    // FormData는 브라우저가 boundary를 포함한 Content-Type을 직접 설정해야 한다
+    ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json; charset=utf-8' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...((options.headers as Record<string, string>) || {}),
   };
@@ -55,6 +58,21 @@ const request = async <T>(path: string, options: RequestInit = {}, retried = fal
 
 export const fetchPublicProfile = (userId: string): Promise<PublicUserProfile> =>
   request<PublicUserProfile>(`/api/user/profile/${userId}`);
+
+/** 프로필 이미지 업로드 — 새 공개 URL을 돌려준다 (기존 이미지는 서버가 정리한다) */
+export const uploadProfileImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await request<{ profileImageUrl: string }>('/api/user/profile-image', {
+    method: 'POST',
+    body: formData,
+  });
+  return res.profileImageUrl;
+};
+
+/** 프로필 이미지 제거 — 다시 Gravatar로 표시된다 */
+export const deleteProfileImage = (): Promise<void> =>
+  request<void>('/api/user/profile-image', { method: 'DELETE' });
 
 export const updateProfileVisibility = (profilePublic: boolean): Promise<void> =>
   request<void>('/api/user/profile/visibility', {
