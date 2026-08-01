@@ -1,5 +1,6 @@
 import { Eye, MapPin, MessageCircle, Star, ThumbsUp, Users } from 'lucide-react';
 import { UserAvatar } from '../../common/UserAvatar';
+import { authorNameClass, authorNavProps } from '../../common/authorLink';
 import { LevelBadge } from '../atoms/LevelBadge';
 
 interface PostListItemProps {
@@ -10,6 +11,7 @@ interface PostListItemProps {
 }
 
 export const PostListItem = ({ post, type, onClick, onNavigate }: PostListItemProps) => {
+  const authorNav = authorNavProps(post, onNavigate);
   return (
     <div 
       className="p-4 hover:bg-[#f8f9fa] transition-colors cursor-pointer flex justify-between gap-4 group"
@@ -63,17 +65,13 @@ export const PostListItem = ({ post, type, onClick, onNavigate }: PostListItemPr
               avatarHash={post.authorAvatarHash}
               sizeClass="w-5 h-5"
               className="text-[10px]"
-              onClick={(e) => {
-                e.stopPropagation();
-                onNavigate('mypage', { userId: post.userId });
-              }}
+              onClick={authorNav.onClick}
             />
-            <button 
-              className="font-medium text-[#1a1a1a] hover:text-[#1344FF] hover:underline transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                onNavigate('mypage', { userId: post.userId });
-              }}
+            <button
+              type="button"
+              disabled={!authorNav.onClick}
+              className={`font-medium transition-colors ${authorNameClass(post, 'text-[#1a1a1a] hover:text-[#1344FF] hover:underline')}`}
+              onClick={authorNav.onClick}
             >
               {post.author}
             </button>

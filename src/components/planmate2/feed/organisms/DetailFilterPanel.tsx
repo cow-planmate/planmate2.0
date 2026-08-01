@@ -1,5 +1,12 @@
-import { X } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, X } from 'lucide-react';
 import React from 'react';
+import { regionLabel } from '../utils/region';
+
+/** 정렬 기준마다 방향의 의미가 달라 라벨을 따로 준다 (최신순 오름차순 = 오래된 순) */
+const ORDER_LABELS: Record<string, { desc: string; asc: string }> = {
+  '최신순': { desc: '최신순', asc: '오래된순' },
+};
+const DEFAULT_ORDER_LABELS = { desc: '높은순', asc: '낮은순' };
 
 interface DetailFilterPanelProps {
   onClear: () => void;
@@ -9,9 +16,11 @@ interface DetailFilterPanelProps {
   selectedRegion: string;
   selectedDuration: string;
   sortBy: string;
+  sortOrder: 'asc' | 'desc';
   onRegionChange: (val: string) => void;
   onDurationChange: (val: string) => void;
   onSortChange: (val: string) => void;
+  onSortOrderChange: (val: 'asc' | 'desc') => void;
 }
 
 export const DetailFilterPanel: React.FC<DetailFilterPanelProps> = ({
@@ -22,10 +31,14 @@ export const DetailFilterPanel: React.FC<DetailFilterPanelProps> = ({
   selectedRegion,
   selectedDuration,
   sortBy,
+  sortOrder,
   onRegionChange,
   onDurationChange,
-  onSortChange
+  onSortChange,
+  onSortOrderChange
 }) => {
+  const orderLabels = ORDER_LABELS[sortBy] ?? DEFAULT_ORDER_LABELS;
+
   return (
     <div className="mb-6 bg-white rounded-xl shadow-md p-6 border border-[#e5e7eb]">
       <div className="flex items-center justify-between mb-4">
@@ -55,7 +68,7 @@ export const DetailFilterPanel: React.FC<DetailFilterPanelProps> = ({
                     : 'bg-gray-50 text-[#666666] hover:bg-gray-100'
                 }`}
               >
-                {region}
+                {regionLabel(region)}
               </button>
             ))}
           </div>
@@ -98,6 +111,27 @@ export const DetailFilterPanel: React.FC<DetailFilterPanelProps> = ({
                 {option}
               </button>
             ))}
+          </div>
+
+          {/* 정렬 방향 — 기준과 별개로 항상 토글할 수 있다 */}
+          <div className="flex gap-2 mt-3">
+            {(['desc', 'asc'] as const).map(order => {
+              const Icon = order === 'desc' ? ArrowDownWideNarrow : ArrowUpNarrowWide;
+              return (
+                <button
+                  key={order}
+                  onClick={() => onSortOrderChange(order)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all ${
+                    sortOrder === order
+                      ? 'bg-[#1344FF] text-white'
+                      : 'bg-gray-50 text-[#666666] hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {orderLabels[order]}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

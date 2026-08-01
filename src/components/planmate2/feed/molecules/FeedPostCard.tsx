@@ -2,8 +2,8 @@ import { Clock, Copy, Eye, MapPin, MessageCircle, Shield, ThumbsUp } from 'lucid
 import React from 'react';
 import { TravelPost } from '../../../../types/planmate2';
 import { UserAvatar } from '../../common/UserAvatar';
+import { authorNameClass, authorNavProps } from '../../common/authorLink';
 import { StatItem } from '../atoms/StatItem';
-import { TagBadge } from '../atoms/TagBadge';
 
 interface FeedPostCardProps {
   post: TravelPost;
@@ -12,6 +12,7 @@ interface FeedPostCardProps {
 }
 
 export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onClick, onNavigate }) => {
+  const authorNav = authorNavProps(post, onNavigate);
   return (
     <div
       onClick={() => onClick(post)}
@@ -30,11 +31,6 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onClick, onNav
             인증
           </div>
         )}
-        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
-          {post.tags.slice(0, 2).map((tag: string) => (
-            <TagBadge key={tag} tag={tag} />
-          ))}
-        </div>
       </div>
 
       {/* Content */}
@@ -57,25 +53,22 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({ post, onClick, onNav
           </div>
         </div>
 
-        {/* Author */}
-        <div 
-          className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-50 hover:opacity-70 transition-opacity"
-          onClick={(e) => {
-            if (onNavigate) {
-              e.stopPropagation();
-              onNavigate('mypage', { userId: post.userId });
-            }
-          }}
-        >
-          <UserAvatar
-            name={post.author}
-            imageUrl={post.authorImage}
-            avatarHash={post.authorAvatarHash}
-            sizeClass="w-5 h-5"
-            className="text-[10px]"
-            fallbackClassName="bg-blue-50 text-[#1344FF]"
-          />
-          <span className="text-[11px] text-gray-600 font-bold">{post.author}</span>
+        {/* Author — 구분선은 카드 폭 전체로 두되, 클릭 영역은 아바타+닉네임까지만 */}
+        <div className="mb-2 pb-2 border-b border-gray-50">
+          <div
+            onClick={authorNav.onClick}
+            className={`inline-flex items-center gap-2 w-fit transition-opacity ${authorNav.onClick ? 'hover:opacity-70' : ''} ${authorNav.className}`}
+          >
+            <UserAvatar
+              name={post.author}
+              imageUrl={post.authorImage}
+              avatarHash={post.authorAvatarHash}
+              sizeClass="w-5 h-5"
+              className="text-[10px]"
+              fallbackClassName={post.authorDeleted ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-[#1344FF]'}
+            />
+            <span className={`text-[11px] font-bold ${authorNameClass(post, 'text-gray-600')}`}>{post.author}</span>
+          </div>
         </div>
 
         {/* Stats */}

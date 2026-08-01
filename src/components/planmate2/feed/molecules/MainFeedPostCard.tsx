@@ -1,6 +1,7 @@
 import { Clock, Copy, Eye, MessageCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
 import React, { useState } from 'react';
 import { UserAvatar } from '../../common/UserAvatar';
+import { authorNameClass, authorNavProps } from '../../common/authorLink';
 
 interface MainFeedPostCardProps {
   post: any;
@@ -20,6 +21,7 @@ export const MainFeedPostCard: React.FC<MainFeedPostCardProps> = ({
   onDislike
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const authorNav = authorNavProps(post, onNavigate);
 
   return (
     <div
@@ -40,23 +42,25 @@ export const MainFeedPostCard: React.FC<MainFeedPostCardProps> = ({
       </div>
 
       <div className="p-5 flex-1 flex flex-col">
-        <div
-          className="flex items-center mb-3 group/author"
-          onClick={(e) => {
-            e.stopPropagation();
-            onNavigate('mypage', { userId: post.userId });
-          }}
-        >
-          <UserAvatar
-            name={post.author}
-            imageUrl={post.authorImage}
-            avatarHash={post.authorAvatarHash}
-            sizeClass="w-8 h-8"
-            className="mr-2 text-xs group-hover/author:ring-2 group-hover/author:ring-[#1344FF] transition-all"
-          />
-          <div>
-            <p className="text-sm font-bold text-[#1a1a1a] leading-none mb-1 group-hover/author:text-[#1344FF] transition-colors">{post.author}</p>
-            <p className="text-[11px] text-[#666666]">{post.createdAt}</p>
+        {/* 프로필 이동 영역은 아바타+닉네임 폭까지만 — 바깥 div가 클릭을 먹으면
+            작성자 줄의 빈 공간을 눌러도 프로필로 새어 나간다 */}
+        <div className="mb-3">
+          <div
+            onClick={authorNav.onClick}
+            className={`inline-flex items-center w-fit group/author ${authorNav.className}`}
+          >
+            <UserAvatar
+              name={post.author}
+              imageUrl={post.authorImage}
+              avatarHash={post.authorAvatarHash}
+              sizeClass="w-8 h-8"
+              className={`mr-2 text-xs transition-all ${post.authorDeleted ? '' : 'group-hover/author:ring-2 group-hover/author:ring-[#1344FF]'}`}
+              fallbackClassName={post.authorDeleted ? 'bg-gray-200 text-gray-500' : undefined}
+            />
+            <div>
+              <p className={`text-sm font-bold leading-none mb-1 transition-colors ${authorNameClass(post, 'text-[#1a1a1a] group-hover/author:text-[#1344FF]')}`}>{post.author}</p>
+              <p className="text-[11px] text-[#666666] text-left">{post.createdAt}</p>
+            </div>
           </div>
         </div>
 
@@ -64,11 +68,6 @@ export const MainFeedPostCard: React.FC<MainFeedPostCardProps> = ({
         <p className="text-sm text-[#666666] mb-4 line-clamp-2 h-10">{post.description}</p>
 
         <div className="flex flex-wrap gap-1.5 mb-4">
-          {post.tags.slice(0, 2).map((tag: string) => (
-            <span key={tag} className="px-2 py-0.5 bg-[#f0f4ff] text-[#1344FF] text-[11px] font-bold rounded-md">
-              {tag}
-            </span>
-          ))}
           <span className="px-2 py-0.5 bg-[#f8f9fa] text-[#666666] text-[11px] font-medium rounded-md flex items-center gap-1">
             <Clock className="w-3 h-3" />
             {post.duration}

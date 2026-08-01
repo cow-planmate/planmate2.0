@@ -20,7 +20,7 @@ export const useMainFeedFilters = (initialRegion: string, onNavigate: (view: any
   const [selectedRegion, setSelectedRegion] = useState<string>(initialRegion);
   const [selectedDuration, setSelectedDuration] = useState<string>('전체');
   const [sortBy, setSortBy] = useState<string>('최신순');
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -41,24 +41,24 @@ export const useMainFeedFilters = (initialRegion: string, onNavigate: (view: any
   const serverParams: FeedFilterParams = useMemo(() => ({
     region: selectedRegion !== '전체' ? selectedRegion : undefined,
     ...(DURATION_MAP[selectedDuration] ?? {}),
-    tag: selectedTag ?? undefined,
     sort: SORT_MAP[sortBy] ?? 'latest',
+    order: sortOrder,
     q: debouncedQuery.trim() || undefined,
-  }), [selectedRegion, selectedDuration, selectedTag, sortBy, debouncedQuery]);
+  }), [selectedRegion, selectedDuration, sortBy, sortOrder, debouncedQuery]);
 
   const activeFilterCount = useMemo(() => {
     return (selectedRegion !== '전체' ? 1 : 0) +
            (selectedDuration !== '전체' ? 1 : 0) +
            (sortBy !== '최신순' ? 1 : 0) +
-           (selectedTag ? 1 : 0);
-  }, [selectedRegion, selectedDuration, sortBy, selectedTag]);
+           (sortOrder !== 'desc' ? 1 : 0);
+  }, [selectedRegion, selectedDuration, sortBy, sortOrder]);
 
   const clearFilters = () => {
     setSelectedRegion('전체');
     onNavigate('feed', { region: '전체' });
     setSelectedDuration('전체');
     setSortBy('최신순');
-    setSelectedTag(null);
+    setSortOrder('desc');
     setSearchQuery('');
   };
 
@@ -77,7 +77,7 @@ export const useMainFeedFilters = (initialRegion: string, onNavigate: (view: any
       selectedRegion,
       selectedDuration,
       sortBy,
-      selectedTag,
+      sortOrder,
       searchQuery,
       showFilters,
       activeFilterCount
@@ -86,7 +86,7 @@ export const useMainFeedFilters = (initialRegion: string, onNavigate: (view: any
       setSelectedRegion,
       setSelectedDuration,
       setSortBy,
-      setSelectedTag,
+      setSortOrder,
       setSearchQuery,
       setShowFilters,
       clearFilters,

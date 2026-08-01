@@ -1,5 +1,6 @@
 import { Eye, Star, ThumbsUp } from 'lucide-react';
 import { UserAvatar } from '../../common/UserAvatar';
+import { authorNameClass, authorNavProps } from '../../common/authorLink';
 
 interface HotPostCardProps {
   post: any;
@@ -10,6 +11,7 @@ interface HotPostCardProps {
 }
 
 export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostCardProps) => {
+  const authorNav = authorNavProps(post, onNavigate);
   return (
     <div 
       onClick={onClick}
@@ -59,12 +61,9 @@ export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostC
           </h3>
 
           <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-            <div 
-              className="flex items-center gap-1.5 hover:opacity-70 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation();
-                onNavigate('mypage', { userId: post.userId });
-              }}
+            <div
+              onClick={authorNav.onClick}
+              className={`flex items-center gap-1.5 transition-opacity ${authorNav.onClick ? 'hover:opacity-70' : ''} ${authorNav.className}`}
             >
               <UserAvatar
                 name={post.author}
@@ -72,9 +71,9 @@ export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostC
                 avatarHash={post.authorAvatarHash}
                 sizeClass="w-5 h-5"
                 className="text-[10px]"
-                fallbackClassName="bg-gray-100 text-gray-500"
+                fallbackClassName={post.authorDeleted ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-500'}
               />
-              <span className="text-[11px] font-bold text-gray-600">{post.author}</span>
+              <span className={`text-[11px] font-bold ${authorNameClass(post, 'text-gray-600')}`}>{post.author}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-0.5 text-red-500 font-black text-[11px]">

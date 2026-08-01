@@ -7,7 +7,7 @@ import { mapFeedPost, reactToPost } from '../../community/api/communityApi';
 import { useFeedPosts, useFeedRegionCounts } from '../../community/hooks/queries';
 import { useMainFeedFilters } from '../hooks/useMainFeedLogic';
 import { useRegionMarkers } from '../hooks/useRegionMarkers';
-import { DEFAULT_MAP_CENTER, getRegionCoords } from '../utils/region';
+import { DEFAULT_MAP_CENTER, FEED_REGIONS, getRegionCoords } from '../utils/region';
 import { SearchBar } from '../molecules/SearchBar';
 import { DetailFilterPanel } from '../organisms/DetailFilterPanel';
 import { MainFeedHeader } from '../organisms/MainFeedHeader';
@@ -45,17 +45,22 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
     level: 14
   });
 
-  const tags = ['#뚜벅이최적화', '#극한의J', '#여유로운P', '#동선낭비없는'];
   const durations = ['전체', '1일', '2-3일', '4일 이상'];
   const sortOptions = ['최신순', '인기순', '좋아요순', '가져가기순'];
 
-  // 필터 지역 목록도 실제 게시글이 있는 지역에서 뽑는다 (선택 중인 지역은 항상 포함)
+  // 필터 지역 목록은 광역자치단체 전체를 항상 노출한다 — 게시글이 있는 지역만 보여주면
+  // "서울·경기 글밖에 없으면 서울·경기만 고를 수 있는" 상태가 되어 필터 구실을 못 한다.
+  // 여기에 없는 지역(시/군 단위 등)이 서버 집계에 잡히면 뒤에 덧붙인다.
   const regions = useMemo(() => {
-    const names = (regionCountList ?? []).filter(rc => rc.count > 0).map(rc => rc.region);
-    const withSelected = filters.selectedRegion !== '전체' && !names.includes(filters.selectedRegion)
-      ? [filters.selectedRegion, ...names]
-      : names;
-    return ['전체', ...withSelected];
+    const fromServer = (regionCountList ?? []).filter(rc => rc.count > 0).map(rc => rc.region);
+    const extras = fromServer.filter(name => !FEED_REGIONS.includes(name));
+    // 선택 중인 지역은 목록에 없더라도 항상 포함 (URL로 직접 들어온 경우)
+    if (filters.selectedRegion !== '전체'
+      && !FEED_REGIONS.includes(filters.selectedRegion)
+      && !extras.includes(filters.selectedRegion)) {
+      extras.push(filters.selectedRegion);
+    }
+    return ['전체', ...FEED_REGIONS, ...extras];
   }, [regionCountList, filters.selectedRegion]);
 
   useEffect(() => {
@@ -192,38 +197,13 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
           selectedRegion={filters.selectedRegion}
           selectedDuration={filters.selectedDuration}
           sortBy={filters.sortBy}
+          sortOrder={filters.sortOrder}
           onRegionChange={setters.setSelectedRegion}
           onDurationChange={setters.setSelectedDuration}
           onSortChange={setters.setSortBy}
+          onSortOrderChange={setters.setSortOrder}
         />
       )}
-
-      {/* 태그 필터 */}
-      <div className="mb-8 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-3">
-          <button
-            onClick={() => setters.setSelectedTag(null)}
-            className={`px-4 py-2 rounded-full transition-all whitespace-nowrap ${filters.selectedTag === null
-              ? 'bg-[#1344FF] text-white shadow-md'
-              : 'bg-white text-[#666666] border border-[#e5e7eb] hover:border-[#1344FF]'
-              }`}
-          >
-            전체
-          </button>
-          {tags.map(tag => (
-            <button
-              key={tag}
-              onClick={() => setters.setSelectedTag(tag)}
-              className={`px-4 py-2 rounded-full transition-all whitespace-nowrap ${filters.selectedTag === tag
-                ? 'bg-[#1344FF] text-white shadow-md'
-                : 'bg-white text-[#666666] border border-[#e5e7eb] hover:border-[#1344FF]'
-                }`}
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {(filters.searchQuery || filters.activeFilterCount > 0) && (
         <div className="mb-6 flex items-center justify-between">

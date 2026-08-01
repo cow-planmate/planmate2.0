@@ -66,6 +66,8 @@ export interface CommunityPostSummary {
   authorImage?: string | null;
   /** 작성자 이메일 해시 — Gravatar 폴백용 (없으면 생략) */
   authorAvatarHash?: string | null;
+  /** 탈퇴한 사용자. author는 "탈퇴한 사용자"이고 프로필로 이동시키면 안 된다 */
+  authorDeleted?: boolean;
   level: number;
   likes: number;
   dislikes: number;
@@ -110,6 +112,8 @@ export interface CommunityComment {
   author: string;
   authorImage?: string | null;
   authorAvatarHash?: string | null;
+  /** 탈퇴한 사용자. author는 "탈퇴한 사용자"이고 프로필로 이동시키면 안 된다 */
+  authorDeleted?: boolean;
   level: number;
   content: string;
   // 내 활동 목록에서만 내려온다 (원문 표시 + 원문으로 이동)
@@ -207,13 +211,17 @@ export interface FeedFilterParams {
   maxDays?: number;
   tag?: string;
   sort?: string; // latest | likes | views | forks
+  order?: 'asc' | 'desc'; // 기본 desc
   q?: string;
 }
 
 export const fetchFeedPosts = async (
   page: number, size: number, filters: FeedFilterParams = {},
 ): Promise<PageData<CommunityPostSummary>> => {
-  const params = new URLSearchParams({ category: 'feed', page: String(page), size: String(size), sort: filters.sort ?? 'latest' });
+  const params = new URLSearchParams({
+    category: 'feed', page: String(page), size: String(size),
+    sort: filters.sort ?? 'latest', order: filters.order ?? 'desc',
+  });
   if (filters.region) params.set('region', filters.region);
   if (filters.minDays !== undefined) params.set('minDays', String(filters.minDays));
   if (filters.maxDays !== undefined) params.set('maxDays', String(filters.maxDays));
