@@ -12,7 +12,6 @@ import { usePlanChecklists } from "../hooks/usePlanChecklists";
 import { useUserStats } from "../hooks/useUserStats";
 import {
   mapFeedPost,
-  mapForkedFeedPost,
   mapLikedFeedPost,
   type CommunityPostSummary,
   type PageData,
@@ -109,16 +108,14 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   const [isProfilePrivate, setIsProfilePrivate] = useState(false);
 
   // Tabs State
-  const [travelTab, setTravelTab] = useState<"created" | "forked" | "liked">(
-    "created",
-  );
+  const [travelTab, setTravelTab] = useState<"created" | "liked">("created");
   const [communityTab, setCommunityTab] = useState<
     "my_posts" | "liked_posts" | "comments"
   >("my_posts");
 
   // 여행기 — 탭별 페이지(0-based). 탭 전환 시 1페이지로 리셋한다
   const [travelPage, setTravelPage] = useState(0);
-  const changeTravelTab = (tab: "created" | "forked" | "liked") => {
+  const changeTravelTab = (tab: "created" | "liked") => {
     setTravelTab(tab);
     setTravelPage(0);
   };
@@ -176,18 +173,12 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         : communityCommentsPage
   ) as PageData<any> | undefined;
 
-  // 여행기 — 본인은 me 엔드포인트(작성/가져옴/좋아요), 다른 사용자는 공개 목록(작성글만).
+  // 여행기 — 본인은 me 엔드포인트(작성/좋아요), 다른 사용자는 공개 목록(작성글만).
   // 활성 탭만 현재 페이지를 요청하고, 비활성 탭은 개수 배지용으로 1페이지만 유지한다.
   const { data: myFeedPostsPage } = useMyActivity(
     "posts",
     travelTab === "created" ? travelPage : 0,
     "feed",
-    !isOtherUser,
-  );
-  const { data: forkedFeedPostsPage } = useMyActivity(
-    "forks",
-    travelTab === "forked" ? travelPage : 0,
-    undefined,
     !isOtherUser,
   );
   const { data: likedFeedPostsPage } = useMyActivity(
@@ -210,14 +201,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     () => (travelPostsPage?.items ?? []).map(mapFeedPost),
     [travelPostsPage],
   );
-  const forkedTravelPosts = useMemo(
-    () =>
-      (
-        (forkedFeedPostsPage as PageData<CommunityPostSummary> | undefined)
-          ?.items ?? []
-      ).map(mapForkedFeedPost),
-    [forkedFeedPostsPage],
-  );
   const likedTravelPosts = useMemo(
     () =>
       (
@@ -229,11 +212,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
 
   // 다른 사용자 프로필은 작성글 탭만 노출하므로 항상 작성글 페이지를 기준으로 한다
   const activeTravelPage = (
-    isOtherUser || travelTab === "created"
-      ? travelPostsPage
-      : travelTab === "forked"
-        ? forkedFeedPostsPage
-        : likedFeedPostsPage
+    isOtherUser || travelTab === "created" ? travelPostsPage : likedFeedPostsPage
   ) as PageData<any> | undefined;
 
   // 내 여행기 삭제 — 목록 캐시는 useDeletePost가 무효화한다
@@ -1168,7 +1147,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           myTravelPostsCount={
             travelPostsPage?.totalElements ?? myTravelPosts.length
           }
-          forkedTravelPosts={forkedTravelPosts}
           likedTravelPosts={likedTravelPosts}
           isOtherUser={!!isOtherUser}
           page={travelPage}
