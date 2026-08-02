@@ -34,7 +34,6 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
             onClick={() => onNavigateDetail(event)}
             className="group p-4 rounded-2xl border-2 border-gray-50 hover:border-[#1344FF] hover:bg-blue-50/50 transition-all cursor-pointer"
           >
-            <p className="text-xs font-bold text-[#1344FF] mb-1">{event.status === '완료' ? '여행기' : '계획'}</p>
             <div className="flex justify-between items-center gap-2">
               <h4 className="font-bold text-gray-900 group-hover:text-[#1344FF] transition-colors truncate">
                 {event.title}
@@ -44,7 +43,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-              📍 {event.destination}
+              {event.destination}
             </p>
           </div>
         ))}

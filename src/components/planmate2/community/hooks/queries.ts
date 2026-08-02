@@ -11,7 +11,6 @@ import {
   fetchHotPosts,
   fetchLikedPosts,
   fetchMyComments,
-  fetchMyForks,
   fetchMyPosts,
   fetchMyStats,
   fetchPost,
@@ -94,14 +93,13 @@ export const useComments = (postId: number | string | undefined, page = 0) =>
  * @param enabled  다른 사용자 프로필을 볼 때처럼 내 활동이 필요 없으면 false
  */
 export const useMyActivity = (
-  tab: 'posts' | 'liked' | 'comments' | 'forks', page = 0, category?: string, enabled = true,
+  tab: 'posts' | 'liked' | 'comments', page = 0, category?: string, enabled = true,
 ) =>
   useQuery({
     queryKey: KEYS.me(category ? `${tab}:${category}` : tab, page),
     queryFn: () => {
       if (tab === 'posts') return fetchMyPosts(page, 20, category);
       if (tab === 'liked') return fetchLikedPosts(page, 20, category);
-      if (tab === 'forks') return fetchMyForks(page);
       return fetchMyComments(page);
     },
     enabled,

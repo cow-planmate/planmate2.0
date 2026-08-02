@@ -280,13 +280,6 @@ export const mapFeedPost = (post: CommunityPostSummary & { createdAtIso: string 
 
 export type FeedCardPost = ReturnType<typeof mapFeedPost>;
 
-/** 마이페이지 "가져온 여행" 카드 — 원작자와 가져간 시각을 덧붙인다 */
-export const mapForkedFeedPost = (post: CommunityPostSummary & { createdAtIso: string }) => ({
-  ...mapFeedPost(post),
-  originalAuthor: post.author,
-  forkedAt: timeAgo(post.actedAt),
-});
-
 /** 마이페이지 "좋아요한 여행" 카드 — 좋아요한 시각을 덧붙인다 */
 export const mapLikedFeedPost = (post: CommunityPostSummary & { createdAtIso: string }) => ({
   ...mapFeedPost(post),
@@ -394,10 +387,6 @@ export const fetchMyPosts = async (page = 0, size = 20, category?: string): Prom
 
 export const fetchLikedPosts = async (page = 0, size = 20, category?: string): Promise<PageData<CommunityPostSummary>> =>
   mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/me/liked?${myActivityQuery(page, size, category)}`));
-
-/** 내가 가져간(포크한) 피드 글 — 가져간 시각 최신순 */
-export const fetchMyForks = async (page = 0, size = 20): Promise<PageData<CommunityPostSummary>> =>
-  mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/me/forks?page=${page}&size=${size}`));
 
 export const fetchMyComments = async (page = 0, size = 20): Promise<PageData<CommunityComment>> =>
   mapPage(await request<PageData<CommunityComment>>(`/api/community/me/comments?page=${page}&size=${size}`));
