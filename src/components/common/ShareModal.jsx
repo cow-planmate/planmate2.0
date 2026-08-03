@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
 import { ErrorToast, SuccessToast } from "./Toast";
 import useConfirmStore from "../../store/Confirm";
+import { Check, Copy, Link2, Lock } from "lucide-react";
 
 const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
   const { post, get, patch, del } = useApiClient();
@@ -9,6 +10,8 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
   const [receiverNickname, setreceiverNickname] = useState("");
   const [shareURL, setShareURL] = useState("");
   const [isShared, setIsShared] = useState(false);
+  const [isUpdatingShare, setIsUpdatingShare] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const BASE_URL = import.meta.env.VITE_API_URL;
   const { showConfirm } = useConfirmStore();
 
@@ -47,7 +50,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
   }, [getEditors, getShareStatus, isOwner]);
 
   const removeEditorAccessByOwner = async (targetUserId) => {
-    if (!(await showConfirm("해당 사용자의 편집 권한을 삭제하시겠습니까?"))) {
+    if (!window.confirm("해당 사용자의 편집 권한을 삭제하시겠습니까?")) {
       return;
     }
 
@@ -82,6 +85,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
     const nextIsShared = !isShared;
 
     try {
+      setIsUpdatingShare(true);
       await patch(`${BASE_URL}/api/plan/${id}/share`, {
         isShared: nextIsShared,
       });
@@ -96,16 +100,25 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
       );
     } catch (error) {
       ErrorToast(error.message || "공유 상태 변경에 실패했습니다.");
+    } finally {
+      setIsUpdatingShare(false);
     }
   };
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     if (!shareURL) {
       ErrorToast("현재 사용할 수 있는 공유 링크가 없습니다.");
       return;
     }
-    navigator.clipboard.writeText(shareURL);
-    SuccessToast("링크가 복사되었습니다!");
+
+    try {
+      await navigator.clipboard.writeText(shareURL);
+      setIsCopied(true);
+      SuccessToast("링크가 복사되었습니다!");
+      window.setTimeout(() => setIsCopied(false), 2000);
+    } catch {
+      ErrorToast("링크 복사에 실패했습니다.");
+    }
   };
 
   const resignEditorAccess = async () => {
@@ -139,41 +152,74 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
         >
           ✕
         </button>
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            완성본 공유 URL
-          </label>
-          <div className="flex gap-2">
-            <input
-              className="flex-1 min-w-0 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600"
-              value={shareURL}
-              readOnly
-            />
-            <button
-              onClick={copyToClipboard}
-              className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all duration-200"
-            >
-              복사
-            </button>
+        <div className="mb-6 border-b border-gray-100 pb-6">
+          <h3 className="mb-3 text-sm font-medium text-gray-700">링크로 공유</h3>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                  isShared
+                    ? "bg-blue-100 text-blue-600"
+                    : "bg-gray-200 text-gray-500"
+                }`}
+              >
+                {isShared ? <Link2 size={18} /> : <Lock size={18} />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-800">
+                  {isShared ? "링크가 있는 모든 사용자" : "제한됨"}
+                </p>
+                <p className="mt-0.5 text-xs leading-5 text-gray-500">
+                  {isShared
+                    ? "링크를 아는 사람은 로그인 없이 완성된 일정을 볼 수 있어요."
+                    : "초대받은 사용자만 일정에 접근할 수 있어요."}
+                </p>
+              </div>
+              {isOwner && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isShared}
+                  aria-label="공유 링크 사용"
+                  disabled={isUpdatingShare}
+                  onClick={toggleShare}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                    isShared ? "bg-blue-600" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                      isShared ? "left-0.5 translate-x-5" : "left-0.5"
+                    }`}
+                  />
+                </button>
+              )}
+            </div>
+
+            {isShared && (
+              <div className="mt-4 flex gap-2 border-t border-gray-200 pt-4">
+                <input
+                  aria-label="완성본 공유 URL"
+                  className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-600 outline-none"
+                  value={shareURL}
+                  readOnly
+                  onFocus={(event) => event.target.select()}
+                />
+                <button
+                  type="button"
+                  onClick={copyToClipboard}
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isCopied
+                      ? "bg-green-50 text-green-700"
+                      : "bg-white text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {isCopied ? <Check size={16} /> : <Copy size={16} />}
+                  {isCopied ? "복사됨" : "링크 복사"}
+                </button>
+              </div>
+            )}
           </div>
-          {isOwner ? (
-            <button
-              onClick={toggleShare}
-              className={`mt-3 w-full rounded-xl px-4 py-3 font-medium transition-colors ${
-                isShared
-                  ? "bg-red-50 text-red-600 hover:bg-red-100"
-                  : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-              }`}
-            >
-              {isShared ? "공유 링크 끄기" : "공유 링크 켜기"}
-            </button>
-          ) : (
-            <p className="mt-3 text-sm text-gray-500">
-              {isShared
-                ? "일정 소유자가 공유 링크를 켜두었습니다."
-                : "일정 소유자가 공유 링크를 꺼두었습니다."}
-            </p>
-          )}
         </div>
 
         {isOwner && (

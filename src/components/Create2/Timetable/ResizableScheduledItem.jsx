@@ -225,7 +225,7 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
         >
           <div
             {...listeners}
-            className={`w-full h-full ${tripColor1[categoryId]} border-l-4 ${tripColor3[categoryId]} rounded shadow-sm overflow-hidden select-none ${tripColor2[categoryId]} transition-colors cursor-move
+            className={`w-full h-full ${tripColor1[categoryId]} border-l-4 ${tripColor3[categoryId]} rounded ring-1 ring-inset ring-slate-900/15 shadow-sm overflow-hidden select-none ${tripColor2[categoryId]} transition-colors cursor-move
               ${isDragging ? "shadow-xl ring-2 ring-blue-300" : ""}
               ${isMinimized ? "flex flex-col items-start justify-center px-5" : "p-5"}`}
           >

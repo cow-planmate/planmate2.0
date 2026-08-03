@@ -12,7 +12,7 @@ import Signup from "../auth/Signup";
 import { ErrorToast } from "../common/Toast";
 import { useApiClient } from "../../hooks/useApiClient";
 
-export default function PlanInfo({ planFrame }) {
+export default function PlanInfo({ planFrame, isOwner }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
@@ -87,7 +87,7 @@ export default function PlanInfo({ planFrame }) {
       />}
 
       {isShareOpen && <ShareModal
-        isOwner={true}
+        isOwner={isOwner}
         setIsShareOpen={setIsShareOpen}
         id={id}
       />}

@@ -25,7 +25,7 @@ import UsersModal from "./UsersModal";
 import UndoIcon from "../../../assets/imgs/undo.svg?react";
 import RedoIcon from "../../../assets/imgs/redo.svg?react";
 
-export default function PlanInfo({ id }) {
+export default function PlanInfo({ id, isOwner }) {
   const {
     planName,
     transportationType,
@@ -282,7 +282,7 @@ export default function PlanInfo({ id }) {
       {isUsersOpen && <UsersModal setIsUsersOpen={setIsUsersOpen} />}
 
       {isShareOpen && <ShareModal
-        isOwner={true}
+        isOwner={isOwner}
         setIsShareOpen={setIsShareOpen}
         id={id}
       />}

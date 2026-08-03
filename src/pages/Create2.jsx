@@ -40,6 +40,7 @@ import {
   resetAllStores,
 } from "../utils/createUtils";
 import { ErrorToast, SuccessToast } from "../components/common/Toast";
+import { resolvePlanOwnership } from "../utils/planOwnership";
 
 function App() {
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -86,6 +87,7 @@ function App() {
   const [showTempPlanPrompt, setShowTempPlanPrompt] = useState(false); // Alert state
   const [isTempLoaded, setIsTempLoaded] = useState(false); // Prevent auto-save until loaded
   const [isPlaceLoading, setIsPlaceLoading] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -117,6 +119,16 @@ function App() {
           const planData = await get(`${BASE_URL}/api/plan/${id}`);
 
           console.log(planData);
+
+          setIsOwner(
+            await resolvePlanOwnership({
+              planId: id,
+              planData,
+              get,
+              baseUrl: BASE_URL,
+              isAuthenticated,
+            }),
+          );
 
           setPlanAll(planData.planFrame);
           setTimetableAll(
@@ -455,7 +467,7 @@ function App() {
       <div>
         <Navbar currentView="plan-maker" onNavigate={handleNavbarNavigate} />
       </div>
-      <PlanInfo id={id} />
+      <PlanInfo id={id} isOwner={isOwner} />
       <div
         className="
           min-[1464px]:w-[1400px] min-[1464px]:px-0

@@ -69,7 +69,7 @@ export const ScheduledItem = ({ item, START_HOUR }) => {
       className="absolute touch-none"
     >
         <div
-          className={`w-full h-full ${tripColor1[place.categoryId]} border-l-4 ${tripColor3[place.categoryId]} rounded shadow-sm overflow-hidden select-none transition-colors
+          className={`w-full h-full ${tripColor1[place.categoryId]} border-l-4 ${tripColor3[place.categoryId]} rounded ring-1 ring-inset ring-slate-900/15 shadow-sm overflow-hidden select-none transition-colors
             ${localState.height <= 80 ? 'flex flex-col items-start justify-center px-5' : "p-5"}`}
         >
           <div className="w-full flex items-center gap-2 min-w-0">

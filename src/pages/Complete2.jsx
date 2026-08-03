@@ -14,6 +14,7 @@ import TimetableGrid from "../components/Complete/TimetableGrid";
 import MapArea from "../components/Complete/MapArea";
 
 import { ErrorToast } from "../components/common/Toast";
+import { resolvePlanOwnership } from "../utils/planOwnership";
 
 function App() {
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -22,7 +23,7 @@ function App() {
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
 
-  const { get } = useApiClient();
+  const { get, isAuthenticated } = useApiClient();
 
   const handleNavbarNavigate = (view) => {
     const routes = {
@@ -42,6 +43,7 @@ function App() {
   const [placeBlocks, setPlaceBlocks] = useState([]);
   const [timetables, setTimetables] = useState([]);
   const [selectedDay, setSelectedDay] = useState(0);
+  const [isOwner, setIsOwner] = useState(false);
 
   const [activeTab, setActiveTab] = useState("timetable");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -193,6 +195,16 @@ function App() {
       if (planData) {
         console.log("초기 데이터", planData);
 
+        setIsOwner(
+          await resolvePlanOwnership({
+            planId: id,
+            planData,
+            get,
+            baseUrl: BASE_URL,
+            isAuthenticated,
+          }),
+        );
+
         setPlanFrame(planData.planFrame);
 
         const sortTimetables = sortByDate(planData.timetables);
@@ -233,7 +245,7 @@ function App() {
       <div>
         <Navbar currentView="" onNavigate={handleNavbarNavigate} />
       </div>
-      <PlanInfo planFrame={planFrame} />
+      <PlanInfo planFrame={planFrame} isOwner={isOwner} />
       <div
         className="
           min-[1464px]:w-[1400px] min-[1464px]:px-0
