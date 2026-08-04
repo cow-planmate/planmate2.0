@@ -9,7 +9,8 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
   const [editors, setEditors] = useState([]);
   const [receiverNickname, setreceiverNickname] = useState("");
   const [shareURL, setShareURL] = useState("");
-  const [isShared, setIsShared] = useState(false);
+  const [isShared, setIsShared] = useState(null);
+  const [isLoadingShareStatus, setIsLoadingShareStatus] = useState(true);
   const [isUpdatingShare, setIsUpdatingShare] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -27,6 +28,7 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
 
   const getShareStatus = useCallback(async () => {
     try {
+      setIsLoadingShareStatus(true);
       const response = await get(`${BASE_URL}/api/plan/${id}/share`);
       const payload = response?.data || response;
       const nextIsShared = payload?.isShared === true;
@@ -39,15 +41,15 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
       );
     } catch (error) {
       ErrorToast(error.message || "공유 상태 조회에 실패했습니다.");
+    } finally {
+      setIsLoadingShareStatus(false);
     }
   }, [BASE_URL, get, id]);
 
   useEffect(() => {
     getShareStatus();
-    if (isOwner) {
-      getEditors();
-    }
-  }, [getEditors, getShareStatus, isOwner]);
+    getEditors();
+  }, [getEditors, getShareStatus]);
 
   const removeEditorAccessByOwner = async (targetUserId) => {
     if (!window.confirm("해당 사용자의 편집 권한을 삭제하시겠습니까?")) {
@@ -158,33 +160,55 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
             <div className="flex items-center gap-3">
               <div
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                  isShared
+                  isLoadingShareStatus || isShared === null
+                    ? "animate-pulse bg-gray-200 text-gray-400"
+                    : isShared
                     ? "bg-blue-100 text-blue-600"
                     : "bg-gray-200 text-gray-500"
                 }`}
               >
-                {isShared ? <Link2 size={18} /> : <Lock size={18} />}
+                {isLoadingShareStatus || isShared === null ? null : isShared ? (
+                  <Link2 size={18} />
+                ) : (
+                  <Lock size={18} />
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gray-800">
-                  {isShared ? "링크가 있는 모든 사용자" : "제한됨"}
+                  {isLoadingShareStatus
+                    ? "공유 상태 확인 중"
+                    : isShared === null
+                      ? "공유 상태를 확인할 수 없음"
+                      : isShared
+                        ? "링크가 있는 모든 사용자"
+                        : "제한됨"}
                 </p>
                 <p className="mt-0.5 text-xs leading-5 text-gray-500">
-                  {isShared
-                    ? "링크를 아는 사람은 로그인 없이 완성된 일정을 볼 수 있어요."
-                    : "초대받은 사용자만 일정에 접근할 수 있어요."}
+                  {isLoadingShareStatus
+                    ? "잠시만 기다려 주세요."
+                    : isShared === null
+                      ? "모달을 닫은 후 다시 시도해 주세요."
+                      : isShared
+                        ? "링크를 아는 사람은 로그인 없이 완성된 일정을 볼 수 있어요."
+                        : "초대받은 사용자만 일정에 접근할 수 있어요."}
                 </p>
               </div>
               {isOwner && (
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={isShared}
+                  aria-checked={isShared === true}
                   aria-label="공유 링크 사용"
-                  disabled={isUpdatingShare}
+                  disabled={
+                    isLoadingShareStatus || isShared === null || isUpdatingShare
+                  }
                   onClick={toggleShare}
                   className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-                    isShared ? "bg-blue-600" : "bg-gray-300"
+                    isLoadingShareStatus || isShared === null
+                      ? "animate-pulse bg-gray-200"
+                      : isShared
+                        ? "bg-blue-600"
+                        : "bg-gray-300"
                   }`}
                 >
                   <span
@@ -222,35 +246,35 @@ const ShareModal = ({ setIsShareOpen, id, isOwner }) => {
           </div>
         </div>
 
-        {isOwner && (
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              편집 권한이 있는 사용자
-            </label>
-            <div className="space-y-2">
-              {editors.length > 0 ? (
-                editors.map((editor) => (
-                  <div
-                    key={editor.userId}
-                    className="flex items-center justify-between bg-gray-50 p-3 rounded-xl"
-                  >
-                    <span className="text-gray-700">{editor.nickname}</span>
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            편집 권한이 있는 사용자
+          </label>
+          <div className="space-y-2">
+            {editors.length > 0 ? (
+              editors.map((editor) => (
+                <div
+                  key={editor.userId}
+                  className="flex items-center justify-between bg-gray-50 p-3 rounded-xl"
+                >
+                  <span className="text-gray-700">{editor.nickname}</span>
+                  {isOwner && (
                     <button
                       onClick={() => removeEditorAccessByOwner(editor.userId)}
                       className="w-6 h-6 bg-red-100 hover:bg-red-200 rounded-full flex items-center justify-center transition-colors"
                     >
                       <span className="text-red-500 text-sm">×</span>
                     </button>
-                  </div>
-                ))
-              ) : (
-                <div className="text-gray-500 text-sm text-center py-2">
-                  편집 권한을 가진 사용자가 없습니다
+                  )}
                 </div>
-              )}
-            </div>
+              ))
+            ) : (
+              <div className="text-gray-500 text-sm text-center py-2">
+                편집 권한을 가진 사용자가 없습니다
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
