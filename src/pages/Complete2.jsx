@@ -15,6 +15,7 @@ import MapArea from "../components/Complete/MapArea";
 
 import { ErrorToast } from "../components/common/Toast";
 import { resolvePlanOwnership } from "../utils/planOwnership";
+import { ChecklistSheet } from "../components/checklist/ChecklistSheet";
 
 function App() {
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -246,6 +247,7 @@ function App() {
         <Navbar currentView="" onNavigate={handleNavbarNavigate} />
       </div>
       <PlanInfo planFrame={planFrame} isOwner={isOwner} />
+      <ChecklistSheet planId={id} enabled={isAuthenticated()} />
       <div
         className="
           min-[1464px]:w-[1400px] min-[1464px]:px-0

@@ -32,12 +32,6 @@ export interface UserProfile {
   preferredThemes: PreferredTheme[];
 }
 
-export interface ChecklistItem {
-  id: number;
-  text: string;
-  done: boolean;
-}
-
 export interface Trip extends Plan {
   id: string;
   title: string;
@@ -47,7 +41,6 @@ export interface Trip extends Plan {
   hasDates: boolean;
   theme: 'blue' | 'orange';
   progress: number;
-  checklist: ChecklistItem[];
   startDateObj: Date;
   endDateObj: Date;
   lane?: number;

@@ -41,6 +41,7 @@ import {
 } from "../utils/createUtils";
 import { ErrorToast, SuccessToast } from "../components/common/Toast";
 import { resolvePlanOwnership } from "../utils/planOwnership";
+import { ChecklistSheet } from "../components/checklist/ChecklistSheet";
 
 function App() {
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -76,6 +77,8 @@ function App() {
     adultCount,
     childCount,
   } = usePlanStore();
+  const checklistPlanId =
+    id || (planId && planId !== -1 ? String(planId) : null);
   const { setTimetableAll, setSelectedDay, timetables } = useTimetableStore(); // Add timetables
   const location = useLocation(); // Add useLocation
   const { addItemFromWebsocket, resetItems, items } = useItemsStore(); // Add items
@@ -468,6 +471,10 @@ function App() {
         <Navbar currentView="plan-maker" onNavigate={handleNavbarNavigate} />
       </div>
       <PlanInfo id={id} isOwner={isOwner} />
+      <ChecklistSheet
+        planId={checklistPlanId}
+        enabled={Boolean(checklistPlanId && isAuthenticated())}
+      />
       <div
         className="
           min-[1464px]:w-[1400px] min-[1464px]:px-0

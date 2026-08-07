@@ -8,7 +8,6 @@ import useNicknameStore from "../../../../store/Nickname";
 import { LEVEL_CONFIG } from "../constants";
 import { DEFAULT_MAP_CENTER, getRegionCoords } from "../../feed/utils/region";
 import { useCalendar } from "../hooks/useCalendar";
-import { usePlanChecklists } from "../hooks/usePlanChecklists";
 import { useUserStats } from "../hooks/useUserStats";
 import {
   mapFeedPost,
@@ -250,15 +249,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       navigate("/");
     }
   }, [isAuthenticated, navigate]);
-
-  // 체크리스트 관리 Hook
-  const {
-    planChecklists,
-    handleToggleChecklist,
-    handleUpdateChecklistText,
-    handleAddChecklistItem,
-    handleDeleteChecklistItem,
-  } = usePlanChecklists(myPlans, editablePlans);
 
   // 모달 상태
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -889,7 +879,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       theme: plan.isOwner ? "blue" : "orange",
       isOwner: plan.isOwner,
       progress: Math.floor(Math.random() * 100),
-      checklist: planChecklists[plan.planId] || [],
     };
   });
 
@@ -1122,10 +1111,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
               pastPlans={pastPlans}
               togglePlanSelection={togglePlanSelection}
               handleDeletePlan={handleDeletePlan}
-              handleToggleChecklist={handleToggleChecklist}
-              handleUpdateChecklistText={handleUpdateChecklistText}
-              handleDeleteChecklistItem={handleDeleteChecklistItem}
-              handleAddChecklistItem={handleAddChecklistItem}
               onRenamePlan={(plan) => {
                 setActionPlan(plan);
                 setIsTitleModalOpen(true);
@@ -1136,6 +1121,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
               }}
               onNavigateTrip={(id: string) => navigate(`/complete?id=${id}`)}
               onNavigateToPlanMaker={() => onNavigate("plan-maker")}
+              showChecklists={!isOtherUser}
             />
           </>
         )}

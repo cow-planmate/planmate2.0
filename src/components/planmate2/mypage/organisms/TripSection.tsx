@@ -3,16 +3,15 @@ import {
   Calendar as CalendarIcon,
   Check,
   CheckSquare,
-  Plus,
   Settings,
   Square,
   Trash2,
   TrendingUp,
-  X,
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { PlanCardActionMenu } from "../molecules/PlanCardActionMenu";
 import { getPlanStatusLabel } from "../../../../utils/planSchedule";
+import { ChecklistSheet } from "../../../checklist/ChecklistSheet";
 
 /** 진행 중 + 예정을 하나로 묶었으므로 탭은 PlanStatus가 아닌 2종이다 */
 type TripTab = "upcoming" | "past";
@@ -34,17 +33,10 @@ interface TripSectionProps {
   pastPlans: any[];
   onNavigateTrip: (id: string) => void;
   handleDeletePlan: (id: string, isOwner: boolean) => void;
-  handleToggleChecklist: (planId: string, itemId: number) => void;
-  handleUpdateChecklistText: (
-    planId: string,
-    itemId: number,
-    text: string,
-  ) => void;
-  handleDeleteChecklistItem: (planId: string, itemId: number) => void;
-  handleAddChecklistItem: (planId: string) => void;
   onRenamePlan: (plan: any) => void;
   onSharePlan: (plan: any) => void;
   onNavigateToPlanMaker: () => void;
+  showChecklists?: boolean;
 }
 
 export const TripSection: React.FC<TripSectionProps> = ({
@@ -60,13 +52,10 @@ export const TripSection: React.FC<TripSectionProps> = ({
   pastPlans,
   onNavigateTrip,
   handleDeletePlan,
-  handleToggleChecklist,
-  handleUpdateChecklistText,
-  handleDeleteChecklistItem,
-  handleAddChecklistItem,
   onRenamePlan,
   onSharePlan,
   onNavigateToPlanMaker,
+  showChecklists = true,
 }) => {
   // 진행 중과 예정을 한 탭으로 묶는다 — 사용자 입장에서 둘 다 "아직 안 끝난 여행"이고,
   // 진행 중 여부는 카드의 '진행 중' 배지(trip.status)로 이미 구분된다.
@@ -253,69 +242,9 @@ export const TripSection: React.FC<TripSectionProps> = ({
                       </div>
                     </div>
 
-                    <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100/50 flex flex-col">
-                      <div className="flex items-center justify-between mb-3 px-1">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                          Check List
-                        </span>
-                        <span className="text-[10px] font-bold text-gray-400">
-                          {trip.checklist.filter((i: any) => i.done).length}/
-                          {trip.checklist.length}
-                        </span>
-                      </div>
-                      <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1 custom-scrollbar">
-                        {trip.checklist.map((item: any) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-2.5 group/prepItem"
-                          >
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleChecklist(trip.id, item.id);
-                              }}
-                              className={`w-4 h-4 rounded-md flex-shrink-0 border-2 transition-all flex items-center justify-center cursor-pointer ${item.done ? (trip.theme === "blue" ? "bg-[#1344FF] border-[#1344FF]" : "bg-orange-500 border-orange-500") : "bg-white border-gray-200 hover:border-gray-300"}`}
-                            >
-                              {item.done && (
-                                <Check className="w-3 h-3 text-white" />
-                              )}
-                            </div>
-                            <input
-                              type="text"
-                              value={item.text}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) =>
-                                handleUpdateChecklistText(
-                                  trip.id,
-                                  item.id,
-                                  e.target.value,
-                                )
-                              }
-                              className={`flex-1 bg-transparent text-xs font-bold outline-none border-b border-transparent focus:border-gray-200 transition-all py-0.5 ${item.done ? "text-gray-300 line-through" : "text-gray-600"}`}
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteChecklistItem(trip.id, item.id);
-                              }}
-                              className="opacity-0 group-hover/prepItem:opacity-100 p-1 text-gray-200 hover:text-red-500 transition-all font-bold"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddChecklistItem(trip.id);
-                        }}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 mt-4 border border-dashed border-gray-200 rounded-xl text-[11px] font-bold text-gray-400 hover:text-gray-600 hover:bg-white transition-all shadow-sm"
-                      >
-                        <Plus className="w-3 h-3" />할 일 추가
-                      </button>
-                    </div>
+                    {showChecklists ? (
+                      <ChecklistSheet planId={trip.id} variant="summary" />
+                    ) : null}
                   </div>
                 </div>
               ))}
