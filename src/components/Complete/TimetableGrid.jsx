@@ -4,7 +4,6 @@ import { ScheduledItem } from "./ScheduledItem";
 import Weather from "../common/Weather";
 
 const TimetableGrid = ({ planFrame, placeBlocks, selectedDay, timetables, showTimetable }) => {
-  const destinationName = planFrame?.destinationName;
   const destinationId = planFrame?.destinationId;
 
   const SLOT_HEIGHT = 40;
@@ -31,7 +30,6 @@ const TimetableGrid = ({ planFrame, placeBlocks, selectedDay, timetables, showTi
       <Weather
         timetables={timetables}
         selectedDay={selectedDay}
-        destinationName={destinationName}
         destinationId={destinationId}
       />
       <div className="h-full flex flex-col overflow-hidden relative py-4 px-5 overflow-y-auto overflow-x-hidden">

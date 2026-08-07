@@ -12,10 +12,10 @@ import Snowy from "../../assets/imgs/weather/snowy-6.svg";               // 눈
 import Sonagi from "../../assets/imgs/weather/sonagi.svg";               // 소나기
 import Thunderstorms from "../../assets/imgs/weather/thunderstorms.svg"; // 뇌우
 
-export default function Weather({ timetables, selectedDay, destinationName, destinationId }) {
+export default function Weather({ timetables, selectedDay, destinationId }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  const { post } = useApiClient();
+  const { get } = useApiClient();
 
   const [weather, setWeather] = useState({});
   const [nowWeather, setNowWeather] = useState({});
@@ -39,32 +39,28 @@ export default function Weather({ timetables, selectedDay, destinationName, dest
       const startDate = timetables?.[0]?.date;
       const endDate = timetables?.[timetables.length - 1]?.date;
 
-      if (timetables && destinationName && destinationId) {
+      if (startDate && endDate && destinationId) {
         try {
-          const weatherData = await post(`${BASE_URL}/api/weather/recommendations`, {
-            city: destinationName,
-            start_date: startDate,
-            end_date: endDate,
+          const query = new URLSearchParams({
+            destinationId: String(destinationId),
+            startDate,
+            endDate,
           });
+          const weatherData = await get(`${BASE_URL}/api/weather?${query}`);
           setWeather(weatherData);
         } catch (err) {
           console.error("날씨를 불러오지 못했습니다.", err);
+          setWeather({});
         }
       }
     }
     loadWeather();
-  }, [timetables, destinationName, destinationId])
+  }, [BASE_URL, get, timetables, destinationId])
 
   useEffect(() => {
     const dayWeather = weather.weather?.[selectedDay];
-    if (dayWeather) setNowWeather(dayWeather);
+    setNowWeather(dayWeather ?? {});
   }, [selectedDay, weather]);
-
-  useEffect(() => {
-    console.log(nowWeather)
-    if (nowWeather) console.log(true);
-    else console.log(false);
-  }, [nowWeather])
 
   return (
     <div className="
@@ -77,7 +73,7 @@ export default function Weather({ timetables, selectedDay, destinationName, dest
       flex items-center justify-between
       bg-white md:bg-transparent bg-clip-padding backdrop-filter backdrop-blur-md md:backdrop-blur-none bg-opacity-10
     ">
-      {weather?.recommendation === "날씨 정보를 가져올 수 없어 시즌 평균 기온으로 대체합니다." &&
+      {nowWeather?.dataSource === "SEASONAL_AVERAGE" &&
         <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 group/tooltip z-50">
           <div
             className="size-3 md:size-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[.5rem] md:text-xs font-semibold shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
@@ -117,22 +113,22 @@ export default function Weather({ timetables, selectedDay, destinationName, dest
       <div className="flex space-x-4 items-center">
         <div className="-space-y-1">
           <p className="text-xs text-gray-500">최저</p>
-          {nowWeather.temp_min != null ?
-            <p className="text-base md:text-lg font-semibold text-blue-600">{nowWeather?.temp_min}℃</p> :
+          {nowWeather.tempMin != null ?
+            <p className="text-base md:text-lg font-semibold text-blue-600">{nowWeather.tempMin}℃</p> :
             <div className="bg-gray-300 rounded-lg w-9 h-6"></div>
           }
         </div>
         <div className="-space-y-1">
           <p className="text-xs text-gray-500">최고</p>
-          {nowWeather.temp_max != null ?
-            <p className="text-base md:text-lg font-semibold text-red-600">{nowWeather?.temp_max}℃</p> :
+          {nowWeather.tempMax != null ?
+            <p className="text-base md:text-lg font-semibold text-red-600">{nowWeather.tempMax}℃</p> :
             <div className="bg-gray-300 rounded-lg w-9 h-6"></div>
           }
         </div>
         <div className="-space-y-1">
           <p className="text-xs text-gray-500">체감</p>
-          {nowWeather.feels_like != null ?
-            <p className="text-base md:text-lg font-semibold">{nowWeather?.feels_like}℃</p> :
+          {nowWeather.feelsLike != null ?
+            <p className="text-base md:text-lg font-semibold">{nowWeather.feelsLike}℃</p> :
             <div className="bg-gray-300 rounded-lg w-9 h-6"></div>
           }
         </div>
