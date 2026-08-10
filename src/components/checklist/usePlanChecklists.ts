@@ -129,9 +129,30 @@ export const usePlanChecklists = (planId?: string | null, enabled = true) => {
         }
       }
     },
+    onMutate: async (variables) => {
+      if (variables.type !== "reorder" || !variables.itemIds) return;
+      const queryKey = checklistKeys.scope(planId ?? "", variables.scope);
+      await queryClient.cancelQueries({ queryKey });
+      const previousItems = queryClient.getQueryData<PlanChecklistItem[]>(queryKey);
+      const itemById = new Map(
+        (previousItems ?? []).map((item) => [item.itemId, item]),
+      );
+      const reorderedItems = variables.itemIds
+        .map((itemId, index) => {
+          const item = itemById.get(itemId);
+          return item ? { ...item, sortOrder: index } : undefined;
+        })
+        .filter((item): item is PlanChecklistItem => Boolean(item));
+      queryClient.setQueryData(queryKey, reorderedItems);
+      return { previousItems, queryKey };
+    },
     onSuccess: (_, variables) => invalidateScope(variables.scope),
-    onError: (error: Error) =>
-      ErrorToast(error.message || "체크리스트를 저장하지 못했습니다."),
+    onError: (error: Error, _variables, context) => {
+      if (context?.previousItems && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousItems);
+      }
+      ErrorToast(error.message || "체크리스트를 저장하지 못했습니다.");
+    },
   });
 
   const counts = useMemo(

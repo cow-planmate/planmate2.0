@@ -1,7 +1,6 @@
 import {
   Check,
-  ChevronDown,
-  ChevronUp,
+  GripVertical,
   LoaderCircle,
   LockKeyhole,
   Plus,
@@ -9,6 +8,23 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
+import {
+  closestCenter,
+  DndContext,
+  DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { FormEvent, useEffect, useState } from "react";
 import {
   ChecklistScope,
@@ -37,24 +53,26 @@ const scopeMeta = {
 
 const EditableChecklistItem = ({
   item,
-  index,
-  total,
   disabled,
   onToggle,
   onUpdate,
   onDelete,
-  onMove,
 }: {
   item: PlanChecklistItem;
-  index: number;
-  total: number;
   disabled: boolean;
   onToggle: () => void;
   onUpdate: (content: string) => void;
   onDelete: () => void;
-  onMove: (direction: -1 | 1) => void;
 }) => {
   const [content, setContent] = useState(item.content);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.itemId, disabled });
 
   useEffect(() => setContent(item.content), [item.content]);
 
@@ -68,7 +86,26 @@ const EditableChecklistItem = ({
   };
 
   return (
-    <li className="group flex items-center gap-2 rounded-xl border border-transparent px-2 py-2 transition hover:border-gray-100 hover:bg-gray-50">
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`group flex items-center gap-2 rounded-xl border px-2 py-2 transition-colors ${
+        isDragging
+          ? "z-10 border-[#1344FF]/30 bg-blue-50 shadow-lg"
+          : "border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50"
+      }`}
+    >
+      <button
+        type="button"
+        disabled={disabled}
+        aria-label={`${item.content} 순서 이동`}
+        title="드래그하여 순서 변경"
+        className="flex h-8 w-6 shrink-0 touch-none cursor-grab items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-200 hover:text-gray-800 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-5 w-5" strokeWidth={2.5} />
+      </button>
       <button
         type="button"
         onClick={onToggle}
@@ -102,33 +139,16 @@ const EditableChecklistItem = ({
         }`}
       />
 
-      <div className="flex shrink-0 items-center opacity-60 transition group-hover:opacity-100 group-focus-within:opacity-100">
-        <button
-          type="button"
-          onClick={() => onMove(-1)}
-          disabled={disabled || index === 0}
-          aria-label="위로 이동"
-          className="rounded-md p-1 text-gray-400 hover:bg-white hover:text-gray-700 disabled:opacity-20"
-        >
-          <ChevronUp className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onMove(1)}
-          disabled={disabled || index === total - 1}
-          aria-label="아래로 이동"
-          className="rounded-md p-1 text-gray-400 hover:bg-white hover:text-gray-700 disabled:opacity-20"
-        >
-          <ChevronDown className="h-3.5 w-3.5" />
-        </button>
+      <div className="flex shrink-0 items-center">
         <button
           type="button"
           onClick={onDelete}
           disabled={disabled}
           aria-label="항목 삭제"
-          className="ml-0.5 rounded-md p-1 text-gray-300 hover:bg-red-50 hover:text-red-500 disabled:opacity-30"
+          title="항목 삭제"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-500 transition hover:border-red-200 hover:bg-red-100 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-30"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-[18px] w-[18px]" strokeWidth={2.25} />
         </button>
       </div>
     </li>
@@ -146,6 +166,10 @@ export const ChecklistPanel = ({
   const items =
     scope === "shared" ? checklist.sharedItems : checklist.personalItems;
   const currentMeta = scopeMeta[scope];
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const handleAdd = async (event: FormEvent) => {
     event.preventDefault();
@@ -155,14 +179,12 @@ export const ChecklistPanel = ({
     setNewItem("");
   };
 
-  const handleMove = (index: number, direction: -1 | 1) => {
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= items.length) return;
-    const reordered = [...items];
-    [reordered[index], reordered[nextIndex]] = [
-      reordered[nextIndex],
-      reordered[index],
-    ];
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex((item) => item.itemId === active.id);
+    const newIndex = items.findIndex((item) => item.itemId === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(items, oldIndex, newIndex);
     checklist.reorderItems(
       scope,
       reordered.map((item) => item.itemId),
@@ -246,25 +268,33 @@ export const ChecklistPanel = ({
             </p>
           </div>
         ) : (
-          <ul className="space-y-1">
-            {items.map((item, index) => (
-              <EditableChecklistItem
-                key={item.itemId}
-                item={item}
-                index={index}
-                total={items.length}
-                disabled={checklist.isSaving}
-                onToggle={() =>
-                  checklist.toggleItem(scope, item.itemId, !item.isChecked)
-                }
-                onUpdate={(content) =>
-                  checklist.updateItem(scope, item.itemId, content)
-                }
-                onDelete={() => checklist.deleteItem(scope, item.itemId)}
-                onMove={(direction) => handleMove(index, direction)}
-              />
-            ))}
-          </ul>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={items.map((item) => item.itemId)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-1">
+                {items.map((item) => (
+                  <EditableChecklistItem
+                    key={item.itemId}
+                    item={item}
+                    disabled={checklist.isSaving}
+                    onToggle={() =>
+                      checklist.toggleItem(scope, item.itemId, !item.isChecked)
+                    }
+                    onUpdate={(content) =>
+                      checklist.updateItem(scope, item.itemId, content)
+                    }
+                    onDelete={() => checklist.deleteItem(scope, item.itemId)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
