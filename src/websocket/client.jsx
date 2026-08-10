@@ -6,8 +6,15 @@ import useTimetableStore from "../store/Timetables";
 import useUserStore from "../store/Users";
 import useSocketStore from "../store/Socket";
 import { convertBlock } from "../utils/createUtils";
+import { createProtoClient } from "./protoClient";
 
 let client;
+
+/**
+ * 전송 계층 선택. 서버가 transport=both 로 두 경로를 동시에 서비스하므로, 문제가 생기면
+ * 이 플래그만 되돌리면 된다(재배포 없이 .env 로).
+ */
+const USE_PROTO = import.meta.env.VITE_SYNC_TRANSPORT === "proto";
 
 function isDifferentEventId(eventId) {
   const prevEventId = usePlanStore.getState().eventId;
@@ -119,8 +126,44 @@ export const initStompClient = (id) => {
 
   const token = localStorage.getItem('accessToken');
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const SERVER_URL = `${BASE_URL}/ws?token=${encodeURIComponent(token)}`;
 
+  // 편집/프레즌스 수신 처리는 두 전송이 공유한다 — 아래 핸들러들은 전송 방식을 모른다.
+  const handleSync = (body) => {
+    console.log("📩 [WebSocket] 수신 데이터 (Topic):", body);
+    switch (body.entity) {
+      case "plan":
+        plan(body);
+        break;
+      case "timetable":
+        timetable(body);
+        break;
+      case "timetableplaceblock":
+        timetableplaceblock(body);
+        break;
+    }
+  };
+
+  const handlePresence = (body) => {
+    console.log("👥 [WebSocket] 접속자 수신 데이터:", body);
+    useUserStore.getState().setUserAll(body.users);
+  };
+
+  if (USE_PROTO) {
+    // STOMP Client 와 같은 인터페이스를 노출하므로 아래 publish 호출부는 그대로다.
+    client = createProtoClient({
+      baseUrl: BASE_URL,
+      token,
+      roomId: id,
+      onSync: handleSync,
+      onPresence: handlePresence,
+      onConnect: () => useSocketStore.getState().setConnected(),
+      onDisconnect: () => useSocketStore.getState().setDisconnected(),
+    });
+    subscribePlanStore(id);
+    return;
+  }
+
+  const SERVER_URL = `${BASE_URL}/ws?token=${encodeURIComponent(token)}`;
   console.log("🔄 WebSocket 연결 시도 중...", SERVER_URL);
 
   const socket = new SockJS(SERVER_URL);
@@ -134,29 +177,8 @@ export const initStompClient = (id) => {
       console.log("✅ WebSocket 연결 완료:", frame);
       useSocketStore.getState().setConnected();
 
-      client.subscribe(`/topic/${id}`, (message) => {
-        const body = JSON.parse(message.body);
-        console.log("📩 [WebSocket] 수신 데이터 (Topic):", body);
-        const entity = body.entity;
-
-        switch (entity) {
-          case "plan":
-            plan(body);
-            break;
-          case "timetable":
-            timetable(body);
-            break;
-          case "timetableplaceblock":
-            timetableplaceblock(body);
-            break;
-        }
-      });
-
-      client.subscribe(`/topic/plan-presence/${id}`, (message) => {
-        const body = JSON.parse(message.body);
-        console.log("👥 [WebSocket] 접속자 수신 데이터:", body);
-        useUserStore.getState().setUserAll(body.users);
-      });
+      client.subscribe(`/topic/${id}`, (message) => handleSync(JSON.parse(message.body)));
+      client.subscribe(`/topic/plan-presence/${id}`, (message) => handlePresence(JSON.parse(message.body)));
     },
 
     onStompError: (frame) => {
@@ -172,7 +194,11 @@ export const initStompClient = (id) => {
   });
 
   client.activate();
+  subscribePlanStore(id);
+}
 
+/** 플랜 스토어 변경을 서버로 밀어 올린다. 전송 방식과 무관해 두 경로가 공유한다. */
+function subscribePlanStore(id) {
   usePlanStore.subscribe((state, prevState) => {
     if (JSON.stringify(state) !== JSON.stringify(prevState)) {
       const { eventId, setEventId, setPlanAll, setPlanField, ...payload } = state;
