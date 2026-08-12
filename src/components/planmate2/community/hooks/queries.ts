@@ -10,11 +10,13 @@ import {
   fetchFeedRegionCounts,
   fetchHotPosts,
   fetchLikedPosts,
+  fetchMyBadges,
   fetchMyComments,
   fetchMyPosts,
   fetchMyStats,
   fetchPost,
   fetchPosts,
+  fetchUserBadges,
   fetchUserComments,
   fetchUserPosts,
   fetchUserStats,
@@ -38,6 +40,7 @@ const KEYS = {
   userPosts: (userId: string, category: string, page: number) => ['community', 'user', userId, 'posts', category, page] as const,
   userComments: (userId: string, page: number) => ['community', 'user', userId, 'comments', page] as const,
   userStats: (userId: string) => ['community', 'user', userId, 'stats'] as const,
+  userBadges: (userId: string) => ['community', 'user', userId, 'badges'] as const,
 };
 
 // ── 조회 ─────────────────────────────────────────────────────────────────
@@ -132,6 +135,18 @@ export const useUserStats = (userId: string | undefined) =>
 /** 내 활동 통계(게시글/댓글 수, 레벨) — 로그인 사용자만 조회 가능 */
 export const useMyStats = (enabled = true) =>
   useQuery({ queryKey: ['community', 'me', 'stats'], queryFn: fetchMyStats, enabled });
+
+/** 다른 사용자의 뱃지 달성 현황 — 통계와 같은 공개 범위 게이트를 탄다 */
+export const useUserBadges = (userId: string | undefined) =>
+  useQuery({
+    queryKey: KEYS.userBadges(userId ?? ''),
+    queryFn: () => fetchUserBadges(userId!),
+    enabled: !!userId,
+  });
+
+/** 내 뱃지 달성 현황 — 로그인 사용자만 조회 가능 */
+export const useMyBadges = (enabled = true) =>
+  useQuery({ queryKey: ['community', 'me', 'badges'], queryFn: fetchMyBadges, enabled });
 
 // ── 변경 (공통 무효화 규칙 포함) ─────────────────────────────────────────
 const useInvalidate = () => {
