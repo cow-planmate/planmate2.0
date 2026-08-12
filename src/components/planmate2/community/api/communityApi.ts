@@ -157,7 +157,28 @@ export interface MyStats {
   userId: string;
   postCount: number;
   commentCount: number;
+  /** 내가 쓴 글이 받은 좋아요 총합 */
+  receivedLikes: number;
   level: number;
+}
+
+/** 활동 뱃지 1개 — 미달성 뱃지도 목표/진행도와 함께 내려온다 */
+export interface Badge {
+  code: string;
+  name: string;
+  description: string;
+  goal: number;
+  progress: number;
+  unlocked: boolean;
+  /** 달성 시각 (미달성이면 null) */
+  earnedAt: string | null;
+}
+
+export interface UserBadges {
+  userId: string;
+  unlockedCount: number;
+  totalCount: number;
+  badges: Badge[];
 }
 
 const request = async <T>(path: string, options: RequestInit = {}, retried = false): Promise<T> => {
@@ -252,6 +273,10 @@ export const fetchUserComments = async (
 /** 다른 사용자의 활동 통계 (레벨·글 수·댓글 수) */
 export const fetchUserStats = async (userId: string): Promise<MyStats> =>
   request<MyStats>(`/api/community/users/${userId}/stats`);
+
+/** 다른 사용자의 뱃지 달성 현황 */
+export const fetchUserBadges = async (userId: string): Promise<UserBadges> =>
+  request<UserBadges>(`/api/community/users/${userId}/badges`);
 
 export const fetchFeedRegionCounts = async (): Promise<RegionCount[]> =>
   request<RegionCount[]>('/api/community/posts/regions?category=feed');
@@ -393,6 +418,10 @@ export const fetchMyComments = async (page = 0, size = 20): Promise<PageData<Com
 
 export const fetchMyStats = async (): Promise<MyStats> =>
   request<MyStats>('/api/community/me/stats');
+
+/** 내 뱃지 달성 현황 (미달성 뱃지 포함) */
+export const fetchMyBadges = async (): Promise<UserBadges> =>
+  request<UserBadges>('/api/community/me/badges');
 
 // ── 이미지 업로드 (BlockNote uploadFile용) ───────────────────────────────
 export const uploadImage = async (file: File): Promise<string> => {

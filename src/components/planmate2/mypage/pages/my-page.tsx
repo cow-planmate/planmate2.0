@@ -18,7 +18,9 @@ import {
 import {
   useDeletePost,
   useMyActivity,
+  useMyBadges,
   useMyStats,
+  useUserBadges,
   useUserComments,
   useUserPosts,
   useUserStats as useUserCommunityStats,
@@ -375,6 +377,13 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   const stats = isOtherUser ? otherUserStats : myStats;
   const { exp, userLevel, levelName, displayMax, remainingCount, percent } =
     useUserStats(stats);
+
+  // 업적(뱃지) — 통계와 같은 게이트를 쓰는 /badges 를 조회한다
+  const { data: myBadges } = useMyBadges(!isOtherUser && isAuthenticated());
+  const { data: otherUserBadges } = useUserBadges(
+    isOtherUser && !isProfilePrivate ? userId : undefined,
+  );
+  const badges = isOtherUser ? otherUserBadges : myBadges;
 
   const handleLogout = () => {
     logout();
@@ -1045,6 +1054,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     stats: {
       postCount: stats?.postCount ?? 0,
       commentCount: stats?.commentCount ?? 0,
+      receivedLikes: stats?.receivedLikes ?? 0,
     },
   };
 
@@ -1054,6 +1064,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         <ProfileHeader
           dummyUser={dummyUser}
           userStats={userStats}
+          badges={badges}
           onEditProfile={() => {
             setNewNickname(userProfile?.nickname || "");
             setNewBirthdate(userProfile?.birthdate || "");

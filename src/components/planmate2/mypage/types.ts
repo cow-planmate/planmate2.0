@@ -50,6 +50,8 @@ export interface Trip extends Plan {
 export interface UserStats {
   postCount: number;
   commentCount: number;
+  /** 내가 쓴 글이 받은 좋아요 총합 */
+  receivedLikes?: number;
   /** 서버가 산정한 레벨 (없으면 점수로 계산) */
   level?: number;
 }
