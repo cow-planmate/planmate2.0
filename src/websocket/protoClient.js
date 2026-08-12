@@ -254,6 +254,14 @@ export function createProtoClient({ baseUrl, token, roomId, onSync, onPresence, 
 // 스키마 로드
 // ==========================================
 
+/** 서버(ProtoSchemaGenerator)와 같은 규칙: SHA-256 의 앞 8바이트를 소문자 16진수로. */
+async function sha256Prefix(text) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest).slice(0, 8))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 /**
  * 서버가 서빙하는 .proto 를 받아 런타임에 파싱한다.
  *
@@ -266,7 +274,10 @@ async function loadSchema(baseUrl) {
     throw new Error(`스키마 응답 ${response.status}`);
   }
   const text = await response.text();
-  const hash = response.headers.get("X-SharedSync-Schema-Hash") ?? "";
+  // 해시는 **직접 계산한다.** 응답 헤더(X-SharedSync-Schema-Hash)는 교차 출처에서 노출되지
+  // 않아 브라우저에서는 null 이 되고, 그러면 빈 해시로 Join 해 SCHEMA_MISMATCH 가 난다.
+  // 계약상으로도 "내가 인코딩에 쓴 바이트의 해시"를 주장하는 것이 맞다.
+  const hash = await sha256Prefix(text);
 
   const parsed = protobuf.parse(text); // keepCase=false → 필드명이 camelCase 로 온다
   const root = parsed.root;
