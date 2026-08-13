@@ -93,8 +93,8 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
 
   const renderCommentCard = (comment: CommunityComment, isReply: boolean) => (
     <div className={`bg-white rounded-xl border border-gray-100 ${isReply ? 'p-3' : 'p-4'}`}>
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
           <UserAvatar
             name={comment.author}
             imageUrl={comment.authorImage}
@@ -102,9 +102,9 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
             sizeClass={isReply ? 'w-6 h-6' : 'w-7 h-7'}
             className={isReply ? 'text-[10px]' : 'text-xs'}
           />
-          <span className={`font-bold text-gray-800 ${isReply ? 'text-[13px]' : 'text-sm'}`}>{comment.author}</span>
+          <span className={`font-bold text-gray-800 whitespace-nowrap ${isReply ? 'text-[13px]' : 'text-sm'}`}>{comment.author}</span>
           <LevelBadge level={comment.level} />
-          <span className="text-xs text-gray-400">{comment.createdAt}</span>
+          <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">{comment.createdAt}</span>
         </div>
         {myUserId === comment.userId && (
           <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
   );
 
   return (
-    <div className="px-8 py-6 bg-gray-50 border-t border-gray-100">
+    <div className="px-5 sm:px-8 py-6 bg-gray-50 border-t border-gray-100">
       <div className="flex items-center gap-2 mb-4 text-gray-700">
         <MessageCircle className="w-5 h-5" />
         <span className="font-bold">댓글 {commentsPage?.totalElements ?? 0}</span>
@@ -187,7 +187,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           <button
             onClick={handleSubmit}
             disabled={createComment.isPending || !content.trim()}
-            className="px-4 py-2.5 rounded-xl bg-[#1344FF] text-white font-bold text-sm flex items-center gap-1.5 disabled:opacity-40 hover:bg-blue-700 transition-colors"
+            className="px-4 py-2.5 rounded-xl bg-[#1344FF] text-white font-bold text-sm flex items-center gap-1.5 whitespace-nowrap disabled:opacity-40 hover:bg-blue-700 transition-colors"
           >
             <Send className="w-4 h-4" />
             등록

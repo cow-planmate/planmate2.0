@@ -74,8 +74,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           : '성별미설정';
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-8 mb-8">
-      <div className="flex flex-col md:flex-row items-center gap-8">
+    <div className="bg-white rounded-xl shadow-md p-5 sm:p-8 mb-8">
+      <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8 min-w-0">
         {/* 프로필 이미지 */}
         <div className="relative group">
           <div className="relative">
@@ -113,17 +113,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
 
         {/* 프로필 정보 */}
-        <div className="flex-1 text-center md:text-left">
+        <div className="flex-1 min-w-0 w-full text-center md:text-left">
           <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-4 mb-2">
-            <div className="flex items-center justify-center md:justify-start gap-3">
-              <h1 className="text-4xl font-black text-[#1a1a1a] tracking-tight">{dummyUser.nickName}</h1>
-              <button 
+            {/* 닉네임이 길면 레벨 배지를 밀어내 배지 글자가 쪼개진다 — 배지는 고정하고 닉네임만 줄바꿈한다 */}
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 min-w-0">
+              <h1 className="min-w-0 max-w-full break-all text-2xl sm:text-4xl font-black text-[#1a1a1a] tracking-tight">{dummyUser.nickName}</h1>
+              <button
                 onClick={onViewLevel}
-                className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-[#1344FF] to-[#4B70FF] text-white rounded-full shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95"
+                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1 bg-gradient-to-r from-[#1344FF] to-[#4B70FF] text-white rounded-full shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95"
               >
-                <Award className="w-3 h-3" />
+                <Award className="w-3 h-3 shrink-0" />
                 <span className="text-[10px] font-black uppercase tracking-wider">LV.{userStats.userLevel}</span>
-                <span className="w-1 h-1 bg-white/50 rounded-full" />
+                <span className="w-1 h-1 shrink-0 bg-white/50 rounded-full" />
                 <span className="text-xs font-bold">{userStats.level}</span>
               </button>
             </div>
@@ -138,7 +139,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     ? '다른 사용자가 내 프로필을 볼 수 있습니다. 클릭하면 비공개로 바뀝니다.'
                     : '다른 사용자가 내 프로필을 볼 수 없습니다. 클릭하면 공개로 바뀝니다.'
                 }
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`flex w-fit mx-auto md:mx-0 shrink-0 items-center gap-2 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isProfilePublic
                     ? 'bg-blue-50 text-[#1344FF] border-[#1344FF]/30 hover:bg-blue-100'
                     : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
@@ -164,16 +165,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <button 
                   onClick={onAddFriend}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1344FF] text-white rounded-xl text-sm font-bold hover:bg-[#0d34cc] transition-all shadow-sm active:scale-95"
+                  className="flex items-center gap-2 whitespace-nowrap px-4 py-2 bg-[#1344FF] text-white rounded-xl text-sm font-bold hover:bg-[#0d34cc] transition-all shadow-sm active:scale-95"
                 >
-                  <UserPlus className="w-4 h-4" />
+                  <UserPlus className="w-4 h-4 shrink-0" />
                   친구 추가
                 </button>
                 <button 
                   onClick={onSendMessage}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-[#1344FF] border border-[#1344FF] rounded-xl text-sm font-bold hover:bg-blue-50 transition-all shadow-sm active:scale-95"
+                  className="flex items-center gap-2 whitespace-nowrap px-4 py-2 bg-white text-[#1344FF] border border-[#1344FF] rounded-xl text-sm font-bold hover:bg-blue-50 transition-all shadow-sm active:scale-95"
                 >
-                  <MessageSquare className="w-4 h-4" />
+                  <MessageSquare className="w-4 h-4 shrink-0" />
                   채팅하기
                 </button>
               </div>
@@ -182,10 +183,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           
           {/* 이메일·나이·성별은 본인 프로필에서만 보인다. 타인 프로필 응답에는 이 값들이 아예 없다 */}
           {!isOtherUser && (
-            <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
-              <p className="text-[#666666] font-medium">{dummyUser.email}</p>
-              <span className="text-gray-300">|</span>
-              <span className="px-2 py-0.5 bg-gray-50 text-gray-500 text-xs font-semibold rounded border border-gray-100">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-4 min-w-0">
+              <p className="min-w-0 max-w-full break-all text-sm sm:text-base text-[#666666] font-medium">{dummyUser.email}</p>
+              <span className="text-gray-300 hidden sm:inline">|</span>
+              <span className="shrink-0 whitespace-nowrap px-2 py-0.5 bg-gray-50 text-gray-500 text-xs font-semibold rounded border border-gray-100">
                 {genderLabel} · {age === null ? '연령미설정' : `${age}세`}
               </span>
             </div>

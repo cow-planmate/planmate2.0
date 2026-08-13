@@ -12,14 +12,14 @@ export const MapSection: React.FC<MapSectionProps> = ({
   groupedPlansByRegion,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 h-[500px] flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <MapPin className="w-6 h-6 text-[#1344FF]" />
-          <h3 className="text-xl font-bold text-[#1a1a1a]">나의 여행 발자취</h3>
+    <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 h-[500px] flex flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+        <div className="flex items-center gap-2 min-w-0">
+          <MapPin className="w-6 h-6 shrink-0 text-[#1344FF]" />
+          <h3 className="text-lg sm:text-xl font-bold text-[#1a1a1a] whitespace-nowrap">나의 여행 발자취</h3>
         </div>
-        <div className="bg-blue-50 px-3 py-1 rounded-full">
-          <span className="text-sm font-bold text-[#1344FF]">총 {allPlansCount}곳 방문</span>
+        <div className="bg-blue-50 px-3 py-1 rounded-full shrink-0">
+          <span className="text-sm font-bold text-[#1344FF] whitespace-nowrap">총 {allPlansCount}곳 방문</span>
         </div>
       </div>
       

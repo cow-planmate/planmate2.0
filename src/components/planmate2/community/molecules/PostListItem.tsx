@@ -17,18 +17,18 @@ export const PostListItem = ({ post, type, onClick, onNavigate }: PostListItemPr
       className="p-4 hover:bg-[#f8f9fa] transition-colors cursor-pointer flex justify-between gap-4 group"
       onClick={onClick}
     >
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <div className="flex justify-between items-start mb-1">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1 min-w-0">
               {type === 'qna' && post.isAnswered && (
-                <span className="px-1.5 py-0.5 bg-green-50 text-green-700 text-[10px] rounded font-medium">답변완료</span>
+                <span className="shrink-0 whitespace-nowrap px-1.5 py-0.5 bg-green-50 text-green-700 text-[10px] rounded font-medium">답변완료</span>
               )}
               {type === 'qna' && !post.isAnswered && (
-                <span className="px-1.5 py-0.5 bg-gray-50 text-gray-600 text-[10px] rounded font-medium">답변대기</span>
+                <span className="shrink-0 whitespace-nowrap px-1.5 py-0.5 bg-gray-50 text-gray-600 text-[10px] rounded font-medium">답변대기</span>
               )}
               {type === 'mate' && (
-                <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                <span className={`flex shrink-0 whitespace-nowrap items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
                   post.status === 'closed' ? 'bg-gray-100 text-gray-500' : 'bg-blue-50 text-[#1344FF]'
                 }`}>
                   <Users className="w-2.5 h-2.5" />
@@ -36,18 +36,18 @@ export const PostListItem = ({ post, type, onClick, onNavigate }: PostListItemPr
                 </span>
               )}
               {type === 'recommend' && (
-                <div className="flex items-center gap-1.5">
-                  <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] rounded font-medium flex items-center gap-0.5">
-                    <MapPin className="w-2.5 h-2.5" />
-                    {post.location}
+                <div className="flex items-center gap-1.5 shrink-0 max-w-[45%]">
+                  <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] rounded font-medium flex items-center gap-0.5 min-w-0">
+                    <MapPin className="w-2.5 h-2.5 shrink-0" />
+                    <span className="truncate">{post.location}</span>
                   </span>
-                  <span className="px-1.5 py-0.5 bg-yellow-50 text-yellow-700 text-[10px] rounded font-medium flex items-center gap-0.5">
+                  <span className="shrink-0 whitespace-nowrap px-1.5 py-0.5 bg-yellow-50 text-yellow-700 text-[10px] rounded font-medium flex items-center gap-0.5">
                     <Star className="w-2.5 h-2.5 fill-current" />
                     {post.rating}
                   </span>
                 </div>
               )}
-              <h3 className="text-[15px] font-bold text-[#1a1a1a] hover:text-[#1344FF] transition-colors line-clamp-1">
+              <h3 className="min-w-0 flex-1 text-[15px] font-bold text-[#1a1a1a] hover:text-[#1344FF] transition-colors truncate">
                 {post.title}
               </h3>
             </div>
@@ -57,8 +57,10 @@ export const PostListItem = ({ post, type, onClick, onNavigate }: PostListItemPr
           </div>
         </div>
         
-        <div className="flex items-center justify-between text-[11px] text-[#666666]">
-          <div className="flex items-center gap-2">
+        {/* 닉네임이 길어지면 오른쪽 통계와 서로 밀어내 글자가 세로로 쪼개진다 —
+            작성자 묶음만 줄이고(min-w-0 + truncate) 통계는 고정한다 */}
+        <div className="flex items-center justify-between gap-2 text-[11px] text-[#666666]">
+          <div className="flex items-center gap-2 min-w-0">
             <UserAvatar
               name={post.author}
               imageUrl={post.authorImage}
@@ -70,16 +72,16 @@ export const PostListItem = ({ post, type, onClick, onNavigate }: PostListItemPr
             <button
               type="button"
               disabled={!authorNav.onClick}
-              className={`font-medium transition-colors ${authorNameClass(post, 'text-[#1a1a1a] hover:text-[#1344FF] hover:underline')}`}
+              className={`font-medium transition-colors truncate ${authorNameClass(post, 'text-[#1a1a1a] hover:text-[#1344FF] hover:underline')}`}
               onClick={authorNav.onClick}
             >
               {post.author}
             </button>
             <LevelBadge level={post.level} />
-            <span className="text-gray-200">|</span>
-            <span>{post.createdAt}</span>
+            <span className="text-gray-200 shrink-0">|</span>
+            <span className="shrink-0 whitespace-nowrap">{post.createdAt}</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3 text-[#1344FF]" />{post.likes}</span>
             <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3 text-[#666666]" />{post.comments}</span>
             <span className="flex items-center gap-1"><Eye className="w-3 h-3 text-[#666666]" />{post.views}</span>

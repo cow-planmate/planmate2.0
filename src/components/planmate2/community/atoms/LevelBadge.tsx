@@ -12,7 +12,7 @@ export const LevelBadge = ({ level }: LevelBadgeProps) => {
   ];
   const levelInfo = levels.find(l => l.level === level) || levels[0];
   return (
-    <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${levelInfo.color}`}>
+    <span className={`shrink-0 whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-bold ${levelInfo.color}`}>
       {levelInfo.label}
     </span>
   );

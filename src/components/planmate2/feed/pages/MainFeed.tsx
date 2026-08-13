@@ -36,7 +36,11 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
   // 게시글이 있는 모든 여행지를 지도에 표시 (좌표 미상 지역은 지오코딩으로 보완)
   const regionMarkers = useRegionMarkers(regionCountList);
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // 모바일은 그리드 카드 하나가 화면을 거의 다 먹어 한 번에 한 건밖에 안 보인다 —
+  // 좁은 화면에서는 리스트로 시작한다. 첫 렌더에서만 정하므로 사용자가 토글하면 그 선택이 유지된다.
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(
+    () => (typeof window !== 'undefined' && window.innerWidth < 640 ? 'list' : 'grid'),
+  );
   // 눌림 표시는 세션 로컬 (목록 요약에는 myReaction이 없음) — 카운트는 서버 값 그대로 표시
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
   const [dislikedPosts, setDislikedPosts] = useState<Set<number>>(new Set());
@@ -136,9 +140,11 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
       />
 
       {/* 검색 & 필터 바 */}
+      {/* 모바일에서는 검색창이 한 줄을 다 쓰고, 토글·필터가 그 아래로 내려간다.
+          한 줄에 몰아넣으면 폭이 모자라 버튼 글자가 두 줄로 쪼개진다. */}
       <div className="mb-6">
-        <div className="flex gap-3">
-          <div className="relative flex-1">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 min-w-0">
             <SearchBar
               value={filters.searchQuery}
               onChange={setters.setSearchQuery}
@@ -146,45 +152,47 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
             />
           </div>
 
-          {/* 뷰 모드 토글 (그리드 / 리스트) */}
-          <div className="flex bg-white rounded-xl border border-[#e5e7eb] p-1 shadow-sm">
+          <div className="flex gap-3">
+            {/* 뷰 모드 토글 (그리드 / 리스트) */}
+            <div className="flex flex-1 sm:flex-none bg-white rounded-xl border border-[#e5e7eb] p-1 shadow-sm">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all font-bold text-sm whitespace-nowrap ${viewMode === 'grid'
+                    ? 'bg-blue-50 text-[#1344FF]'
+                    : 'text-[#666666] hover:bg-gray-50'
+                  }`}
+              >
+                <LayoutGrid className="w-4 h-4 shrink-0" />
+                <span>그리드</span>
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all font-bold text-sm whitespace-nowrap ${viewMode === 'list'
+                    ? 'bg-blue-50 text-[#1344FF]'
+                    : 'text-[#666666] hover:bg-gray-50'
+                  }`}
+              >
+                <List className="w-4 h-4 shrink-0" />
+                <span>리스트</span>
+              </button>
+            </div>
+
             <button
-              onClick={() => setViewMode('grid')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-bold text-sm ${viewMode === 'grid'
-                  ? 'bg-blue-50 text-[#1344FF]'
-                  : 'text-[#666666] hover:bg-gray-50'
+              onClick={() => setters.setShowFilters(!filters.showFilters)}
+              className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl border transition-all font-medium whitespace-nowrap ${filters.showFilters || filters.activeFilterCount > 0
+                ? 'bg-[#1344FF] text-white border-[#1344FF] shadow-md'
+                : 'bg-white text-[#666666] border-[#e5e7eb] hover:border-[#1344FF]'
                 }`}
             >
-              <LayoutGrid className="w-4 h-4" />
-              <span>그리드</span>
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-bold text-sm ${viewMode === 'list'
-                  ? 'bg-blue-50 text-[#1344FF]'
-                  : 'text-[#666666] hover:bg-gray-50'
-                }`}
-            >
-              <List className="w-4 h-4" />
-              <span>리스트</span>
+              <SlidersHorizontal className="w-5 h-5 shrink-0" />
+              <span>필터</span>
+              {filters.activeFilterCount > 0 && (
+                <span className="flex items-center justify-center w-5 h-5 shrink-0 bg-white text-[#1344FF] rounded-full text-xs font-bold">
+                  {filters.activeFilterCount}
+                </span>
+              )}
             </button>
           </div>
-
-          <button
-            onClick={() => setters.setShowFilters(!filters.showFilters)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl border transition-all font-medium ${filters.showFilters || filters.activeFilterCount > 0
-              ? 'bg-[#1344FF] text-white border-[#1344FF] shadow-md'
-              : 'bg-white text-[#666666] border-[#e5e7eb] hover:border-[#1344FF]'
-              }`}
-          >
-            <SlidersHorizontal className="w-5 h-5" />
-            <span>필터</span>
-            {filters.activeFilterCount > 0 && (
-              <span className="flex items-center justify-center w-5 h-5 bg-white text-[#1344FF] rounded-full text-xs font-bold">
-                {filters.activeFilterCount}
-              </span>
-            )}
-          </button>
         </div>
       </div>
 
