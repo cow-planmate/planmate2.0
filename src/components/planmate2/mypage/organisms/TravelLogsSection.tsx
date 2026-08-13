@@ -53,29 +53,30 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
       </div>
 
       <div className="bg-white rounded-xl shadow-md mb-6 overflow-hidden">
+        {/* 탭 라벨은 좁은 화면에서 칸 폭에 눌려 두 줄로 쪼개지지 않게 한 줄로 고정한다 */}
         <div className="flex border-b border-[#e5e7eb]">
           <button
             onClick={() => setTravelTab('created')}
-            className={`flex-1 py-4 transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 min-w-0 py-4 transition-all flex items-center justify-center gap-1 sm:gap-2 ${
               currentTab === 'created'
                 ? 'text-[#1344FF] border-b-2 border-[#1344FF] bg-blue-50/50'
                 : 'text-[#666666] hover:text-[#1344FF] hover:bg-gray-50'
             }`}
           >
-            <PenTool className="w-4 h-4" />
-            <span className="font-medium">작성한 여행기</span>
+            <PenTool className="w-4 h-4 shrink-0" />
+            <span className="font-medium whitespace-nowrap">작성한 여행기</span>
           </button>
           {!isOtherUser && (
             <button
               onClick={() => setTravelTab('liked')}
-              className={`flex-1 py-4 transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-0 py-4 transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                 currentTab === 'liked'
                   ? 'text-[#1344FF] border-b-2 border-[#1344FF] bg-blue-50/50'
                   : 'text-[#666666] hover:text-[#1344FF] hover:bg-gray-50'
               }`}
             >
-              <Heart className="w-4 h-4" />
-              <span className="font-medium">좋아요한 여행</span>
+              <Heart className="w-4 h-4 shrink-0" />
+              <span className="font-medium whitespace-nowrap">좋아요한 여행</span>
             </button>
           )}
         </div>

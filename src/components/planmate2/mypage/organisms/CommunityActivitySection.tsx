@@ -42,11 +42,12 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
         <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{myCommunityPostsCount ?? myCommunityPosts.length}</span>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md p-6 mb-12">
-        <div className="flex gap-4 mb-6 p-1 bg-gray-100 rounded-lg w-fit">
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-12">
+        {/* 탭 3개가 모바일 폭을 넘어서면 라벨이 두 줄로 쪼개진다 — 여백을 줄이고 넘치면 가로 스크롤 */}
+        <div className="flex gap-1 sm:gap-4 mb-6 p-1 bg-gray-100 rounded-lg w-full sm:w-fit overflow-x-auto no-scrollbar">
           <button
             onClick={() => setCommunityTab('written')}
-            className={`px-6 py-2 rounded-md transition-all font-medium text-sm ${
+            className={`shrink-0 whitespace-nowrap px-3 sm:px-6 py-2 rounded-md transition-all font-medium text-sm ${
               communityTab === 'written'
                 ? 'bg-white text-[#1344FF] shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
@@ -57,7 +58,7 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
           {!isOtherUser && (
           <button
             onClick={() => setCommunityTab('liked')}
-            className={`px-6 py-2 rounded-md transition-all font-medium text-sm ${
+            className={`shrink-0 whitespace-nowrap px-3 sm:px-6 py-2 rounded-md transition-all font-medium text-sm ${
               communityTab === 'liked'
                 ? 'bg-white text-[#1344FF] shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
@@ -68,7 +69,7 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
           )}
           <button
             onClick={() => setCommunityTab('comments')}
-            className={`px-6 py-2 rounded-md transition-all font-medium text-sm ${
+            className={`shrink-0 whitespace-nowrap px-3 sm:px-6 py-2 rounded-md transition-all font-medium text-sm ${
               communityTab === 'comments'
                 ? 'bg-white text-[#1344FF] shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
@@ -85,12 +86,12 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
               onClick={() => onNavigateDetail(post)}
               className="group p-4 rounded-xl border border-[#e5e7eb] hover:border-[#1344FF] hover:bg-blue-50/30 transition-all cursor-pointer"
             >
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-xs font-bold text-[#1344FF] uppercase tracking-wider">{post.category}</span>
-                <span className="text-xs text-gray-400 font-medium">{post.createdAt}</span>
+              <div className="flex justify-between items-start gap-2 mb-2">
+                <span className="text-xs font-bold text-[#1344FF] uppercase tracking-wider truncate">{post.category}</span>
+                <span className="shrink-0 whitespace-nowrap text-xs text-gray-400 font-medium">{post.createdAt}</span>
               </div>
-              <h4 className="text-[#1a1a1a] font-bold mb-3 group-hover:text-[#1344FF] transition-colors">{post.title}</h4>
-              <div className="flex items-center gap-4 text-xs text-gray-400">
+              <h4 className="text-[#1a1a1a] font-bold mb-3 break-keep group-hover:text-[#1344FF] transition-colors">{post.title}</h4>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-gray-400">
                 <span className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded">
                   <div className="w-1 h-1 rounded-full bg-gray-400" />
                   조회 {post.views}
@@ -113,16 +114,16 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
               onClick={() => onNavigateDetail(post)}
               className="group p-4 rounded-xl border border-[#e5e7eb] hover:border-[#1344FF] hover:bg-blue-50/30 transition-all cursor-pointer"
             >
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#1344FF] uppercase tracking-wider">{post.category}</span>
-                  <span className="text-[10px] text-gray-400 font-medium px-1.5 py-0.5 border border-gray-200 rounded">추천함</span>
+              <div className="flex justify-between items-start gap-2 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs font-bold text-[#1344FF] uppercase tracking-wider truncate">{post.category}</span>
+                  <span className="shrink-0 whitespace-nowrap text-[10px] text-gray-400 font-medium px-1.5 py-0.5 border border-gray-200 rounded">추천함</span>
                 </div>
-                <span className="text-xs text-gray-400 font-medium">{post.likedAt}</span>
+                <span className="shrink-0 whitespace-nowrap text-xs text-gray-400 font-medium">{post.likedAt}</span>
               </div>
-              <h4 className="text-[#1a1a1a] font-bold mb-2 group-hover:text-[#1344FF] transition-colors">{post.title}</h4>
-              <p className="text-xs text-gray-500 mb-3">작성자: {post.author}</p>
-              <div className="flex items-center gap-4 text-xs text-gray-400">
+              <h4 className="text-[#1a1a1a] font-bold mb-2 break-keep group-hover:text-[#1344FF] transition-colors">{post.title}</h4>
+              <p className="text-xs text-gray-500 mb-3 break-all">작성자: {post.author}</p>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-gray-400">
                 <span className="flex items-center gap-1.5"><div className="w-1 h-1 rounded-full bg-gray-400" />조회 {post.views}</span>
                 <span className="flex items-center gap-1.5"><div className="w-1 h-1 rounded-full bg-gray-400 text-red-400" />추천 {post.likes}</span>
                 <span className="flex items-center gap-1.5"><div className="w-1 h-1 rounded-full bg-gray-400" />댓글 {post.comments}</span>
@@ -137,18 +138,19 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
               className="p-4 rounded-xl border border-[#e5e7eb] hover:bg-gray-50 transition-all cursor-pointer"
             >
               <div className="flex items-start gap-3">
-                <div className="bg-blue-50 p-2 rounded-lg">
+                <div className="bg-blue-50 p-2 rounded-lg shrink-0">
                   <MessageSquare className="w-4 h-4 text-[#1344FF]" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-[#1a1a1a] text-sm font-medium mb-2 leading-relaxed italic">"{comment.content}"</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 group">
-                      <span className="text-[11px] text-gray-400">원문:</span>
-                      <span className="text-[11px] text-gray-600 font-semibold group-hover:text-[#1344FF] truncate max-w-[200px]">{comment.postTitle}</span>
-                      <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-[#1344FF]" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[#1a1a1a] text-sm font-medium mb-2 leading-relaxed italic break-keep">"{comment.content}"</p>
+                  {/* 원문 제목이 길면 날짜와 서로 밀어내므로, 좁은 화면에서는 아래로 흘린다 */}
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                    <div className="flex items-center gap-2 group min-w-0">
+                      <span className="shrink-0 text-[11px] text-gray-400">원문:</span>
+                      <span className="text-[11px] text-gray-600 font-semibold group-hover:text-[#1344FF] truncate min-w-0">{comment.postTitle}</span>
+                      <ChevronRight className="w-3 h-3 shrink-0 text-gray-300 group-hover:text-[#1344FF]" />
                     </div>
-                    <span className="text-[11px] text-gray-400">{comment.createdAt}</span>
+                    <span className="shrink-0 whitespace-nowrap text-[11px] text-gray-400">{comment.createdAt}</span>
                   </div>
                 </div>
               </div>

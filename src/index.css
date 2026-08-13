@@ -161,3 +161,13 @@
   animation: gradient-x 3s ease infinite;
 }
 
+
+/* 가로 스크롤 탭바 — 스크롤은 살리고 스크롤바만 감춘다 */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

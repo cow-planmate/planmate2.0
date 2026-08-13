@@ -66,22 +66,22 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
 
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
         {/* 헤더 */}
-        <div className="p-8 border-b border-gray-100">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="p-5 sm:p-8 border-b border-gray-100">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
             {post.category === 'qna' && (
-              <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${post.isAnswered ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+              <span className={`shrink-0 whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-bold ${post.isAnswered ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
                 {post.isAnswered ? '답변완료' : '답변대기'}
               </span>
             )}
             {post.category === 'mate' && (
-              <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${post.status === 'recruiting' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+              <span className={`shrink-0 whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-bold ${post.status === 'recruiting' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                 {post.status === 'recruiting' ? '모집중' : '모집마감'}
               </span>
             )}
-            <h1 className="text-2xl font-bold text-gray-900">{post.title}</h1>
+            <h1 className="min-w-0 text-xl sm:text-2xl font-bold text-gray-900 break-keep">{post.title}</h1>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500 min-w-0">
               <UserAvatar
                 name={post.author}
                 imageUrl={post.authorImage}
@@ -90,18 +90,18 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
                 className="text-xs"
                 onClick={() => onNavigate?.('mypage', { userId: post.userId })}
               />
-              <span className="font-bold text-gray-700">{post.author}</span>
+              <span className="font-bold text-gray-700 whitespace-nowrap">{post.author}</span>
               <LevelBadge level={post.level} />
-              <span>·</span>
-              <span>{post.createdAt}</span>
-              <span className="flex items-center gap-1"><Eye className="w-4 h-4" />{post.views}</span>
+              <span className="shrink-0">·</span>
+              <span className="shrink-0 whitespace-nowrap">{post.createdAt}</span>
+              <span className="flex shrink-0 items-center gap-1 whitespace-nowrap"><Eye className="w-4 h-4" />{post.views}</span>
             </div>
             {isAuthor && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {post.category === 'qna' && (
                   <button
                     onClick={() => updateAnswered.mutate(!post.isAnswered)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                    className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     {post.isAnswered ? '답변대기로 변경' : '답변완료로 표시'}
@@ -110,20 +110,20 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
                 {post.category === 'mate' && (
                   <button
                     onClick={() => changeStatus.mutate(post.status === 'recruiting' ? 'closed' : 'recruiting')}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-[#1344FF] hover:bg-blue-100 transition-colors"
+                    className="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-[#1344FF] hover:bg-blue-100 transition-colors"
                   >
                     {post.status === 'recruiting' ? '모집 마감하기' : '다시 모집하기'}
                   </button>
                 )}
                 <button
                   onClick={() => onNavigate?.('community-edit', { post })}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                  className="flex items-center gap-1 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
                 >
                   <Pencil className="w-4 h-4" />수정
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                  className="flex items-center gap-1 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />삭제
                 </button>
@@ -163,37 +163,37 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
         </div>
 
         {/* 본문 */}
-        <div className="p-8">
+        <div className="p-5 sm:p-8">
           <PostContentViewer content={post.content} contentText={post.contentText} />
         </div>
 
         {/* 반응 */}
-        <div className="px-8 pb-8 flex justify-center gap-3">
+        <div className="px-5 sm:px-8 pb-8 flex flex-wrap justify-center gap-3">
           <button
             onClick={() => handleReact('like')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border transition-colors ${
+            className={`flex items-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-xl font-bold text-sm border transition-colors ${
               post.myReaction === 'like'
                 ? 'bg-[#1344FF] text-white border-[#1344FF]'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#1344FF] hover:text-[#1344FF]'
             }`}
           >
-            <ThumbsUp className="w-4 h-4" />좋아요 {post.likes}
+            <ThumbsUp className="w-4 h-4 shrink-0" />좋아요 {post.likes}
           </button>
           <button
             onClick={() => handleReact('dislike')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm border transition-colors ${
+            className={`flex items-center gap-2 whitespace-nowrap px-5 py-2.5 rounded-xl font-bold text-sm border transition-colors ${
               post.myReaction === 'dislike'
                 ? 'bg-gray-700 text-white border-gray-700'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-500'
             }`}
           >
-            <ThumbsDown className="w-4 h-4" />싫어요 {post.dislikes}
+            <ThumbsDown className="w-4 h-4 shrink-0" />싫어요 {post.dislikes}
           </button>
         </div>
 
         {/* 지역 정보 (메이트) */}
         {post.category === 'mate' && post.region && (
-          <div className="px-8 pb-4 flex items-center gap-1.5 text-sm text-gray-500">
+          <div className="px-5 sm:px-8 pb-4 flex items-center gap-1.5 text-sm text-gray-500">
             <MapPin className="w-4 h-4" />희망 지역: {post.region}
           </div>
         )}

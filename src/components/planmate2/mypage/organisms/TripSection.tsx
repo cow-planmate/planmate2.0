@@ -79,19 +79,20 @@ export const TripSection: React.FC<TripSectionProps> = ({
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+    <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <CalendarDays className="w-6 h-6 text-[#1344FF]" />
-          <h3 className="text-xl font-bold text-[#1a1a1a]">여행 상세 일정</h3>
+        <div className="flex items-center gap-2 min-w-0">
+          <CalendarDays className="w-6 h-6 shrink-0 text-[#1344FF]" />
+          <h3 className="text-xl font-bold text-[#1a1a1a] whitespace-nowrap">여행 상세 일정</h3>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* 삭제 모드에서는 버튼이 3개로 늘어 모바일 폭을 넘긴다 — 줄바꿈을 허용한다 */}
+        <div className="flex flex-wrap items-center gap-2">
           {isDeleteMode ? (
             <>
               <button
                 onClick={() => toggleSelectAll(visiblePlans)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
               >
                 {isAllVisibleSelected ? (
                   <CheckSquare className="w-4 h-4" />
@@ -102,7 +103,7 @@ export const TripSection: React.FC<TripSectionProps> = ({
               </button>
               <button
                 onClick={handleBulkDelete}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
                 선택 삭제 ({selectedPlanIds.length})
@@ -112,7 +113,7 @@ export const TripSection: React.FC<TripSectionProps> = ({
                   setIsDeleteMode(false);
                   togglePlanSelection("");
                 }}
-                className="px-3 py-1.5 text-gray-500 text-sm font-medium hover:underline"
+                className="px-3 py-1.5 whitespace-nowrap text-gray-500 text-sm font-medium hover:underline"
               >
                 취소
               </button>
@@ -120,7 +121,7 @@ export const TripSection: React.FC<TripSectionProps> = ({
           ) : (
             <button
               onClick={() => setIsDeleteMode(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors border border-gray-200"
+              className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors border border-gray-200"
             >
               <Settings className="w-4 h-4" />
               일정 관리
@@ -189,18 +190,18 @@ export const TripSection: React.FC<TripSectionProps> = ({
 
                   <div className="flex flex-col gap-6 relative z-10">
                     <div className="flex flex-col gap-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
                           <span
                             className={`flex h-2.5 w-2.5 rounded-full ${trip.isOwner ? "bg-[#1344FF]" : "bg-orange-500"}`}
                           />
                           <span
-                            className={`text-[10px] font-black tracking-wider ${trip.isOwner ? "text-[#1344FF]" : "text-orange-500"}`}
+                            className={`shrink-0 whitespace-nowrap text-[10px] font-black tracking-wider ${trip.isOwner ? "text-[#1344FF]" : "text-orange-500"}`}
                           >
                             {trip.isOwner ? "나의 일정" : "공유된 일정"}
                           </span>
                           <span
-                            className={`px-2 py-1 ${trip.theme === "blue" ? "bg-[#1344FF]" : "bg-orange-500"} text-white text-[10px] font-black rounded shadow-sm`}
+                            className={`shrink-0 whitespace-nowrap px-2 py-1 ${trip.theme === "blue" ? "bg-[#1344FF]" : "bg-orange-500"} text-white text-[10px] font-black rounded shadow-sm`}
                           >
                             {trip.dDay}
                           </span>
@@ -208,8 +209,8 @@ export const TripSection: React.FC<TripSectionProps> = ({
                           <span
                             className={
                               isOngoing(trip)
-                                ? "flex items-center gap-1 px-2 py-1 bg-[#1344FF]/10 text-[#1344FF] text-[10px] font-black rounded"
-                                : "text-gray-400 text-[10px] font-black uppercase tracking-wider"
+                                ? "flex shrink-0 items-center gap-1 whitespace-nowrap px-2 py-1 bg-[#1344FF]/10 text-[#1344FF] text-[10px] font-black rounded"
+                                : "shrink-0 whitespace-nowrap text-gray-400 text-[10px] font-black uppercase tracking-wider"
                             }
                           >
                             {isOngoing(trip) && (
@@ -235,9 +236,9 @@ export const TripSection: React.FC<TripSectionProps> = ({
                         <h4 className="text-xl font-black text-[#1a1a1a] mb-1.5 truncate leading-tight">
                           {trip.title}
                         </h4>
-                        <div className="flex items-center gap-2 text-[#666666]">
-                          <CalendarIcon className="w-4 h-4 opacity-40" />
-                          <p className="text-sm font-bold">{trip.dateStr}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-[#666666]">
+                          <CalendarIcon className="w-4 h-4 shrink-0 opacity-40" />
+                          <p className="text-sm font-bold whitespace-nowrap">{trip.dateStr}</p>
                         </div>
                       </div>
                     </div>
@@ -268,7 +269,7 @@ export const TripSection: React.FC<TripSectionProps> = ({
         )}
 
         {activeTab === "past" && (
-        <div className="bg-[#f8f9fa] rounded-xl p-6">
+        <div className="bg-[#f8f9fa] rounded-xl p-4 sm:p-6">
           <h4 className="text-lg font-bold text-[#1a1a1a] mb-4">
             지난 여행 기록
           </h4>
@@ -286,8 +287,8 @@ export const TripSection: React.FC<TripSectionProps> = ({
                   }}
                   className={`bg-white rounded-xl p-4 hover:shadow-md transition-all border border-gray-100 relative group ${isDeleteMode ? "cursor-default ring-1 " + (selectedPlanIds.includes(trip.id) ? "ring-[#1344FF] bg-blue-50/30" : "ring-transparent") : "cursor-pointer"}`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
                       {isDeleteMode ? (
                         <div
                           className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedPlanIds.includes(trip.id) ? "bg-[#1344FF] border-[#1344FF] text-white" : "bg-white border-gray-300"}`}
@@ -297,12 +298,12 @@ export const TripSection: React.FC<TripSectionProps> = ({
                           )}
                         </div>
                       ) : (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">
+                        <span className="shrink-0 whitespace-nowrap px-2 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">
                           완료
                         </span>
                       )}
                       <span
-                        className={`flex items-center gap-1 text-[10px] font-bold ${trip.isOwner ? "text-[#1344FF]" : "text-orange-500"}`}
+                        className={`flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-bold ${trip.isOwner ? "text-[#1344FF]" : "text-orange-500"}`}
                       >
                         <span
                           className={`h-2 w-2 rounded-full ${trip.isOwner ? "bg-[#1344FF]" : "bg-orange-500"}`}
@@ -310,7 +311,7 @@ export const TripSection: React.FC<TripSectionProps> = ({
                         {trip.isOwner ? "나의 일정" : "공유된 일정"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex shrink-0 items-center gap-1">
                       {!isDeleteMode && (
                         <PlanCardActionMenu
                           planId={trip.id}
@@ -328,8 +329,8 @@ export const TripSection: React.FC<TripSectionProps> = ({
                   <h5 className="font-bold text-[#1a1a1a] mb-1 truncate text-left">
                     {trip.title}
                   </h5>
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs text-[#666666]">{trip.dateStr}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs text-[#666666] whitespace-nowrap">{trip.dateStr}</p>
                     {trip.duration && (
                       <span className="text-[10px] font-bold text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 whitespace-nowrap">
                         {trip.duration}
