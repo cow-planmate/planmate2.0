@@ -26,6 +26,8 @@ import Themestart from "../auth/Themestart";
 import FeedbackModal from "../common/Feedback";
 // @ts-ignore
 import { ErrorToast, SuccessToast } from "../common/Toast";
+import NotificationList from "../../shared/notifications/NotificationList";
+import { useUnreadCount } from "../../shared/notifications/queries";
 
 interface NavbarProps {
   currentView: string;
@@ -72,6 +74,12 @@ export default function Navbar({
   }
 
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+
+  // 통합 알림함(알림 센터). 전환 기간에는 위의 초대 목록과 함께 보여준다 — 초대 수락/거절은
+  // 여전히 Backend-v2 가 소유하고, 알림 센터는 "무슨 일이 있었는지"만 알려준다.
+  const { data: unread } = useUnreadCount(isAuthenticated());
+  const unreadCount = unread?.count ?? 0;
+  const hasBadge = invitations.length > 0 || unreadCount > 0;
 
   const fetchInvitations = async () => {
     if (isAuthenticated()) {
@@ -238,7 +246,7 @@ export default function Navbar({
                     }`}
                   >
                     <Bell className="w-6 h-6" />
-                    {invitations.length > 0 && (
+                    {hasBadge && (
                       <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                     )}
                   </button>
@@ -253,7 +261,7 @@ export default function Navbar({
                       <div className="absolute top-12 right-0 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 z-20 animate-in fade-in slide-in-from-top-2">
                         <div className="flex justify-between items-center mb-4 border-b border-gray-50 pb-2">
                           <h3 className="text-lg font-bold text-gray-900">
-                            초대 알람
+                            알림
                           </h3>
                           <button
                             onClick={() => setIsInvitationOpen(false)}
@@ -263,7 +271,9 @@ export default function Navbar({
                           </button>
                         </div>
                         <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                          {invitations.length > 0 ? (
+                          {/* 수락/거절이 필요한 초대는 목록 위에 그대로 둔다 — 알림 센터는
+                              "무슨 일이 있었는지"만 알려주고, 처리 자체는 소유 도메인 몫이다. */}
+                          {invitations.length > 0 &&
                             invitations.map((invitation) => (
                               <div
                                 key={invitation.collaborationRequestId}
@@ -305,15 +315,11 @@ export default function Navbar({
                                   </button>
                                 </div>
                               </div>
-                            ))
-                          ) : (
-                            <div className="py-8 text-center">
-                              <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2 opacity-50" />
-                              <p className="text-sm text-gray-400">
-                                새로운 알람이 없습니다.
-                              </p>
-                            </div>
-                          )}
+                            ))}
+                          <NotificationList
+                            onNavigate={(view) => onNavigate(view)}
+                            onSelected={() => setIsInvitationOpen(false)}
+                          />
                         </div>
                       </div>
                     </>
@@ -377,13 +383,13 @@ export default function Navbar({
             {isAuthenticated() && (
               <div className="relative">
                 <Bell
-                  className={`w-6 h-6 ${invitations.length > 0 ? "text-[#1344FF]" : "text-[#666666]"}`}
+                  className={`w-6 h-6 ${hasBadge ? "text-[#1344FF]" : "text-[#666666]"}`}
                   onClick={() => {
                     // 모바일에서는 알림 클릭 시 마이페이지(또는 알림 페이지)로 넘기도록 된 로직 유지
                     onNavigate("mypage");
                   }}
                 />
-                {invitations.length > 0 && (
+                {hasBadge && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                 )}
               </div>
