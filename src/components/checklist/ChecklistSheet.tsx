@@ -170,7 +170,7 @@ export const ChecklistSheet = ({
             </header>
 
             {planId ? (
-              <ChecklistPanel planId={planId} enabled={enabled} />
+              <ChecklistPanel checklist={checklist} enabled={enabled} />
             ) : (
               <div className="flex flex-1 items-center justify-center px-8 text-center text-sm text-gray-500">
                 체크리스트를 사용하려면 일정을 먼저 저장해 주세요.

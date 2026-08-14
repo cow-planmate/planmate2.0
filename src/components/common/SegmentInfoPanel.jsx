@@ -16,6 +16,7 @@ const BUS_TYPE_LABELS = {
   2: "좌석",
   3: "마을",
   4: "직행",
+  5: "공항",
   6: "간선",
 };
 
@@ -377,6 +378,7 @@ export default function SegmentInfoPanel({
     driving: null,
     foot: null,
     transit: [],
+    hasError: false,
   });
 
   // 현재 좌표 조합의 결과가 아직 없으면 로딩 중으로 간주
@@ -397,15 +399,20 @@ export default function SegmentInfoPanel({
     inFlightKeyRef.current = capturedKey;
 
     const baseUrl = import.meta.env.VITE_API_URL;
-    const waypoints = positions.map((pos) => ({ lat: pos.lat, lng: pos.lng }));
+    const toRoutePoint = ({ lat, lng, placeId }) => ({
+      lat,
+      lng,
+      ...(placeId ? { placeId } : {}),
+    });
+    const waypoints = positions.map(toRoutePoint);
 
     Promise.allSettled([
       post(`${baseUrl}/api/route/table`, { waypoints, profile: "driving" }),
       post(`${baseUrl}/api/route/table`, { waypoints, profile: "foot" }),
       ...positions.slice(0, -1).map((pos, i) =>
         post(`${baseUrl}/api/route/transit`, {
-          from: { lat: pos.lat, lng: pos.lng },
-          to: { lat: positions[i + 1].lat, lng: positions[i + 1].lng },
+          from: toRoutePoint(pos),
+          to: toRoutePoint(positions[i + 1]),
         })
       ),
     ]).then((results) => {
@@ -422,6 +429,7 @@ export default function SegmentInfoPanel({
         transit: transitResults.map((result) =>
           result.status === "fulfilled" ? result.value : null
         ),
+        hasError: results.every((result) => result.status === "rejected"),
       });
     });
   }, [isOpen, positionsKey]);
@@ -441,7 +449,12 @@ export default function SegmentInfoPanel({
 
       {isOpen && (
         <div className="absolute left-4 top-16 z-10 max-h-[60%] w-[320px] overflow-y-auto rounded-2xl bg-white/95 shadow-lg ring-1 ring-slate-200">
-          {sortedSchedule.slice(0, -1).map((item, i) => {
+          {!isLoading && segmentData.hasError ? (
+            <div className="px-4 py-6 text-center text-sm leading-6 text-slate-500">
+              구간 정보를 불러오지 못했어요.<br />
+              잠시 후 다시 시도해 주세요.
+            </div>
+          ) : sortedSchedule.slice(0, -1).map((item, i) => {
             const next = sortedSchedule[i + 1];
             const transit = segmentData.transit?.[i];
 

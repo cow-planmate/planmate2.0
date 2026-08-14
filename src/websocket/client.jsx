@@ -9,6 +9,18 @@ import { convertBlock } from "../utils/createUtils";
 import { createProtoClient } from "./protoClient";
 
 let client;
+const checklistSyncListeners = new Set();
+
+export const subscribeChecklistSync = (listener) => {
+  checklistSyncListeners.add(listener);
+  return () => {
+    checklistSyncListeners.delete(listener);
+  };
+};
+
+const planchecklistitem = (body) => {
+  checklistSyncListeners.forEach((listener) => listener(body));
+};
 
 /**
  * 전송 계층 선택. 서버가 transport=both 로 두 경로를 동시에 서비스하므로, 문제가 생기면
@@ -130,7 +142,7 @@ export const initStompClient = (id) => {
   // 편집/프레즌스 수신 처리는 두 전송이 공유한다 — 아래 핸들러들은 전송 방식을 모른다.
   const handleSync = (body) => {
     console.log("📩 [WebSocket] 수신 데이터 (Topic):", body);
-    switch (body.entity) {
+    switch (String(body.entity ?? "").toLowerCase()) {
       case "plan":
         plan(body);
         break;
@@ -139,6 +151,9 @@ export const initStompClient = (id) => {
         break;
       case "timetableplaceblock":
         timetableplaceblock(body);
+        break;
+      case "planchecklistitem":
+        planchecklistitem(body);
         break;
     }
   };

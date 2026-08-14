@@ -33,7 +33,7 @@ import {
 } from "./usePlanChecklists";
 
 interface ChecklistPanelProps {
-  planId: string;
+  checklist: ReturnType<typeof usePlanChecklists>;
   enabled?: boolean;
   initialScope?: ChecklistScope;
 }
@@ -156,13 +156,12 @@ const EditableChecklistItem = ({
 };
 
 export const ChecklistPanel = ({
-  planId,
+  checklist,
   enabled = true,
   initialScope = "shared",
 }: ChecklistPanelProps) => {
   const [scope, setScope] = useState<ChecklistScope>(initialScope);
   const [newItem, setNewItem] = useState("");
-  const checklist = usePlanChecklists(planId, enabled);
   const items =
     scope === "shared" ? checklist.sharedItems : checklist.personalItems;
   const currentMeta = scopeMeta[scope];
@@ -198,6 +197,20 @@ export const ChecklistPanel = ({
         <p className="text-sm font-bold text-gray-700">일정을 먼저 저장해 주세요</p>
         <p className="mt-1 text-xs leading-5 text-gray-400">
           로그인 후 저장된 일정에서 여행 준비 목록을 사용할 수 있어요.
+        </p>
+      </div>
+    );
+  }
+
+  if (checklist.accessDenied) {
+    return (
+      <div className="flex min-h-64 flex-1 flex-col items-center justify-center px-6 text-center">
+        <LockKeyhole className="mb-3 h-8 w-8 text-gray-300" />
+        <p className="text-sm font-bold text-gray-700">
+          체크리스트를 이용할 수 없어요
+        </p>
+        <p className="mt-1 text-xs leading-5 text-gray-400">
+          이 체크리스트는 플랜 편집 권한이 있는 멤버만 이용할 수 있습니다.
         </p>
       </div>
     );

@@ -47,11 +47,18 @@ export default function MapComponent({ schedule }) {
     .filter((item) => isValidPosition(item.place));
 
   const positions = sortedSchedule
-    .map((item, index) => ({
-      index, // ← 원래 순서 번호 유지용
-      lat: isValidPosition(item.place) ? (item.place.yLocation ?? item.place.ylocation) : null,
-      lng: isValidPosition(item.place) ? (item.place.xLocation ?? item.place.xlocation) : null,
-    }))
+    .map((item, index) => {
+      const rawPlaceId = item.place?.placeId;
+      const placeId = rawPlaceId == null ? "" : String(rawPlaceId).trim();
+      const isCustomPlace = placeId.startsWith("custom-") || placeId.startsWith("custom_");
+
+      return {
+        index, // ← 원래 순서 번호 유지용
+        lat: isValidPosition(item.place) ? (item.place.yLocation ?? item.place.ylocation) : null,
+        lng: isValidPosition(item.place) ? (item.place.xLocation ?? item.place.xlocation) : null,
+        ...(placeId && !isCustomPlace ? { placeId } : {}),
+      };
+    })
     .filter(pos => pos.lat != null && pos.lng != null);
 
   const positionsKey = positions
@@ -84,7 +91,11 @@ export default function MapComponent({ schedule }) {
     let cancelled = false;
 
     post(`${import.meta.env.VITE_API_URL}/api/route/directions`, {
-      waypoints: positions.map((pos) => ({ lat: pos.lat, lng: pos.lng })),
+      waypoints: positions.map(({ lat, lng, placeId }) => ({
+        lat,
+        lng,
+        ...(placeId ? { placeId } : {}),
+      })),
     })
       .then((res) => {
         // 백엔드는 경로 탐색 실패 시 입력 좌표를 그대로(거리/시간 0) 돌려준다 → 직선 폴백 유지

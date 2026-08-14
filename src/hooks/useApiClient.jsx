@@ -10,6 +10,23 @@ import {
   setTokens,
 } from "../shared/auth/tokenStore";
 
+export class ApiError extends Error {
+  constructor(message, { status, code } = {}) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+const createApiError = async (response, fallbackMessage) => {
+  const errorData = await response.json().catch(() => null);
+  return new ApiError(errorData?.message || fallbackMessage, {
+    status: response.status,
+    code: errorData?.code,
+  });
+};
+
 /**
  * API 클라이언트 훅
  * 토큰 인증이 포함된 fetch 요청을 쉽게 사용할 수 있도록 도와주는 커스텀 훅
@@ -76,45 +93,48 @@ export const useApiClient = () => {
       if (response.status === 401 && !isLoginRequest) {
         try {
           await refreshTokens();
-
-          const retryConfig = {
-            ...options,
-            headers: {
-              ...getAuthHeaders(),
-              ...options.headers,
-            },
-          };
-
-          const retryResponse = await fetch(url, retryConfig);
-
-          // 🔥 재시도 중 서버 다운
-          if (retryResponse.status >= 500) {
-            setServerDown();
-            throw new Error("서버 오류가 발생했습니다.");
-          }
-
-          if (retryResponse.ok) {
-            // 💡 204 No Content 대응: 응답 본문이 비어있으면 json 파싱을 건너뛴다
-            if (retryResponse.status === 204) return null;
-            return await retryResponse.json();
-          } else {
-            throw new Error("토큰 갱신 후에도 요청이 실패했습니다.");
-          }
-        } catch (refreshError) {
+        } catch {
           clearAuth();
           throw new Error("인증이 만료되었습니다. 다시 로그인해주세요.");
         }
+
+        const retryConfig = {
+          ...options,
+          headers: {
+            ...getAuthHeaders(),
+            ...options.headers,
+          },
+        };
+
+        const retryResponse = await fetch(url, retryConfig);
+
+        // 🔥 재시도 중 서버 다운
+        if (retryResponse.status >= 500) {
+          setServerDown();
+          throw new Error("서버 오류가 발생했습니다.");
+        }
+
+        if (retryResponse.ok) {
+          // 💡 204 No Content 대응: 응답 본문이 비어있으면 json 파싱을 건너뛴다
+          if (retryResponse.status === 204) return null;
+          return await retryResponse.json();
+        }
+
+        throw await createApiError(
+          retryResponse,
+          `API 요청 실패: ${retryResponse.status}`,
+        );
       }
 
       if (response.status === 403) {
-        throw new Error("접근 권한이 없습니다.");
+        throw await createApiError(response, "접근 권한이 없습니다.");
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const errorMessage =
-          errorData?.message || `API 요청 실패: ${response.status}`;
-        throw new Error(errorMessage);
+        throw await createApiError(
+          response,
+          `API 요청 실패: ${response.status}`,
+        );
       }
 
       // 💡 204 No Content 대응: v2는 수정/삭제 계열 성공 응답을 본문 없이 204로 준다
