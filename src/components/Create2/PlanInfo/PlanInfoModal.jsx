@@ -3,14 +3,12 @@ import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import usePlanStore from "../../../store/Plan";
 import { useState } from "react";
 
-import TransportModal from "./TransportModal";
 import PersonCountModal from "../../common/PersonCountModal";
 import LocationModal from "../../common/LocationModal";
 
 export default function PlanInfoModal({setIsInfoOpen}) {
   const {
     destinationName,
-    transportationType,
     adultCount,
     childCount,
     setPlanField
@@ -18,11 +16,9 @@ export default function PlanInfoModal({setIsInfoOpen}) {
 
   const infoButton = "rounded-lg p-2 hover:bg-gray-100 w-full";
   const flexCenter = "flex items-center";
-  const transInfo = {PUBLIC: "대중교통", PRIVATE: "자동차"};
 
   const [isPersonCountOpen, setIsPersonCountOpen] = useState(false);
   const [isDestinationOpen, setIsDestinationOpen] = useState(false);
-  const [isTransportOpen, setIsTransportOpen] = useState(false); 
 
   const handlePersonCountClose = () => setIsPersonCountOpen(false);
   const handleDestinationClose = () => setIsDestinationOpen(false);
@@ -81,15 +77,6 @@ export default function PlanInfoModal({setIsInfoOpen}) {
             <p className="text text-start max-w-full truncate">{destinationName}</p>
           </div>
         </button>
-        <button
-          onClick={() => setIsTransportOpen(true)}
-          className={infoButton}
-        >
-          <div className="space-y-1.5">
-            <p className="text-gray-500 text-start font-semibold">이동수단</p>
-            <p className="text text-start max-w-full">{transInfo[transportationType]}</p>
-          </div>
-        </button>
       </div>
       
       <PersonCountModal
@@ -107,10 +94,6 @@ export default function PlanInfoModal({setIsInfoOpen}) {
         placeholder="여행지를 입력해주세요"
       />
       
-      {isTransportOpen && <TransportModal
-        setIsTransportOpen={setIsTransportOpen}
-      />}
-
     </div>
   )
 }

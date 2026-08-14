@@ -7,8 +7,9 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
+import { getAccessToken } from "../../shared/auth/tokenStore";
 import useNicknameStore from "../../store/Nickname";
 // @ts-ignore
 import Logo from "../../assets/imgs/logo.svg?react";
@@ -73,7 +74,7 @@ export default function Navbar({
 
   const [invitations, setInvitations] = useState<Invitation[]>([]);
 
-  const fetchInvitations = async () => {
+  const fetchInvitations = useCallback(async () => {
     if (isAuthenticated()) {
       try {
         const response = await get(
@@ -97,11 +98,32 @@ export default function Navbar({
         console.error("초대 목록을 가져오는데 실패했습니다:", err);
       }
     }
-  };
+  }, [BASE_URL, get, isAuthenticated]);
 
   useEffect(() => {
     fetchInvitations();
-  }, [nickname, currentView]); // 로그인 완료 및 화면 이동 시 목록을 새로 불러옴
+  }, [fetchInvitations, nickname, currentView]); // 로그인 완료 및 화면 이동 시 목록을 새로 불러옴
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    const eventSource = new EventSource(
+      `${BASE_URL}/api/sse/subscribe?token=${encodeURIComponent(token)}`,
+    );
+    const refreshPendingRequests = () => {
+      void fetchInvitations();
+    };
+
+    eventSource.addEventListener("invitation", refreshPendingRequests);
+    eventSource.addEventListener("requestResult", refreshPendingRequests);
+
+    return () => {
+      eventSource.removeEventListener("invitation", refreshPendingRequests);
+      eventSource.removeEventListener("requestResult", refreshPendingRequests);
+      eventSource.close();
+    };
+  }, [BASE_URL, fetchInvitations, nickname]);
 
   const acceptRequest = async (collaborationRequestId: number) => {
     try {

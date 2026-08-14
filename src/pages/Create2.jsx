@@ -73,7 +73,6 @@ function App() {
     destinationName,
     destinationId,
     planName,
-    transportationType,
     adultCount,
     childCount,
   } = usePlanStore();
@@ -293,7 +292,6 @@ function App() {
         planName: planState.planName,
         destinationName: planState.destinationName,
         destinationId: planState.destinationId,
-        transportationType: planState.transportationType,
         adultCount: planState.adultCount,
         childCount: planState.childCount,
         planId: planState.planId,
@@ -322,7 +320,6 @@ function App() {
     planName,
     destinationName,
     destinationId,
-    transportationType,
     adultCount,
     childCount,
     isTempLoaded,

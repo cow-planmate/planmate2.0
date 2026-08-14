@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { useNavigate } from "react-router-dom";
-import { faBus, faCar } from "@fortawesome/free-solid-svg-icons";
 
 // Components
 import Navbar from "../components/common/Navbar";
@@ -12,7 +11,6 @@ import SearchForm from "../components/Home/SearchForm";
 import DepartureModal from "../components/common/DepartureModal";
 import DestinationModal from "../components/common/LocationModal";
 import PersonCountModal from "../components/common/PersonCountModal";
-import TransportModal from "../components/common/TransportModal";
 import DateRangeModal from "../components/Home/HomeCal";
 import { ErrorToast, WarningToast } from "../components/common/Toast";
 
@@ -28,13 +26,11 @@ function Home({ hideNavbar = false }) {
   // Modals Visibility States
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isPersonCountOpen, setIsPersonCountOpen] = useState(false);
-  const [isTransportOpen, setIsTransportOpen] = useState(false);
   const [isDepartureOpen, setIsDepartureOpen] = useState(false);
   const [isDestinationOpen, setIsDestinationOpen] = useState(false);
 
   // Form Data States
   const [personCount, setPersonCount] = useState({ adults: 1, children: 0 });
-  const [selectedTransport, setSelectedTransport] = useState("bus");
   const [departureLocation, setDepartureLocation] = useState(null);
   const [destinationLocation, setDestinationLocation] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -107,8 +103,6 @@ function Home({ hideNavbar = false }) {
           dates: formattedDates,
           adultCount: Number(personCount.adults),
           childCount: Number(personCount.children),
-          transportationType:
-            selectedTransport === "car" ? "PRIVATE" : "PUBLIC",
         };
 
         const BASE_URL = import.meta.env.VITE_API_URL;
@@ -124,7 +118,6 @@ function Home({ hideNavbar = false }) {
           destinationName: destinationLocation?.name || "",
           destinationId: destinationLocation?.id || null,
           departure: departureLocation?.name || "",
-          transportationType: selectedTransport === "car" ? "PRIVATE" : "PUBLIC",
           adultCount: Number(personCount.adults),
           childCount: Number(personCount.children),
         });
@@ -175,9 +168,6 @@ function Home({ hideNavbar = false }) {
         onCalendarClick={() => setIsCalendarOpen(true)}
         personCountText={formatPersonCount()}
         onPersonCountClick={() => setIsPersonCountOpen(true)}
-        transportText={selectedTransport === "car" ? "자동차" : "대중교통"}
-        transportIcon={selectedTransport === "car" ? faCar : faBus}
-        onTransportClick={() => setIsTransportOpen(true)}
         isSubmitting={isSubmitting}
         onSubmit={makePlan}
       />
@@ -197,13 +187,6 @@ function Home({ hideNavbar = false }) {
         onClose={() => setIsPersonCountOpen(false)}
         personCount={personCount}
         onPersonCountChange={handlePersonCountChange}
-      />
-
-      <TransportModal
-        isOpen={isTransportOpen}
-        onClose={() => setIsTransportOpen(false)}
-        selectedTransport={selectedTransport}
-        onTransportChange={setSelectedTransport}
       />
 
       <DepartureModal

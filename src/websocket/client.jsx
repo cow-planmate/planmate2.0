@@ -9,6 +9,7 @@ import { convertBlock } from "../utils/createUtils";
 import { createProtoClient } from "./protoClient";
 
 let client;
+let unsubscribePlanStore;
 const checklistSyncListeners = new Set();
 
 export const subscribeChecklistSync = (listener) => {
@@ -123,6 +124,9 @@ export const sendRedo = (roomId) => {
 };
 
 export const disconnectStompClient = () => {
+  unsubscribePlanStore?.();
+  unsubscribePlanStore = undefined;
+
   if (client) {
     console.log("🔌 WebSocket 연결 종료 중...");
     client.deactivate();
@@ -214,13 +218,28 @@ export const initStompClient = (id) => {
 
 /** 플랜 스토어 변경을 서버로 밀어 올린다. 전송 방식과 무관해 두 경로가 공유한다. */
 function subscribePlanStore(id) {
-  usePlanStore.subscribe((state, prevState) => {
-    if (JSON.stringify(state) !== JSON.stringify(prevState)) {
-      const { eventId, setEventId, setPlanAll, setPlanField, ...payload } = state;
+  unsubscribePlanStore?.();
+  unsubscribePlanStore = usePlanStore.subscribe((state, prevState) => {
+    const payload = {
+      planId: state.planId,
+      planName: state.planName,
+      destinationId: state.destinationId,
+      adultCount: state.adultCount,
+      childCount: state.childCount,
+    };
+    const prevPayload = {
+      planId: prevState.planId,
+      planName: prevState.planName,
+      destinationId: prevState.destinationId,
+      adultCount: prevState.adultCount,
+      childCount: prevState.childCount,
+    };
+
+    if (JSON.stringify(payload) !== JSON.stringify(prevPayload)) {
       console.log(payload)
-      if (client.connected && eventId) {
+      if (client.connected && state.eventId) {
         const requestMsg = {
-          "eventId": eventId,
+          "eventId": state.eventId,
           "action": "update",
           "entity": "plan",
           "planDtos": [{

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import LoadingRing from "../../../assets/imgs/ring-resize.svg?react";
 import { useApiClient } from "../../../hooks/useApiClient";
@@ -11,14 +11,20 @@ import { clearTempPlan } from "../../../utils/tempPlanStorage";
 export default function NoLoginSave({ isOpen }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
   const { isAuthenticated, post } = useApiClient();
-  const { transportationType, destinationId, adultCount, childCount } =
+  const { destinationId, adultCount, childCount } =
     usePlanStore();
   const { timetables } = useTimetableStore();
   const { items } = useItemsStore();
   const navigate = useNavigate();
+  const saveStartedRef = useRef(false);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      saveStartedRef.current = false;
+      return;
+    }
+    if (saveStartedRef.current) return;
+    saveStartedRef.current = true;
 
     const exportBlocks = Object.entries(items).flatMap(([key, day]) => {
       if (!Array.isArray(day)) return [];
@@ -44,7 +50,6 @@ export default function NoLoginSave({ isOpen }) {
           const res = await post(`${BASE_URL}/api/plan/full`, {
             planFrame: {
               destinationId: destinationId,
-              transportationType: transportationType,
               adultCount: adultCount,
               childCount: childCount,
             },
@@ -73,7 +78,7 @@ export default function NoLoginSave({ isOpen }) {
     };
 
     savePlan();
-  }, [isOpen]);
+  }, [BASE_URL, adultCount, childCount, destinationId, isAuthenticated, isOpen, items, navigate, post, timetables]);
 
   if (!isOpen) return null;
 

@@ -432,7 +432,7 @@ export default function SegmentInfoPanel({
         hasError: results.every((result) => result.status === "rejected"),
       });
     });
-  }, [isOpen, positionsKey]);
+  }, [isOpen, positions, positionsKey, post, segmentData.key]);
 
   return (
     <>

@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
 import useKakaoLoader from "../../hooks/useKakaoLoader";
 import { useApiClient } from "../../hooks/useApiClient";
 import SegmentInfoPanel, { SUBWAY_COLORS, BUS_COLOR } from "./SegmentInfoPanel";
+
+const isValidPosition = (place) =>
+  (place?.yLocation != null || place?.ylocation != null) &&
+  (place?.xLocation != null || place?.xlocation != null);
 
 export default function MapComponent({ schedule }) {
   useKakaoLoader()
@@ -39,14 +43,14 @@ export default function MapComponent({ schedule }) {
     }
   };
 
-  const isValidPosition = (place) =>
-    (place?.yLocation != null || place?.ylocation != null) && (place?.xLocation != null || place?.xlocation != null);
+  const sortedSchedule = useMemo(
+    () => [...schedule]
+      .sort((a, b) => a.start - b.start)
+      .filter((item) => isValidPosition(item.place)),
+    [schedule],
+  );
 
-  const sortedSchedule = [...schedule]
-    .sort((a, b) => a.start - b.start)
-    .filter((item) => isValidPosition(item.place));
-
-  const positions = sortedSchedule
+  const positions = useMemo(() => sortedSchedule
     .map((item, index) => {
       const rawPlaceId = item.place?.placeId;
       const placeId = rawPlaceId == null ? "" : String(rawPlaceId).trim();
@@ -59,7 +63,7 @@ export default function MapComponent({ schedule }) {
         ...(placeId && !isCustomPlace ? { placeId } : {}),
       };
     })
-    .filter(pos => pos.lat != null && pos.lng != null);
+    .filter(pos => pos.lat != null && pos.lng != null), [sortedSchedule]);
 
   const positionsKey = positions
     .map((pos) => `${pos.lat},${pos.lng}`)
@@ -77,7 +81,7 @@ export default function MapComponent({ schedule }) {
 
     // 계산된 bounds를 지도에 적용합니다.
     map.setBounds(bounds);
-  }, [map, positionsKey]);
+  }, [map, positions]);
 
   // 도로를 따라가는 실제 경로를 백엔드(OSRM 길찾기)에서 받아온다.
   // 실패 시 routePath는 빈 배열로 남아 직선(positions)으로 대체된다.
@@ -111,7 +115,7 @@ export default function MapComponent({ schedule }) {
     return () => {
       cancelled = true;
     };
-  }, [positionsKey]);
+  }, [positions, post]);
 
   const handleMoveToCurrentLocation = () => {
     if (!navigator.geolocation) {
