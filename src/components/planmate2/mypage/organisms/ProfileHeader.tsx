@@ -1,4 +1,4 @@
-import { Award, Camera, Globe, Lock, MessageSquare, Settings, User, UserPlus } from 'lucide-react';
+import { Award, Ban, Camera, Globe, Lock, MessageSquare, Settings, User, UserPlus } from 'lucide-react';
 import React from 'react';
 // @ts-ignore
 import type { UserBadges } from '../../community/api/communityApi';
@@ -25,6 +25,8 @@ interface ProfileHeaderProps {
   onViewLevel: () => void;
   onAddFriend?: () => void;
   onSendMessage?: () => void;
+  onToggleBlock?: () => void;
+  isBlocked?: boolean;
   myPlansCount: number;
   editablePlansCount: number;
   isOtherUser?: boolean;
@@ -42,6 +44,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onViewLevel,
   onAddFriend,
   onSendMessage,
+  onToggleBlock,
+  isBlocked = false,
   myPlansCount,
   editablePlansCount,
   isOtherUser = false,
@@ -176,6 +180,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 >
                   <MessageSquare className="w-4 h-4 shrink-0" />
                   채팅하기
+                </button>
+                <button
+                  onClick={onToggleBlock}
+                  className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 ${isBlocked ? 'bg-gray-700 text-white hover:bg-gray-800' : 'bg-white text-red-500 border border-red-200 hover:bg-red-50'}`}
+                >
+                  <Ban className="w-4 h-4 shrink-0" />
+                  {isBlocked ? '차단 해제' : '차단하기'}
                 </button>
               </div>
             )}

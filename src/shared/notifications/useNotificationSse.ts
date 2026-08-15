@@ -6,8 +6,8 @@ const BASE_URL: string =
   import.meta.env.VITE_NOTIFICATION_API_URL || import.meta.env.VITE_API_URL;
 
 /**
- * 통합 알림 스트림. Social 채팅 SSE(useSocialSse)와는 별개의 연결이다 —
- * 채팅 이벤트는 여전히 Social 이 소유하므로 두 스트림을 각각 구독한다.
+ * 통합 알림 스트림. 전역 새 채팅 알림도 여기서 받고, 채팅방 안의 실제 메시지 동기화는
+ * 채팅 모달이 열려 있는 동안 Social WebSocket이 담당한다.
  *
  * SSE 는 놓쳐도 되는 채널로 다룬다. 끊긴 동안의 알림은 재연결 시 Last-Event-ID 로 서버가
  * 재생하고, 그마저 놓치면 목록 재조회로 복구된다.
@@ -36,6 +36,14 @@ export const useNotificationSse = () => {
         const message = event as MessageEvent;
         if (message.lastEventId) lastEventId = message.lastEventId;
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        try {
+          const notification = JSON.parse(message.data) as { type?: string };
+          if (notification.type === 'NOTIFICATION_TYPE_CHAT_MESSAGE_RECEIVED') {
+            queryClient.invalidateQueries({ queryKey: ['social', 'rooms'] });
+          }
+        } catch {
+          // 목록 재조회는 이미 예약됐으므로 알 수 없는 payload는 무시한다.
+        }
       });
       source.onopen = () => {
         retry = 0;

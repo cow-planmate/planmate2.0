@@ -9,12 +9,12 @@ interface FriendSectionProps {
   setSearchQuery: (query: string) => void;
 }
 
-export const FriendSection: React.FC<FriendSectionProps> = ({ 
-  friends, 
-  onOpenChat, 
+export const FriendSection: React.FC<FriendSectionProps> = ({
+  friends,
+  onOpenChat,
   onNavigate,
   searchQuery,
-  setSearchQuery 
+  setSearchQuery
 }) => {
   return (
     <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-[600px]">
@@ -36,41 +36,41 @@ export const FriendSection: React.FC<FriendSectionProps> = ({
       {/* Search Bar moved here */}
       <div className="relative group mb-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#1344FF] transition-colors" />
-        <input 
-          type="text" 
+        <input
+          type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="닉네임으로 친구 찾기..." 
+          placeholder="닉네임으로 친구 찾기..."
           className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-[#1344FF] focus:border-transparent outline-none transition-all"
         />
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
         {friends.map((friend) => (
-          <div 
-            key={friend.id} 
-            onClick={() => onNavigate('mypage', { userId: friend.id })}
+          <div
+            key={friend.userId}
+            onClick={() => !friend.deleted && onNavigate('mypage', { userId: friend.userId })}
             className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-colors group cursor-pointer"
           >
             <div className="flex items-center gap-3">
               <div className="relative">
-                <img 
-                  src={friend.profileLogo} 
-                  alt={friend.nickName} 
+                <img
+                  src={friend.profileImageUrl || 'https://via.placeholder.com/48'}
+                  alt={friend.nickname}
                   className="w-12 h-12 rounded-full object-cover border border-gray-100 shadow-sm"
                 />
               </div>
               <div>
-                <h4 className="font-bold text-gray-900 text-sm group-hover:text-[#1344FF] transition-colors">{friend.nickName}</h4>
+                <h4 className="font-bold text-gray-900 text-sm group-hover:text-[#1344FF] transition-colors">{friend.nickname}</h4>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   // 계획 초대 로직 (추후 구현)
-                  alert(`${friend.nickName}님을 계획에 초대했습니다!`);
+                  onNavigate('myplan', { invitee: friend.nickname });
                 }}
                 className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-blue-50 hover:text-[#1344FF] transition-all active:scale-95 group/btn relative"
                 title="계획 초대"
@@ -80,7 +80,7 @@ export const FriendSection: React.FC<FriendSectionProps> = ({
                   계획 초대
                 </span>
               </button>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenChat(friend);

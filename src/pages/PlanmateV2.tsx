@@ -11,13 +11,11 @@ import MyPage from '../components/planmate2/mypage/pages/my-page';
 import Navbar from '../components/planmate2/navbar';
 import { ChatModal } from '../components/planmate2/social/molecules/ChatModal';
 import { SocialPage } from '../components/planmate2/social/pages/SocialPage';
-import { useSocialSse } from '../components/planmate2/social/hooks/useSocialSse';
 import { useNotificationSse } from '../shared/notifications/useNotificationSse';
 import Home from './Home';
 
 export default function PlanmateV2() {
-  // 두 스트림은 별개다. 알림은 알림 센터가, 채팅은 여전히 Social 이 소유한다.
-  useSocialSse();
+  // 전역 새 메시지 신호는 알림 SSE가 받고, 실제 대화는 ChatModal의 WebSocket이 처리한다.
   useNotificationSse();
   const location = useLocation();
   const navigate = useNavigate();

@@ -24,23 +24,23 @@ export const ChatSection: React.FC<ChatSectionProps> = ({ chatRooms, onOpenChat 
 
       <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
         {chatRooms.map((room) => (
-          <div 
-            key={room.id} 
-            onClick={() => onOpenChat(room.otherUser)}
+          <div
+            key={room.roomId}
+            onClick={() => onOpenChat({ ...room.partner, roomId: room.roomId })}
             className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer border border-transparent hover:border-gray-100 group"
           >
-            <img 
-              src={room.otherUser.profileLogo} 
-              alt={room.otherUser.nickName} 
+            <img
+              src={room.partner.profileImageUrl || 'https://via.placeholder.com/56'}
+              alt={room.partner.nickname}
               className="w-14 h-14 rounded-2xl object-cover shadow-sm group-hover:scale-105 transition-transform"
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <h4 className="font-bold text-gray-900 truncate group-hover:text-[#1344FF] transition-colors">{room.otherUser.nickName}</h4>
-                <span className="text-[10px] text-gray-400 font-medium">{room.time}</span>
+                <h4 className="font-bold text-gray-900 truncate group-hover:text-[#1344FF] transition-colors">{room.partner.nickname}</h4>
+                <span className="text-[10px] text-gray-400 font-medium">{room.lastMessageAt ? new Date(room.lastMessageAt).toLocaleDateString('ko-KR') : ''}</span>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-500 truncate font-medium">{room.lastMessage}</p>
+                <p className="text-sm text-gray-500 truncate font-medium">{room.lastMessage || '대화를 시작해 보세요.'}</p>
                 {room.unreadCount > 0 && (
                   <span className="bg-[#1344FF] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
                     {room.unreadCount}

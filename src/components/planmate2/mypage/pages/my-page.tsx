@@ -32,6 +32,7 @@ import {
   updateProfileVisibility,
   uploadProfileImage,
 } from "../api/userApi";
+import { blockUser, isUserBlocked, unblockUser } from "../../social/api/socialApi";
 // @ts-ignore
 import { categoryKeyToId } from "../../../../shared/theme/category";
 import { CalendarSection } from "../organisms/CalendarSection";
@@ -68,6 +69,7 @@ import {
 
 interface MyPageProps {
   onNavigate: (view: any, data?: any) => void;
+  onOpenChat?: (user: any) => void;
   userId?: string;
 }
 
@@ -96,7 +98,7 @@ const enrichPlan = async (
   }
 };
 
-export default function MyPage({ onNavigate, userId }: MyPageProps) {
+export default function MyPage({ onNavigate, onOpenChat, userId }: MyPageProps) {
   useKakaoLoader();
   const navigate = useNavigate();
 
@@ -232,6 +234,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   // API 관련 상태
   const { get, post, patch, del, isAuthenticated, logout } = useApiClient();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
   const [myPlans, setMyPlans] = useState<Plan[]>([]);
   const [editablePlans, setEditablePlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -301,14 +304,31 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
       return;
     }
 
-    // 이 핸들러는 이제 부모로부터 받은 전역 채팅 함수를 호출하거나
-    // 여기 프로필 사용자를 넘겨야 합니다 (현재는 팝업 준비중 메시지 대신 전역 처리 필요)
-    // onNavigate를 통해 부모의 전역 핸들러를 호출하도록 유도하거나
-    // props로 직접 전달받아야 하지만, 현재 구조상 팝업은 부모가 관리하므로
-    // 여기서 알림만 띄우거나 기능을 유지하려면 props 수정이 필요합니다.
-    alert(
-      `${targetUser?.nickName || userProfile?.nickname || "사용자"}님과의 채팅을 시작합니다.`,
-    );
+    const targetId = targetUser?.userId || userId;
+    if (!targetId || !onOpenChat) return;
+    onOpenChat({
+      userId: targetId,
+      nickname: targetUser?.nickname || userProfile?.nickname || "사용자",
+      profileImageUrl: targetUser?.profileImageUrl || userProfile?.profileImageUrl,
+    });
+  };
+
+  useEffect(() => {
+    if (!isOtherUser || !userId || !isAuthenticated()) return;
+    isUserBlocked(userId).then(({ blocked }) => setIsBlocked(blocked)).catch(() => setIsBlocked(false));
+  }, [isOtherUser, userId, isAuthenticated]);
+
+  const handleToggleBlock = async () => {
+    if (!userId) return;
+    const nextBlocked = !isBlocked;
+    if (!confirm(nextBlocked ? '이 사용자를 차단할까요? 친구 관계와 대기 중인 요청은 정리됩니다.' : '이 사용자의 차단을 해제할까요?')) return;
+    try {
+      if (nextBlocked) await blockUser(userId); else await unblockUser(userId);
+      setIsBlocked(nextBlocked);
+      if (nextBlocked) alert('사용자를 차단했습니다.');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '차단 상태를 변경하지 못했습니다.');
+    }
   };
 
   // 캘린더 이벤트 팝업 상태
@@ -1076,6 +1096,8 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           onViewLevel={() => setActiveModal("level")}
           onAddFriend={handleFriendAdd}
           onSendMessage={handleSendMessage}
+          onToggleBlock={handleToggleBlock}
+          isBlocked={isBlocked}
           myPlansCount={otherUserPlanCounts?.myPlanCount ?? myPlans.length}
           editablePlansCount={
             otherUserPlanCounts?.editablePlanCount ?? editablePlans.length
