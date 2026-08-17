@@ -7,6 +7,7 @@ import {
   deletePost,
   fetchComments,
   fetchFeedPosts,
+  mapFeedPost,
   fetchFeedRegionCounts,
   fetchHotPosts,
   fetchLikedPosts,
@@ -14,6 +15,7 @@ import {
   fetchMyComments,
   fetchMyPosts,
   fetchMyStats,
+  fetchAdjacentPosts,
   fetchPost,
   fetchPosts,
   fetchUserBadges,
@@ -44,10 +46,12 @@ const KEYS = {
 };
 
 // ── 조회 ─────────────────────────────────────────────────────────────────
-export const usePosts = (category: string, page: number, sort = 'latest', q = '') =>
+export const usePosts = (category: string | undefined, page: number, sort = 'latest', q = '') =>
   useQuery({
-    queryKey: KEYS.posts(category, page, sort, q),
-    queryFn: () => fetchPosts(category, page, 20, sort, q),
+    queryKey: KEYS.posts(category ?? '', page, sort, q),
+    queryFn: () => fetchPosts(category!, page, 20, sort, q),
+    // 상세 화면 하단 목록은 게시글을 받아오기 전까지 카테고리를 모른다
+    enabled: !!category,
     staleTime: 30_000,
   });
 
@@ -60,6 +64,25 @@ export const useFeedPosts = (filters: FeedFilterParams, size = 12) =>
     getNextPageParam: (lastPage) =>
       lastPage.page + 1 < lastPage.totalPages ? lastPage.page + 1 : undefined,
     staleTime: 30_000,
+  });
+
+/**
+ * 같은 지역의 다른 여행기 (상세 하단 추천).
+ *
+ * "비슷한 글"의 근거로 쓸 수 있는 건 지금 지역뿐이다 — 본문 유사도는 서버가 계산해 주지 않는다.
+ * 지역이 없는 글에서는 아예 조회하지 않는다: 전국 최신글을 "비슷한 여행기"라고 부르면 거짓말이다.
+ */
+export const useSimilarFeedPosts = (region: string | undefined, excludePostId: number | string) =>
+  useQuery({
+    queryKey: ['community', 'posts', 'feed', 'similar', region, excludePostId] as const,
+    // 지금 글이 섞여 나올 수 있으니 넉넉히 받아 걸러낸다
+    queryFn: () => fetchFeedPosts(0, 9, { region, sort: 'likes' }),
+    enabled: !!region && region !== '전국',
+    staleTime: 30_000,
+    select: (page) => page.items
+      .filter((p: any) => String(p.id) !== String(excludePostId))
+      .slice(0, 4)
+      .map(mapFeedPost),
   });
 
 export const useFeedRegionCounts = () =>
@@ -80,6 +103,13 @@ export const usePost = (postId: number | string | undefined) =>
   useQuery({
     queryKey: KEYS.post(postId ?? ''),
     queryFn: () => fetchPost(postId!),
+    enabled: postId !== undefined && postId !== null && postId !== '',
+  });
+
+export const useAdjacentPosts = (postId: number | string | undefined) =>
+  useQuery({
+    queryKey: [...KEYS.post(postId ?? ''), 'adjacent'],
+    queryFn: () => fetchAdjacentPosts(postId!),
     enabled: postId !== undefined && postId !== null && postId !== '',
   });
 

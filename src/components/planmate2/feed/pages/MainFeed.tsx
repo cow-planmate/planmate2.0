@@ -8,8 +8,10 @@ import { useFeedPosts, useFeedRegionCounts } from '../../community/hooks/queries
 import { useMainFeedFilters } from '../hooks/useMainFeedLogic';
 import { useRegionMarkers } from '../hooks/useRegionMarkers';
 import { DEFAULT_MAP_CENTER, FEED_REGIONS, getRegionCoords } from '../utils/region';
+import { PostCardSkeleton } from '../molecules/PostCardSkeleton';
 import { SearchBar } from '../molecules/SearchBar';
 import { DetailFilterPanel } from '../organisms/DetailFilterPanel';
+import { FeedQuickFilters } from '../organisms/FeedQuickFilters';
 import { MainFeedHeader } from '../organisms/MainFeedHeader';
 import { MainFeedSidebar } from '../organisms/MainFeedSidebar';
 import { MainPostsGrid } from '../organisms/MainPostsGrid';
@@ -32,7 +34,6 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
     () => (data?.pages ?? []).flatMap(page => page.items.map(mapFeedPost)),
     [data],
   );
-  const totalElements = data?.pages[0]?.totalElements ?? 0;
   // 게시글이 있는 모든 여행지를 지도에 표시 (좌표 미상 지역은 지오코딩으로 보완)
   const regionMarkers = useRegionMarkers(regionCountList);
 
@@ -42,8 +43,8 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
     () => (typeof window !== 'undefined' && window.innerWidth < 640 ? 'list' : 'grid'),
   );
   // 눌림 표시는 세션 로컬 (목록 요약에는 myReaction이 없음) — 카운트는 서버 값 그대로 표시
+  // 비추천은 목록에서 아예 노출하지 않는다(상세에서만) — 훑어보다 누르는 버튼이 되면 안 된다
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
-  const [dislikedPosts, setDislikedPosts] = useState<Set<number>>(new Set());
   const [mapState, setMapState] = useState({
     center: DEFAULT_MAP_CENTER,
     level: 14
@@ -66,6 +67,23 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
     }
     return ['전체', ...FEED_REGIONS, ...extras];
   }, [regionCountList, filters.selectedRegion]);
+
+  const activeChips = useMemo(() => {
+    const chips: { key: string; label: string; onRemove: () => void }[] = [];
+    if (filters.searchQuery) {
+      chips.push({ key: 'q', label: `"${filters.searchQuery}"`, onRemove: () => setters.setSearchQuery('') });
+    }
+    if (filters.selectedRegion !== '전체') {
+      chips.push({ key: 'region', label: filters.selectedRegion, onRemove: () => setters.handleRegionSelect(filters.selectedRegion) });
+    }
+    if (filters.selectedDuration !== '전체') {
+      chips.push({ key: 'duration', label: filters.selectedDuration, onRemove: () => setters.setSelectedDuration('전체') });
+    }
+    if (filters.sortOrder !== 'desc') {
+      chips.push({ key: 'order', label: '오름차순', onRemove: () => setters.setSortOrder('desc') });
+    }
+    return chips;
+  }, [filters.searchQuery, filters.selectedRegion, filters.selectedDuration, filters.sortOrder, setters]);
 
   useEffect(() => {
     if (filters.selectedRegion === '전체') {
@@ -94,13 +112,6 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
       alert('로그인이 필요합니다.');
       return;
     }
-    if (dislikedPosts.has(postId)) {
-      setDislikedPosts(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(postId);
-        return newSet;
-      });
-    }
     setLikedPosts(prev => {
       const newSet = new Set(prev);
       if (newSet.has(postId)) newSet.delete(postId);
@@ -108,28 +119,6 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
       return newSet;
     });
     react(postId, 'like');
-  };
-
-  const handleDislike = (postId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isAuthenticated()) {
-      alert('로그인이 필요합니다.');
-      return;
-    }
-    if (likedPosts.has(postId)) {
-      setLikedPosts(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(postId);
-        return newSet;
-      });
-    }
-    setDislikedPosts(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(postId)) newSet.delete(postId);
-      else newSet.add(postId);
-      return newSet;
-    });
-    react(postId, 'dislike');
   };
 
   return (
@@ -213,20 +202,15 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
         />
       )}
 
-      {(filters.searchQuery || filters.activeFilterCount > 0) && (
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-sm text-[#666666]">
-            <span className="font-bold text-[#1344FF]">{totalElements}개</span>의 여행기를 찾았습니다
-          </p>
-        </div>
-      )}
+      <FeedQuickFilters
+        activeChips={activeChips}
+        onClearAll={setters.clearFilters}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           {isLoading ? (
-            <div className="bg-white rounded-xl shadow-md p-12 text-center text-[#666666]">
-              여행기를 불러오는 중...
-            </div>
+            <PostCardSkeleton viewMode={viewMode} />
           ) : (
             <>
               <MainPostsGrid
@@ -234,9 +218,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
                 viewMode={viewMode}
                 onNavigate={onNavigate}
                 likedPosts={likedPosts}
-                dislikedPosts={dislikedPosts}
                 onLike={handleLike}
-                onDislike={handleDislike}
                 onClearFilters={setters.clearFilters}
               />
               {hasNextPage && (
@@ -244,7 +226,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
                   <button
                     onClick={() => fetchNextPage()}
                     disabled={isFetchingNextPage}
-                    className="px-8 py-3 bg-white border border-[#e5e7eb] rounded-xl text-[#1344FF] font-bold hover:border-[#1344FF] transition-all shadow-sm disabled:opacity-50"
+                    className="px-8 py-3 bg-white border border-[#ececf0] rounded-xl text-[#1344FF] font-bold hover:border-[#1344FF] transition-all disabled:opacity-50"
                   >
                     {isFetchingNextPage ? '불러오는 중...' : '더 보기'}
                   </button>

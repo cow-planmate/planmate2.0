@@ -6,6 +6,7 @@ import { RecommendInfo } from '../molecules/RecommendInfo';
 import { RecommendSidebar } from '../molecules/RecommendSidebar';
 import { CommentSection } from '../organisms/CommentSection';
 import { PostContentViewer } from '../organisms/PostContentViewer';
+import { RecommendPlacesSection } from '../organisms/RecommendPlacesSection';
 
 interface RecommendDetailPageProps {
   post?: any;          // 목록에서 넘어온 경우의 초기 데이터 (없어도 postId로 조회)
@@ -24,6 +25,9 @@ export const RecommendDetailPage = ({ post: initialPost, postId, onBack, onNavig
   const deletePost = useDeletePost();
 
   const post = data ?? initialPost;
+  // 장소가 하나뿐인 옛 글도 서버가 한 건짜리 배열로 내려준다. 목록 UI는 두 곳 이상일 때만 켠다
+  const places = data?.places ?? [];
+  const isMultiPlace = places.length > 1;
   const myUserId = localStorage.getItem('userId');
   const isLoggedIn = !!localStorage.getItem('accessToken');
   const isAuthor = post && myUserId === post.userId;
@@ -102,8 +106,11 @@ export const RecommendDetailPage = ({ post: initialPost, postId, onBack, onNavig
         <div className="p-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
+              {/* 여러 곳을 담은 글은 지도+목록 섹션이 본문 위로 온다 — 독자가 먼저 보는 게 장소 목록이다 */}
+              {isMultiPlace && <RecommendPlacesSection places={places} />}
+
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Camera className="w-5 h-5 text-emerald-500" />
+                <Camera className="w-5 h-5 text-gray-400" />
                 장소 소개
               </h2>
               <div className="mb-8">
@@ -117,6 +124,8 @@ export const RecommendDetailPage = ({ post: initialPost, postId, onBack, onNavig
                 likes={post.likes}
                 location={post.location}
                 coords={post.coords}
+                placeUrl={post.placeUrl}
+                placeCount={isMultiPlace ? places.length : undefined}
               />
             </div>
           </div>
@@ -127,8 +136,8 @@ export const RecommendDetailPage = ({ post: initialPost, postId, onBack, onNavig
             onClick={handleLike}
             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold border transition-colors ${
               data?.myReaction === 'like'
-                ? 'bg-[#1344FF] text-white border-[#1344FF]'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-[#1344FF] hover:text-[#1344FF]'
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
             }`}
           >
             <ThumbsUp className="w-5 h-5" />

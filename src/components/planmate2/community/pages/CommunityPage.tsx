@@ -11,7 +11,6 @@ import { PostListTable } from '../organisms/PostListTable';
 
 interface CommunityPageProps {
   type: 'free' | 'qna' | 'mate' | 'recommend';
-  onBack: () => void;
   onNavigate: (view: any, data?: any) => void;
 }
 
@@ -24,7 +23,7 @@ const SORT_LABELS: { value: SortOption; label: string }[] = [
   { value: 'views', label: '조회순' },
 ];
 
-export const CommunityPage = ({ type, onBack, onNavigate }: CommunityPageProps) => {
+export const CommunityPage = ({ type, onNavigate }: CommunityPageProps) => {
   // 지도 보기(FeedMapView)가 카카오 SDK를 필요로 하므로 피드 페이지들과 동일하게 로드한다
   useKakaoLoader();
 
@@ -82,7 +81,6 @@ export const CommunityPage = ({ type, onBack, onNavigate }: CommunityPageProps) 
         type={type}
         title={getTitle()}
         description={getDescription()}
-        onBack={onBack}
       />
 
       <NavigationTabs

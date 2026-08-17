@@ -4,9 +4,11 @@ import {
 import { UserAvatar } from '../../common/UserAvatar';
 import { LevelBadge } from '../atoms/LevelBadge';
 import {
-  useChangeMateStatus, useDeletePost, useJoinMate, useLeaveMate, usePost, useReactToPost, useUpdateAnswered,
+  useChangeMateStatus, useDeletePost, useJoinMate, useLeaveMate, usePost, usePosts, useReactToPost, useUpdateAnswered,
 } from '../hooks/queries';
+import { useState } from 'react';
 import { CommentSection } from '../organisms/CommentSection';
+import { PostListTable } from '../organisms/PostListTable';
 import { PostContentViewer } from '../organisms/PostContentViewer';
 
 interface PostDetailPageProps {
@@ -18,6 +20,10 @@ interface PostDetailPageProps {
 /** 자유/QnA/메이트 게시글 상세 (딥링크 안전 — id로 직접 조회) */
 export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPageProps) => {
   const { data: post, isLoading, error } = usePost(postId);
+  // 하단 목록은 상세와 독립적으로 페이지를 넘긴다 (지금 글은 그대로 두고 목록만 이동)
+  const [listPage, setListPage] = useState(0);
+  const { data: boardPage } = usePosts(post?.category, listPage, 'latest', '');
+  const boardPosts = boardPage?.items ?? [];
   const react = useReactToPost(postId);
   const joinMate = useJoinMate(postId);
   const leaveMate = useLeaveMate(postId);
@@ -199,6 +205,20 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
         )}
 
         <CommentSection postId={post.id} />
+      </div>
+
+      {/* 글 아래에 게시판 목록을 그대로 붙인다 — 목록으로 나갔다 들어오는 왕복 없이
+          다음 글로 계속 넘어갈 수 있고, 지금 글이 어디쯤인지도 보인다 */}
+      <div className="mt-4">
+        <PostListTable
+          posts={boardPosts}
+          type={post.category}
+          currentPostId={post.id}
+          onNavigate={onNavigate ?? (() => {})}
+          page={listPage}
+          totalPages={boardPage?.totalPages ?? 1}
+          onPageChange={setListPage}
+        />
       </div>
     </div>
   );
