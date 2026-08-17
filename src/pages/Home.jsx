@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 // Components
 import Navbar from "../components/common/Navbar";
-import HeroSlider from "../components/Home/HeroSlider";
 import SearchForm from "../components/Home/SearchForm";
 
 // Modals
@@ -157,9 +156,6 @@ function Home({ hideNavbar = false }) {
         </div>
       )}
 
-      {/* Hero Banner Section */}
-      <HeroSlider />
-
       {/* Search Input Layout Form */}
       <SearchForm
         destinationName={destinationLocation ? destinationLocation.name : ""}
@@ -168,11 +164,13 @@ function Home({ hideNavbar = false }) {
         onCalendarClick={() => setIsCalendarOpen(true)}
         personCountText={formatPersonCount()}
         onPersonCountClick={() => setIsPersonCountOpen(true)}
+        startDate={dateRange[0].startDate}
+        endDate={dateRange[0].endDate}
+        adultCount={personCount.adults}
+        childCount={personCount.children}
         isSubmitting={isSubmitting}
         onSubmit={makePlan}
       />
-
-      <div className="hidden lg:block h-24" />
 
       {/* Modals Stack */}
       <DateRangeModal

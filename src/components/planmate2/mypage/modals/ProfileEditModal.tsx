@@ -27,6 +27,7 @@ interface ProfileEditModalProps {
   setNewGender: (val: Gender) => void;
   onOpenThemeEditor: () => void;
   onOpenPasswordChange: () => void;
+  isSocialLogin: boolean;
   onOpenDeleteAccount: () => void;
   handleNicknameUpdate: () => void;
   isNicknameVerified: boolean;
@@ -52,6 +53,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   setNewGender,
   onOpenThemeEditor,
   onOpenPasswordChange,
+  isSocialLogin,
   onOpenDeleteAccount,
   handleNicknameUpdate,
   isNicknameVerified,
@@ -193,15 +195,17 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               <Settings className="w-4 h-4 text-gray-400 group-hover:text-[#1344FF] transition-colors" />
             </button>
           </FormItem>
-          <FormItem label="보안 설정">
-            <button
-              onClick={onOpenPasswordChange}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-gray-100 hover:border-[#1344FF]/30 bg-gray-50 transition-all group h-[52px]"
-            >
-              <span className="text-xs font-bold text-gray-600">비밀번호 변경</span>
-              <Settings className="w-4 h-4 text-gray-400 group-hover:text-[#1344FF] transition-colors" />
-            </button>
-          </FormItem>
+          {!isSocialLogin ? (
+            <FormItem label="보안 설정">
+              <button
+                onClick={onOpenPasswordChange}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-gray-100 hover:border-[#1344FF]/30 bg-gray-50 transition-all group h-[52px]"
+              >
+                <span className="text-xs font-bold text-gray-600">비밀번호 변경</span>
+                <Settings className="w-4 h-4 text-gray-400 group-hover:text-[#1344FF] transition-colors" />
+              </button>
+            </FormItem>
+          ) : null}
         </div>
       </div>
 

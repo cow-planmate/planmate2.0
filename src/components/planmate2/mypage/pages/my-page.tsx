@@ -536,6 +536,12 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   };
 
   const handlePasswordUpdate = async () => {
+    if (userProfile?.isSocialLogin) {
+      WarningToast("SNS 로그인 계정은 비밀번호를 변경할 수 없습니다.");
+      setActiveModal("profile");
+      return;
+    }
+
     if (!currentPassword) {
       WarningToast("현재 비밀번호를 입력해주세요.");
       return;
@@ -1203,6 +1209,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         confirmPassword={confirmPassword}
         setConfirmPassword={setConfirmPassword}
         handlePasswordUpdate={handlePasswordUpdate}
+        isSocialLogin={userProfile?.isSocialLogin ?? false}
         handleNicknameUpdate={handleProfileSubmit}
         handleImageUpload={handleImageChange}
         onRemoveImage={handleImageRemove}

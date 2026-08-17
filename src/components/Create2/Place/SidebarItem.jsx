@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
+import { MapPin } from "lucide-react";
 import MapIcon from "../../../assets/imgs/googlemaps.svg?react"; // 경로 확인 필요
-import defaultImg from "../../../assets/imgs/default.png";
 
 export const SidebarItem = ({
   place,
@@ -33,12 +33,19 @@ export const SidebarItem = ({
         ${isDragging ? "opacity-40 ring-2 ring-blue-400" : ""}`}
     >
       <div className="size-10 md:size-12 bg-gray-300 rounded-lg mr-4 flex items-center justify-center">
-        <img
-          src={!imageFailed && imageUrl ? imageUrl : defaultImg}
-          alt={place.name}
-          onError={() => setImageFailed(true)}
-          className="w-full h-full object-cover rounded-lg"
-        />
+        {!imageFailed && imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={place.name}
+            onError={() => setImageFailed(true)}
+            className="w-full h-full object-cover rounded-lg"
+          />
+        ) : (
+          <MapPin
+            className="size-5 md:size-6 text-gray-500"
+            aria-label="장소 기본 이미지"
+          />
+        )}
       </div>
       <div className="flex-1 md:space-y-1 min-w-0">
         <p className="font-bold text-lg md:text-xl">{place.name}</p>

@@ -19,6 +19,7 @@ export default function MapComponent({ schedule }) {
   const [routePath, setRoutePath] = useState([]);
   const [transitLanes, setTransitLanes] = useState([]); // [{ color, path:[{lat,lng}] }]
   const [activeTransitKey, setActiveTransitKey] = useState(null);
+  const [isSegmentInfoOpen, setIsSegmentInfoOpen] = useState(true);
 
   // 선택한 대중교통 경로(mapObj)의 폴리라인을 지도에 그린다. 같은 카드를 다시 누르면 지운다.
   const showTransitRoute = async (mapObj, key) => {
@@ -79,9 +80,17 @@ export default function MapComponent({ schedule }) {
       bounds.extend(new window.kakao.maps.LatLng(pos.lat, pos.lng));
     });
 
-    // 계산된 bounds를 지도에 적용합니다.
-    map.setBounds(bounds);
-  }, [map, positions]);
+    // 패널 상태가 바뀌면 실제로 보이는 지도 영역 안에 마커를 맞춥니다.
+    const fitTimer = window.setTimeout(() => {
+      map.relayout();
+      const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+      const leftPadding = isSegmentInfoOpen && isDesktop ? 400 : 48;
+      const bottomPadding = isSegmentInfoOpen && !isDesktop ? 280 : 48;
+      map.setBounds(bounds, 48, 48, bottomPadding, leftPadding);
+    }, 0);
+
+    return () => window.clearTimeout(fitTimer);
+  }, [map, positions, isSegmentInfoOpen]);
 
   // 도로를 따라가는 실제 경로를 백엔드(OSRM 길찾기)에서 받아온다.
   // 실패 시 routePath는 빈 배열로 남아 직선(positions)으로 대체된다.
@@ -164,6 +173,8 @@ export default function MapComponent({ schedule }) {
             positionsKey={positionsKey}
             onShowTransitRoute={showTransitRoute}
             activeTransitKey={activeTransitKey}
+            isOpen={isSegmentInfoOpen}
+            onOpenChange={setIsSegmentInfoOpen}
           />
         )}
 

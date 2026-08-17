@@ -49,6 +49,7 @@ interface MyPageModalsProps {
   confirmPassword?: string;
   setConfirmPassword?: (val: string) => void;
   handlePasswordUpdate?: () => void;
+  isSocialLogin: boolean;
   
   // Calendar Event Modal
   selectedDateEvents: any[];
@@ -88,6 +89,7 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
   confirmPassword = '',
   setConfirmPassword = () => {},
   handlePasswordUpdate = () => {},
+  isSocialLogin,
   selectedDateEvents,
 }) => {
   if (!activeModal) return null;
@@ -113,14 +115,17 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
         newGender={newGender}
         setNewGender={setNewGender}
         onOpenThemeEditor={onOpenThemeEditor}
-        onOpenPasswordChange={() => setActiveModal('changePassword')}
+        isSocialLogin={isSocialLogin}
+        onOpenPasswordChange={() => {
+          if (!isSocialLogin) setActiveModal('changePassword');
+        }}
         onOpenDeleteAccount={() => setActiveModal('deleteAccount')}
         handleNicknameUpdate={handleNicknameUpdate}
         isNicknameVerified={isNicknameVerified}
       />
 
       <PasswordChangeModal
-        isOpen={activeModal === 'changePassword'}
+        isOpen={activeModal === 'changePassword' && !isSocialLogin}
         onClose={() => setActiveModal(null)}
         onBack={() => setActiveModal('profile')}
         currentPassword={currentPassword}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStar, faMapMarkerAlt, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
-import defaultImg from "../../../assets/imgs/default.png";
+import { MapPin } from 'lucide-react';
 
 const DetailPopup = ({ isOpen, onClose, item, onUpdateMemo, readOnly = false }) => {
   const [memo, setMemo] = useState(item?.memo || "");
@@ -42,13 +42,20 @@ const DetailPopup = ({ isOpen, onClose, item, onUpdateMemo, readOnly = false }) 
       <div className="bg-white rounded-2xl w-[90%] max-w-md overflow-hidden shadow-2xl relative z-10 animate-in fade-in zoom-in duration-200">
 
         {/* Header Photo */}
-        <div className="h-48 w-full bg-gray-200 relative">
-          <img 
-            src={!imageFailed && imageUrl ? imageUrl : defaultImg}
-            alt={place.name}
-            className="w-full h-full object-cover"
-            onError={() => setImageFailed(true)}
-          />
+        <div className="h-48 w-full bg-gray-200 relative flex items-center justify-center">
+          {!imageFailed && imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={place.name}
+              className="w-full h-full object-cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <MapPin
+              className="size-16 text-gray-400"
+              aria-label="장소 기본 이미지"
+            />
+          )}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
             <h2 className="text-white text-2xl font-bold truncate">{place.name}</h2>
           </div>

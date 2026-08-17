@@ -73,6 +73,7 @@ export default function Main() {
   // --- DnD Handlers ---
   useDndMonitor({
     onDragStart(event) {
+      setPreview(null);
       setActiveId(event.active.id);
     },
     onDragMove(event) {
@@ -149,6 +150,10 @@ export default function Main() {
         const block = exportBlock(timeTableId, place, newStart, duration, active.id, false, null, item.memo)
         sendWebsocket("update", block);
       }
+    },
+    onDragCancel() {
+      setPreview(null);
+      setActiveId(null);
     }
   });
 
@@ -244,7 +249,7 @@ export default function Main() {
         <TimetableGrid
           ref={gridRef}
           items={items}
-          preview={preview}
+          preview={activeId !== null ? preview : null}
           onResizeEnd={handleResizeEnd}
           showTimetable={showTimetable}
         />

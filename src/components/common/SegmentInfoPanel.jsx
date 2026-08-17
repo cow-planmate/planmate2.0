@@ -6,6 +6,8 @@ import {
   faPersonWalking,
   faRoute,
   faChevronDown,
+  faChevronLeft,
+  faChevronRight,
   faChevronUp,
 } from "@fortawesome/free-solid-svg-icons";
 import { useApiClient } from "../../hooks/useApiClient";
@@ -369,10 +371,11 @@ export default function SegmentInfoPanel({
   positionsKey,
   onShowTransitRoute,
   activeTransitKey,
+  isOpen,
+  onOpenChange,
 }) {
   const { post } = useApiClient();
 
-  const [isOpen, setIsOpen] = useState(false);
   const [segmentData, setSegmentData] = useState({
     key: null,
     driving: null,
@@ -436,19 +439,64 @@ export default function SegmentInfoPanel({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200 transition hover:bg-white"
-      >
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-main/10 text-main">
-          <FontAwesomeIcon icon={faRoute} className="text-xs" />
-        </span>
-        구간 정보
-      </button>
+      {!isOpen && (
+        <button
+          type="button"
+          onClick={() => onOpenChange(true)}
+          aria-label="구간 정보 펼치기"
+          title="구간 정보 펼치기"
+          className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200 transition hover:bg-white md:bottom-auto md:left-4 md:top-4 md:translate-x-0"
+        >
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-main/10 text-main">
+            <FontAwesomeIcon icon={faRoute} className="text-xs" />
+          </span>
+          구간 정보
+          <FontAwesomeIcon icon={faChevronRight} className="hidden text-xs text-slate-400 md:block" />
+          <FontAwesomeIcon icon={faChevronUp} className="text-xs text-slate-400 md:hidden" />
+        </button>
+      )}
 
-      {isOpen && (
-        <div className="absolute left-4 top-16 z-10 max-h-[60%] w-[320px] overflow-y-auto rounded-2xl bg-white/95 shadow-lg ring-1 ring-slate-200">
+      {isOpen && <aside
+        aria-label="구간 정보"
+        className="absolute bottom-0 left-0 right-0 z-20 flex max-h-[55%] flex-col bg-white/95 shadow-[0_-4px_18px_rgba(15,23,42,0.16)] backdrop-blur-sm md:bottom-0 md:right-auto md:top-0 md:max-h-none md:w-[clamp(320px,36%,380px)] md:shadow-[4px_0_18px_rgba(15,23,42,0.14)]"
+      >
+        <header className="flex flex-none items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-main/10 text-main">
+              <FontAwesomeIcon icon={faRoute} className="text-sm" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-slate-800">구간 정보</h2>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                  총 {Math.max(0, sortedSchedule.length - 1)}개
+                </span>
+              </div>
+              <p className="truncate text-xs text-slate-400">장소 사이의 이동 정보를 확인하세요</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            aria-label="구간 정보 접기"
+            title="구간 정보 접기"
+            className="flex h-8 w-8 flex-none items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 md:hidden"
+          >
+            <FontAwesomeIcon icon={faChevronDown} />
+          </button>
+        </header>
+
+        <button
+          type="button"
+          onClick={() => onOpenChange(false)}
+          aria-label="구간 정보 접기"
+          title="구간 정보 접기"
+          className="absolute left-full top-1/2 z-30 hidden h-12 w-7 -translate-y-1/2 items-center justify-center rounded-r-lg bg-white text-slate-500 shadow-[4px_1px_8px_rgba(15,23,42,0.16)] transition hover:bg-slate-50 hover:text-main md:flex"
+        >
+          <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
+        </button>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {!isLoading && segmentData.hasError ? (
             <div className="px-4 py-6 text-center text-sm leading-6 text-slate-500">
               구간 정보를 불러오지 못했어요.<br />
@@ -506,7 +554,7 @@ export default function SegmentInfoPanel({
             );
           })}
         </div>
-      )}
+      </aside>}
     </>
   );
 }
