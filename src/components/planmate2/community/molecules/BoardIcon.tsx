@@ -10,7 +10,7 @@ export const BoardIcon = ({ type }: BoardIconProps) => {
       case 'free': return <MessageSquare className="w-6 h-6 text-[#1344FF]" />;
       case 'qna': return <HelpCircle className="w-6 h-6 text-orange-500" />;
       case 'mate': return <Users className="w-6 h-6 text-purple-500" />;
-      case 'recommend': return <MapPin className="w-6 h-6 text-emerald-500" />;
+      case 'recommend': return <MapPin className="w-6 h-6 text-gray-400" />;
       default: return null;
     }
   };

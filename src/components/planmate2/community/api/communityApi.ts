@@ -56,6 +56,13 @@ export interface Itinerary {
   days: ItineraryDay[];
 }
 
+/** 목록 카드 호버 팝업이 쓰는 하루치 장소 (count는 그날 전체 수, places는 앞 8개) */
+export interface DayPlaces {
+  day: number;
+  count: number;
+  places: string[];
+}
+
 export interface CommunityPostSummary {
   id: number;
   userId: string;
@@ -84,18 +91,49 @@ export interface CommunityPostSummary {
   location?: string;
   rating?: string;
   coords?: { lat: number; lng: number };
+  /** 카카오 로컬 검색으로 고른 장소의 부가 정보 — 직접 입력한 옛 글은 전부 비어 있다 */
+  placeAddress?: string;
+  placePhone?: string;
+  placeCategory?: string;
+  placeUrl?: string;
   // FEED 전용 (비-FEED는 응답에서 생략)
   durationDays?: number;
   forks?: number;
   tags?: string[];
   description?: string;
+  /** 일정에 담긴 전체 장소 수 (일정이 없는 옛 게시글은 생략) */
+  placeCount?: number;
+  /** 날짜별 장소 미리보기 — 카드 호버 팝업이 Day를 넘겨가며 보여준다 (하루 최대 8개) */
+  placesByDay?: DayPlaces[];
   // 내 활동 목록 전용 — 좋아요/가져가기를 한 시각 (ISO)
   actedAt?: string;
+}
+
+/**
+ * 장소 추천 글에 담긴 장소 한 건.
+ *
+ * 장소를 하나만 담던 시절의 글도 서버가 대표 장소로 한 건짜리 배열을 만들어 내려주므로,
+ * 클라이언트는 항상 이 배열만 보면 된다.
+ */
+export interface RecommendPlace {
+  name: string;
+  address?: string | null;
+  phone?: string | null;
+  category?: string | null;
+  url?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  /** 작성자가 장소마다 남긴 한 줄 코멘트 */
+  memo?: string | null;
+  /** 장소별 평점 (0.0~5.0). 글 전체 평점은 이 값들의 평균이다 */
+  rating?: number | null;
 }
 
 export interface CommunityPostDetail extends CommunityPostSummary {
   content: unknown; // BlockNote 블록 JSON
   contentText: string;
+  /** RECOMMEND 전용 — 글에 담긴 장소 전체 */
+  places?: RecommendPlace[];
   updatedAt?: string;
   myReaction?: 'like' | 'dislike' | null;
   // FEED 전용
@@ -290,8 +328,6 @@ export const formatDuration = (durationDays?: number): string => {
   return durationDays === 1 ? '1일' : `${durationDays - 1}박 ${durationDays}일`;
 };
 
-const FEED_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=800';
-
 /** 피드 카드 컴포넌트가 기대하는 형태로 변환 (목데이터 시절 필드명 호환) */
 export const mapFeedPost = (post: CommunityPostSummary & { createdAtIso: string }) => ({
   ...post,
@@ -299,8 +335,10 @@ export const mapFeedPost = (post: CommunityPostSummary & { createdAtIso: string 
   duration: formatDuration(post.durationDays),
   tags: post.tags ?? [],
   forks: post.forks ?? 0,
-  image: post.image ?? FEED_FALLBACK_IMAGE,
+  image: post.image,
   description: post.description ?? '',
+  placeCount: post.placeCount ?? 0,
+  placesByDay: post.placesByDay ?? [],
 });
 
 export type FeedCardPost = ReturnType<typeof mapFeedPost>;
@@ -319,6 +357,15 @@ export const fetchHotPosts = async (category: string): Promise<CommunityPostSumm
 export const fetchPost = async (postId: number | string): Promise<CommunityPostDetail> =>
   mapPost(await request<CommunityPostDetail>(`/api/community/posts/${postId}`));
 
+/** 상세 하단 이전/다음 글 이동 — 끝에 닿으면 해당 항목이 null 이다 */
+export interface AdjacentPosts {
+  prev: { id: number; title: string } | null;
+  next: { id: number; title: string } | null;
+}
+
+export const fetchAdjacentPosts = async (postId: number | string): Promise<AdjacentPosts> =>
+  request<AdjacentPosts>(`/api/community/posts/${postId}/adjacent`);
+
 export interface CreatePostPayload {
   category: string;
   title: string;
@@ -329,6 +376,12 @@ export interface CreatePostPayload {
   rating?: number;
   lat?: number;
   lng?: number;
+  placeAddress?: string | null;
+  placePhone?: string | null;
+  placeCategory?: string | null;
+  placeUrl?: string | null;
+  /** 장소 목록. 보내면 통째로 교체되고 첫 번째가 대표 장소가 된다 */
+  places?: RecommendPlace[];
   region?: string;
   maxParticipants?: number | null;
   // FEED 전용

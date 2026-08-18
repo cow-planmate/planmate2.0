@@ -3,6 +3,7 @@ import { CreateHeader } from '../molecules/CreateHeader';
 import { GuidelineSection } from '../molecules/GuidelineSection';
 import { EditorSection } from '../organisms/EditorSection';
 import { ExtraFields } from '../organisms/ExtraFields';
+import { PlaceListEditor } from '../organisms/PlaceListEditor';
 
 interface CommunityCreatePageProps {
   type: 'free' | 'qna' | 'mate' | 'recommend';
@@ -18,6 +19,15 @@ export const CommunityCreatePage = ({ type, onBack, onSubmit, editPostId }: Comm
     setTitle,
     location,
     setLocation,
+    place,
+    setPlace,
+    places,
+    addPlace,
+    removePlace,
+    movePlace,
+    reorderPlaces,
+    setPlaceMemo,
+    setPlaceRating,
     rating,
     setRating,
     mateCount,
@@ -67,6 +77,22 @@ export const CommunityCreatePage = ({ type, onBack, onSubmit, editPostId }: Comm
           mateCount={mateCount}
           setMateCount={setMateCount}
         />
+
+        {type === 'recommend' && (
+          <PlaceListEditor
+            query={location}
+            setQuery={setLocation}
+            picked={place}
+            setPicked={setPlace}
+            places={places}
+            addPlace={addPlace}
+            removePlace={removePlace}
+            movePlace={movePlace}
+            reorderPlaces={reorderPlaces}
+            setPlaceMemo={setPlaceMemo}
+            setPlaceRating={setPlaceRating}
+          />
+        )}
 
         <EditorSection editor={editor} />
       </div>

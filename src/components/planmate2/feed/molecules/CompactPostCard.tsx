@@ -1,6 +1,9 @@
-import { Clock, Eye, MessageCircle, ThumbsUp } from 'lucide-react';
+import { Copy, ImageIcon, ThumbsUp } from 'lucide-react';
 import React from 'react';
+import { authorNameClass, authorNavProps } from '../../common/authorLink';
 import { UserAvatar } from '../../common/UserAvatar';
+import { useRouteHover } from '../hooks/useRouteHover';
+import { RouteHoverPopover } from './RouteHoverPopover';
 
 interface CompactPostCardProps {
     post: any;
@@ -15,90 +18,115 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({
     liked,
     onLike,
 }) => {
+    const authorNav = authorNavProps(post, onNavigate);
+    const hasRoute = post.placesByDay.length > 0;
+    const { anchor, cursor, cardProps, popoverProps } = useRouteHover(hasRoute);
+
+    const firstDayPlaces = post.placesByDay?.[0]?.places ?? [];
+
     return (
-        <div
+        <article
             onClick={() => onNavigate('detail', { post })}
-            className="group bg-white hover:bg-gray-50 border-b border-gray-100 py-4 px-4 sm:py-6 sm:px-8 flex items-start sm:items-center justify-between gap-3 sm:gap-0 transition-all cursor-pointer"
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onNavigate('detail', { post });
+                }
+            }}
+            role="link"
+            tabIndex={0}
+            {...cardProps}
+            className="group relative grid grid-cols-1 sm:grid-cols-[250px_minmax(0,1fr)] gap-0 sm:gap-7 bg-white border-b border-[#e5e7eb] last:border-b-0 px-4 py-5 sm:px-6 sm:py-6 transition-colors hover:bg-[#fbfcff] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1344FF]"
         >
-            {/* 좌측 정보 영역 */}
-            <div className="flex flex-col gap-1.5 sm:gap-2 flex-1 min-w-0 sm:pr-8">
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <span className="shrink-0 whitespace-nowrap px-2 py-0.5 bg-blue-50 text-[#1344FF] text-[10px] font-bold rounded border border-blue-100">
-                        {post.destination}
+            <div className="relative w-full aspect-[4/2.4] sm:aspect-auto sm:h-[188px] shrink-0 rounded-xl overflow-hidden bg-[#f1f1f3]">
+                {post.image ? (
+                    <img
+                        src={post.image}
+                        alt=""
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#b7bbc4]">
+                        <ImageIcon className="w-7 h-7" />
+                        <span className="text-sm font-medium">사진</span>
+                    </div>
+                )}
+                {(post.destination || post.duration) && (
+                    <span className="absolute left-3 top-3 max-w-[calc(100%-24px)] truncate rounded-lg bg-[#37383c]/90 px-3 py-1.5 text-sm font-bold text-white">
+                        {[post.destination, post.duration].filter(Boolean).join(' · ')}
                     </span>
-                    <h3 className="min-w-0 flex-1 text-base sm:text-lg font-bold text-[#1a1a1a] truncate group-hover:text-[#1344FF] transition-colors">
-                        {post.title}
-                    </h3>
-                </div>
+                )}
+            </div>
 
-                <p className="text-xs sm:text-sm text-gray-500 line-clamp-1">
-                    {post.description}
-                </p>
+            <div className="flex min-w-0 flex-col pt-4 sm:pt-0">
+                <h3 className="text-[20px] sm:text-[24px] font-extrabold text-[#111318] leading-tight line-clamp-2 group-hover:text-[#1344FF] transition-colors">
+                    {post.title}
+                </h3>
 
-                {/* 좁은 화면에서는 한 줄에 다 못 담아 글자가 세로로 쪼개진다 — 넘치면 다음 줄로 흘린다 */}
-                <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-[11px] sm:text-[12px] text-gray-400 mt-0.5 sm:mt-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                {post.description && (
+                    <p className="mt-2 text-[15px] text-[#737986] leading-snug line-clamp-2">
+                        {post.description}
+                    </p>
+                )}
+
+                {firstDayPlaces.length > 0 && (
+                    <div className="mt-4 flex min-w-0 items-start gap-2 text-[16px] sm:text-[18px] text-[#343740]">
+                        <strong className="shrink-0 text-[#111318]">DAY 1</strong>
+                        <p className="line-clamp-2 min-w-0">
+                            {firstDayPlaces.slice(0, 4).map((place: string, index: number) => (
+                                <React.Fragment key={`${place}-${index}`}>
+                                    {index > 0 && <span className="mx-2 text-[#737986]">→</span>}
+                                    <span>{place}</span>
+                                </React.Fragment>
+                            ))}
+                        </p>
+                    </div>
+                )}
+
+                <div className="mt-5 flex flex-wrap items-end justify-between gap-3 sm:mt-auto text-[13px] sm:text-[14px]">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-1 text-[#a1a6b0]">
                         <UserAvatar
                             name={post.author}
                             imageUrl={post.authorImage}
                             avatarHash={post.authorAvatarHash}
-                            sizeClass="w-5 h-5"
-                            className="text-[10px]"
+                            sizeClass="h-6 w-6"
+                            className="mr-1"
+                            onClick={(event) => { event.stopPropagation(); authorNav.onClick?.(event); }}
                         />
-                        <span className="font-bold text-gray-700 truncate">{post.author}</span>
+                        <button
+                            type="button"
+                            onClick={authorNav.onClick}
+                            className={`max-w-[160px] truncate transition-colors ${authorNameClass(post, 'hover:text-[#1344FF]')} ${authorNav.className}`}
+                        >
+                            {post.author}
+                        </button>
+                        <span>·</span>
+                        <button
+                            onClick={(e) => onLike(post.id, e)}
+                            aria-pressed={liked}
+                            className={`flex items-center gap-1 transition-colors ${liked ? 'font-bold text-[#1344FF]' : 'hover:text-[#1344FF]'}`}
+                        >
+                            <ThumbsUp className="sr-only" />추천 {post.likes}
+                        </button>
+                        <span>· 댓글 {post.comments}</span>
                     </div>
-                    <span className="shrink-0 whitespace-nowrap px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold">LV.{post.level ?? 1}</span>
-                    <span className="shrink-0">•</span>
-                    <span className="shrink-0 whitespace-nowrap">{post.createdAt || '방금 전'}</span>
-                    <span className="shrink-0 hidden sm:inline">•</span>
-                    <div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
-                        <Clock className="w-3 h-3 shrink-0" />
-                        {post.duration}
-                    </div>
-                </div>
-
-                {/* 통계 — 모바일에서는 우측에 넣을 자리가 없어 본문 아래로 내린다 */}
-                <div className="flex sm:hidden items-center gap-4 text-[11px] text-gray-400 mt-1">
-                    <span className="flex items-center gap-1 whitespace-nowrap">
-                        <ThumbsUp className={`w-3.5 h-3.5 shrink-0 ${liked ? 'text-[#1344FF] fill-[#1344FF]' : ''}`} />
-                        <span className={liked ? 'text-[#1344FF] font-bold' : ''}>{post.likes}</span>
-                    </span>
-                    <span className="flex items-center gap-1 whitespace-nowrap">
-                        <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-                        {post.comments}
-                    </span>
-                    <span className="flex items-center gap-1 whitespace-nowrap">
-                        <Eye className="w-3.5 h-3.5 shrink-0" />
-                        {post.views}
+                    <span className="flex shrink-0 items-center gap-1.5 text-[17px] font-extrabold text-[#1344FF]">
+                        <Copy className="w-4 h-4" aria-hidden="true" />
+                        {post.forks ?? 0}
                     </span>
                 </div>
             </div>
 
-            {/* 우측 통계 및 썸네일 영역 */}
-            <div className="flex items-center gap-4 lg:gap-8 shrink-0">
-                <div className="hidden sm:flex items-center gap-5 text-[12px] text-gray-400">
-                    <span className="flex items-center gap-1.5 whitespace-nowrap transition-colors hover:text-[#1344FF]">
-                        <ThumbsUp className={`w-4 h-4 shrink-0 ${liked ? 'text-[#1344FF] fill-[#1344FF]' : ''}`} />
-                        <span className={liked ? 'text-[#1344FF] font-bold' : ''}>{post.likes}</span>
-                    </span>
-                    <span className="flex items-center gap-1.5 whitespace-nowrap">
-                        <MessageCircle className="w-4 h-4 shrink-0" />
-                        {post.comments}
-                    </span>
-                    <span className="flex items-center gap-1.5 whitespace-nowrap">
-                        <Eye className="w-4 h-4 shrink-0" />
-                        {post.views}
-                    </span>
-                </div>
-
-                <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden shadow-sm border border-gray-100 bg-gray-50 group-hover:shadow-md transition-all">
-                    <img
-                        src={post.image}
-                        alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                </div>
-            </div>
-        </div>
+            {anchor && (
+                <RouteHoverPopover
+                    anchor={anchor}
+                    placesByDay={post.placesByDay}
+                    postId={post.id}
+                    cursor={cursor}
+                    {...popoverProps}
+                />
+            )}
+        </article>
     );
 };

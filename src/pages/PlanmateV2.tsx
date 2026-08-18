@@ -198,7 +198,6 @@ export default function PlanmateV2() {
         {currentView === 'board-list' && (
           <BoardList 
             type={boardType}
-            onBack={() => handleViewChange('feed')}
             onNavigate={handleViewChange}
           />
         )}

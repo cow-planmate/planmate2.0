@@ -1,32 +1,24 @@
-import { PenTool, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface SearchBarProps {
   title: string;
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  onWriteClick: () => void;
+  onWriteClick?: () => void;
 }
 
-export const SearchBar = ({ title, searchQuery, onSearchChange, onWriteClick }: SearchBarProps) => {
+export const SearchBar = ({ title, searchQuery, onSearchChange }: SearchBarProps) => {
   return (
-    <div className="flex flex-col md:flex-row gap-3 mb-6">
-      <div className="flex-1 relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#666666]" />
+    <div className="relative">
+        <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7c8492]" />
         <input
           type="text"
           placeholder={`${title} 내 검색...`}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-[#e5e7eb] rounded-lg focus:outline-none focus:border-[#1344FF] transition-colors bg-white text-sm shadow-sm"
+          aria-label={`${title} 검색`}
+          className="min-h-14 w-full rounded-xl border border-[#d9dce2] bg-[#fbfcfd] pl-14 pr-4 text-[15px] outline-none transition-colors placeholder:text-[#a6abb5] focus:border-[#1344FF] focus:ring-2 focus:ring-[#1344FF]/10"
         />
-      </div>
-      <button 
-        onClick={onWriteClick}
-        className="px-5 py-2 bg-[#1344FF] text-white rounded-lg hover:bg-[#0d34cc] transition-all shadow-sm font-medium text-sm flex items-center justify-center gap-2"
-      >
-        <PenTool className="w-4 h-4" />
-        글쓰기
-      </button>
     </div>
   );
 };

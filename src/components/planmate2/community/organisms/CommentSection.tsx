@@ -167,34 +167,34 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
   );
 
   return (
-    <div className="px-5 sm:px-8 py-6 bg-gray-50 border-t border-gray-100">
-      <div className="flex items-center gap-2 mb-4 text-gray-700">
+    <section className="border-t border-[#eef0f3] bg-[#fafbfc] px-6 py-7 sm:px-9 sm:py-8">
+      <div className="mb-5 flex items-center gap-2 text-[#29303b]">
         <MessageCircle className="w-5 h-5" />
         <span className="font-bold">댓글 {commentsPage?.totalElements ?? 0}</span>
       </div>
 
       {/* 댓글 작성 */}
       {isLoggedIn ? (
-        <div className="flex gap-2 mb-6">
+        <div className="mb-6 flex gap-2">
           <input
             type="text"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSubmit(); }}
             placeholder="댓글을 입력하세요"
-            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:border-[#1344FF]"
+            className="min-h-12 flex-1 rounded-xl border border-[#dce0e6] bg-white px-4 text-sm outline-none focus:border-[#1344FF] focus:ring-2 focus:ring-[#1344FF]/10"
           />
           <button
             onClick={handleSubmit}
             disabled={createComment.isPending || !content.trim()}
-            className="px-4 py-2.5 rounded-xl bg-[#1344FF] text-white font-bold text-sm flex items-center gap-1.5 whitespace-nowrap disabled:opacity-40 hover:bg-blue-700 transition-colors"
+            className="flex min-h-12 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#1344FF] px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
           >
             <Send className="w-4 h-4" />
             등록
           </button>
         </div>
       ) : (
-        <div className="mb-6 p-4 rounded-xl bg-white border border-gray-100 text-sm text-gray-400 text-center">
+        <div className="mb-6 rounded-xl border border-[#e5e7eb] bg-white p-4 text-center text-sm text-gray-400">
           댓글을 작성하려면 로그인하세요.
         </div>
       )}
@@ -266,6 +266,6 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 };

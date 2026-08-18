@@ -1,4 +1,4 @@
-import { Clock, MapPin, Maximize2, X } from 'lucide-react';
+import { MapPin, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { CustomOverlayMap, Map } from "react-kakao-maps-sdk";
 import type { RegionMarker } from '../hooks/useRegionMarkers';
@@ -25,29 +25,21 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 xl:sticky xl:top-[94px]">
       {/* 여행지 지도 */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-[#1344FF]" />
-            <h3 className="text-lg font-bold text-[#1a1a1a]">여행지 지도</h3>
-            {regionMarkers.length > 0 && (
-              <span className="px-2 py-0.5 bg-[#f0f4ff] text-[#1344FF] text-xs font-bold rounded-full">
-                {regionMarkers.length}곳
-              </span>
-            )}
-          </div>
+      <div className="overflow-hidden rounded-[18px] border border-[#d9dce2] bg-white">
+        <div className="flex items-center justify-between px-6 py-5">
+          <h3 className="text-[20px] font-extrabold text-[#111318]">여행지 지도</h3>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-[#1344FF]"
+            className="font-bold text-[#1344FF] transition-colors hover:text-[#0d34cc]"
             title="지도 크게 보기"
           >
-            <Maximize2 className="w-4 h-4" />
+            크게 보기
           </button>
         </div>
 
-        <div className="rounded-2xl mb-4 h-80 overflow-hidden border border-[#e5e7eb] relative z-0 shadow-inner group">
+        <div className="relative z-0 h-[250px] overflow-hidden border-t border-[#eef0f3] bg-[#f2f2f4] sm:h-[280px] xl:h-[250px]">
           <Map
             center={mapState.center}
             level={mapState.level}
@@ -69,10 +61,6 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
                     ? 'bg-[#1344FF] border-[#1344FF] text-white'
                     : 'bg-white border-[#e5e7eb] hover:border-[#1344FF] text-[#1a1a1a]'
                     }`}>
-                    <div
-                      className={`w-2 h-2 rounded-full ${selectedRegion === loc.name ? 'bg-white' : 'animate-pulse'}`}
-                      style={selectedRegion === loc.name ? {} : { backgroundColor: loc.color }}
-                    />
                     <span className="text-xs font-bold whitespace-nowrap">{loc.name}</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${selectedRegion === loc.name ? 'bg-white/20 text-white' : 'bg-[#f0f4ff] text-[#1344FF]'
                       }`}>
@@ -87,48 +75,6 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
           </Map>
         </div>
 
-        {/* 여행지 목록 — 게시글 많은 순, 스크롤 */}
-        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-          {regionMarkers.length === 0 ? (
-            <p className="text-sm text-[#666666] text-center py-4">아직 등록된 여행지가 없어요.</p>
-          ) : (
-            regionMarkers.map((loc) => (
-              <div
-                key={loc.name}
-                onClick={() => onRegionSelect(loc.name)}
-                className={`flex items-center justify-between p-3 rounded-xl transition-all cursor-pointer ${selectedRegion === loc.name
-                  ? 'bg-blue-50 border border-[#1344FF]/20 shadow-sm'
-                  : 'bg-[#f8f9fa] hover:bg-blue-50 border border-transparent'
-                  }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: loc.color }}></div>
-                  <span className={`font-medium ${selectedRegion === loc.name ? 'text-[#1344FF]' : 'text-[#1a1a1a]'}`}>{loc.name}</span>
-                </div>
-                <span className={`text-sm ${selectedRegion === loc.name ? 'text-[#1344FF] font-bold' : 'text-[#666666]'}`}>
-                  {loc.count}개
-                </span>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* 여행 일정 생성 바로가기 */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-[#f0f4ff] rounded-xl flex items-center justify-center">
-            <Clock className="w-6 h-6 text-[#1344FF]" />
-          </div>
-          <h3 className="text-lg font-bold text-[#1a1a1a]">나만의 여행 일정 만들기</h3>
-        </div>
-        <p className="text-sm text-[#666666] mb-4">날짜, 인원, 여행지만 입력하면 AI가 최적의 동선을 짜드려요!</p>
-        <button
-          onClick={() => onNavigate('create')}
-          className="w-full bg-[#1344FF] text-white py-3 rounded-xl font-medium hover:bg-[#0d34cc] transition-colors shadow-sm"
-        >
-          여행 일정 생성 시작하기
-        </button>
       </div>
 
       {/* 사용자 레벨 시스템 */}

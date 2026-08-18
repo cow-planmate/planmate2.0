@@ -1,6 +1,6 @@
-import { Eye, Star, ThumbsUp } from 'lucide-react';
-import { UserAvatar } from '../../common/UserAvatar';
+import { Star } from 'lucide-react';
 import { authorNameClass, authorNavProps } from '../../common/authorLink';
+import { UserAvatar } from '../../common/UserAvatar';
 
 interface HotPostCardProps {
   post: any;
@@ -15,21 +15,22 @@ export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostC
   return (
     <div 
       onClick={onClick}
-      className="group relative bg-white rounded-2xl p-4 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-red-100 hover:-translate-y-1 overflow-hidden cursor-pointer"
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role="link"
+      tabIndex={0}
+      className="group relative min-w-0 cursor-pointer bg-white px-5 py-5 transition-colors hover:bg-[#f8faff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1344FF]"
     >
-      <div className="absolute -right-4 -top-4 w-16 h-16 bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 scale-150 blur-2xl" />
-      
-      <div className="relative z-10 flex justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className={`text-sm font-black italic ${
-                index === 0 ? 'text-red-500' : index === 1 ? 'text-orange-500' : 'text-amber-500'
-              }`}>
+      <div className="flex min-w-0 gap-3">
+        <span className={`shrink-0 text-[22px] font-extrabold ${index === 0 ? 'text-[#1344FF]' : 'text-[#7390ff]'}`}>
                 {index + 1}
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span className="bg-red-50 text-red-600 text-[9px] font-black px-1.5 py-0.5 rounded-md tracking-tighter uppercase">HOT</span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex items-center gap-1.5">
                 {type === 'qna' && (
                   <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${post.isAnswered ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
                     {post.isAnswered ? '답변완료' : '답변대기'}
@@ -48,46 +49,28 @@ export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostC
                     {post.rating}
                   </span>
                 )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-[10px] text-gray-300">
-              <Eye className="w-3 h-3" />
-              {post.views}
-            </div>
           </div>
 
-          <h3 className="font-bold text-[13px] text-[#1a1a1a] mb-2 line-clamp-2 leading-snug group-hover:text-red-500 transition-colors h-9">
+          <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-[#111318] transition-colors group-hover:text-[#1344FF]">
             {post.title}
           </h3>
 
-          <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-            <div
-              onClick={authorNav.onClick}
-              className={`flex items-center gap-1.5 transition-opacity ${authorNav.onClick ? 'hover:opacity-70' : ''} ${authorNav.className}`}
-            >
-              <UserAvatar
-                name={post.author}
-                imageUrl={post.authorImage}
-                avatarHash={post.authorAvatarHash}
-                sizeClass="w-5 h-5"
-                className="text-[10px]"
-                fallbackClassName={post.authorDeleted ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-500'}
-              />
-              <span className={`text-[11px] font-bold ${authorNameClass(post, 'text-gray-600')}`}>{post.author}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-0.5 text-red-500 font-black text-[11px]">
-                <ThumbsUp className="w-3 h-3 fill-current opacity-20" />
-                {post.likes}
-              </div>
-            </div>
+          <div className="mt-3 flex flex-wrap items-center gap-x-1 text-[13px] text-[#7b818d]">
+            <UserAvatar
+              name={post.author}
+              imageUrl={post.authorImage}
+              avatarHash={post.authorAvatarHash}
+              sizeClass="h-5 w-5"
+              className="mr-1"
+              onClick={(event) => { event.stopPropagation(); authorNav.onClick?.(event); }}
+            />
+            <button type="button" onClick={authorNav.onClick} className={`${authorNameClass(post, 'hover:text-[#1344FF]')} ${authorNav.className}`}>
+              {post.author}
+            </button>
+            <span>· 추천 <strong className="text-[#252830]">{post.likes}</strong></span>
+            <span>· 댓글 <strong className="text-[#252830]">{post.comments}</strong></span>
           </div>
         </div>
-        {post.image && (
-          <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-gray-100 self-center">
-            <img src={post.image} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-          </div>
-        )}
       </div>
     </div>
   );
