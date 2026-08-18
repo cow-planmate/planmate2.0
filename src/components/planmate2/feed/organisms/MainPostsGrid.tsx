@@ -37,7 +37,7 @@ export const MainPostsGrid: React.FC<MainPostsGridProps> = ({
   }
 
   return (
-    <div className={`h-fit ${viewMode === 'list' ? 'bg-white rounded-2xl border border-[#ececf0] overflow-hidden flex flex-col' : 'grid grid-cols-1 sm:grid-cols-2 gap-5'}`}>
+    <div className={`h-fit ${viewMode === 'list' ? 'flex flex-col' : 'grid grid-cols-1 sm:grid-cols-2 gap-5'}`}>
       {posts.map(post => (
         viewMode === 'grid' ? (
           <MainFeedPostCard

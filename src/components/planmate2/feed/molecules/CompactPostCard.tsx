@@ -1,6 +1,7 @@
-import { Copy, MapPin, ThumbsUp } from 'lucide-react';
+import { Copy, ImageIcon, ThumbsUp } from 'lucide-react';
 import React from 'react';
 import { authorNameClass, authorNavProps } from '../../common/authorLink';
+import { UserAvatar } from '../../common/UserAvatar';
 import { useRouteHover } from '../hooks/useRouteHover';
 import { RouteHoverPopover } from './RouteHoverPopover';
 
@@ -21,14 +22,23 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({
     const hasRoute = post.placesByDay.length > 0;
     const { anchor, cursor, cardProps, popoverProps } = useRouteHover(hasRoute);
 
+    const firstDayPlaces = post.placesByDay?.[0]?.places ?? [];
+
     return (
         <article
             onClick={() => onNavigate('detail', { post })}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onNavigate('detail', { post });
+                }
+            }}
+            role="link"
+            tabIndex={0}
             {...cardProps}
-            className="group relative flex gap-3 sm:gap-4 items-start bg-white hover:bg-[#f7f9ff] border-b border-[#eef0f3] last:border-b-0 p-4 sm:px-5 sm:py-4 transition-colors cursor-pointer"
+            className="group relative grid grid-cols-1 sm:grid-cols-[250px_minmax(0,1fr)] gap-0 sm:gap-7 bg-white border-b border-[#e5e7eb] last:border-b-0 px-4 py-5 sm:px-6 sm:py-6 transition-colors hover:bg-[#fbfcff] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1344FF]"
         >
-            {/* 썸네일은 왼쪽 고정 — 목록을 훑을 때 시선이 세로 한 줄로 떨어진다 */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-lg overflow-hidden bg-[#eef0f3]">
+            <div className="relative w-full aspect-[4/2.4] sm:aspect-auto sm:h-[188px] shrink-0 rounded-xl overflow-hidden bg-[#f1f1f3]">
                 {post.image ? (
                     <img
                         src={post.image}
@@ -37,60 +47,74 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({
                         className="w-full h-full object-cover"
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <MapPin className="w-5 h-5 text-[#b9bec7]" />
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#b7bbc4]">
+                        <ImageIcon className="w-7 h-7" />
+                        <span className="text-sm font-medium">사진</span>
                     </div>
+                )}
+                {(post.destination || post.duration) && (
+                    <span className="absolute left-3 top-3 max-w-[calc(100%-24px)] truncate rounded-lg bg-[#37383c]/90 px-3 py-1.5 text-sm font-bold text-white">
+                        {[post.destination, post.duration].filter(Boolean).join(' · ')}
+                    </span>
                 )}
             </div>
 
-            <div className="flex-1 min-w-0">
-                {/* 지역·기간을 글자로 먼저 — 배지로 감싸면 예쁘긴 해도 읽는 순서가 흐트러진다 */}
-                <div className="flex items-center gap-1.5 text-[12px] font-bold mb-1">
-                    <span className="text-[#1344FF]">{post.destination}</span>
-                    <span className="text-[#c8ccd3]">·</span>
-                    <span className="text-[#4b5563]">{post.duration}</span>
-                </div>
-
-                <h3 className="text-[15px] sm:text-[16px] font-bold text-[#16181d] leading-snug line-clamp-2 group-hover:text-[#1344FF] transition-colors">
+            <div className="flex min-w-0 flex-col pt-4 sm:pt-0">
+                <h3 className="text-[20px] sm:text-[24px] font-extrabold text-[#111318] leading-tight line-clamp-2 group-hover:text-[#1344FF] transition-colors">
                     {post.title}
                 </h3>
 
-                {/* 좁은 화면에서는 작성자 줄과 지표 줄을 각자 한 줄씩 쓴다 — 한 줄에 우겨넣으면
-                    줄바꿈이 제멋대로 일어나 어떤 카드는 지표가 오른쪽, 어떤 카드는 아래로 간다 */}
-                <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2.5 text-[12px]">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <div
-                            onClick={authorNav.onClick}
-                            className={`flex items-center gap-1.5 min-w-0 group/author ${authorNav.className}`}
-                        >
-                            <span className={`text-[14px] font-bold truncate ${authorNameClass(post, 'text-[#3a4150] group-hover/author:text-[#1344FF]')}`}>
-                                {post.author}
-                            </span>
-                        </div>
-                        <span className="text-[#6b7280] whitespace-nowrap">{post.createdAt}</span>
-                    </div>
+                {post.description && (
+                    <p className="mt-2 text-[15px] text-[#737986] leading-snug line-clamp-2">
+                        {post.description}
+                    </p>
+                )}
 
-                    {/* 숫자마다 이름을 붙여 아이콘 해독 없이 바로 읽히게 한다 */}
-                    <div className="flex items-center gap-2.5 sm:ml-auto whitespace-nowrap">
+                {firstDayPlaces.length > 0 && (
+                    <div className="mt-4 flex min-w-0 items-start gap-2 text-[16px] sm:text-[18px] text-[#343740]">
+                        <strong className="shrink-0 text-[#111318]">DAY 1</strong>
+                        <p className="line-clamp-2 min-w-0">
+                            {firstDayPlaces.slice(0, 4).map((place: string, index: number) => (
+                                <React.Fragment key={`${place}-${index}`}>
+                                    {index > 0 && <span className="mx-2 text-[#737986]">→</span>}
+                                    <span>{place}</span>
+                                </React.Fragment>
+                            ))}
+                        </p>
+                    </div>
+                )}
+
+                <div className="mt-5 flex flex-wrap items-end justify-between gap-3 sm:mt-auto text-[13px] sm:text-[14px]">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-1 text-[#a1a6b0]">
+                        <UserAvatar
+                            name={post.author}
+                            imageUrl={post.authorImage}
+                            avatarHash={post.authorAvatarHash}
+                            sizeClass="h-6 w-6"
+                            className="mr-1"
+                            onClick={(event) => { event.stopPropagation(); authorNav.onClick?.(event); }}
+                        />
+                        <button
+                            type="button"
+                            onClick={authorNav.onClick}
+                            className={`max-w-[160px] truncate transition-colors ${authorNameClass(post, 'hover:text-[#1344FF]')} ${authorNav.className}`}
+                        >
+                            {post.author}
+                        </button>
+                        <span>·</span>
                         <button
                             onClick={(e) => onLike(post.id, e)}
                             aria-pressed={liked}
-                            className={`flex items-center gap-1 font-bold transition-colors ${liked ? 'text-[#1344FF]' : 'text-[#5b6270] hover:text-[#1344FF]'}`}
+                            className={`flex items-center gap-1 transition-colors ${liked ? 'font-bold text-[#1344FF]' : 'hover:text-[#1344FF]'}`}
                         >
-                            <ThumbsUp className={`w-3.5 h-3.5 shrink-0 ${liked ? 'fill-[#1344FF]' : ''}`} />
-                            추천 <span className="tabular-nums">{post.likes}</span>
+                            <ThumbsUp className="sr-only" />추천 {post.likes}
                         </button>
-                        <span className="text-[#5b6270]">
-                            댓글 <span className="tabular-nums font-bold">{post.comments}</span>
-                        </span>
-                        <span className="text-[#5b6270]">
-                            조회 <span className="tabular-nums font-bold">{post.views}</span>
-                        </span>
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#eef2ff] text-[#1344FF] font-bold">
-                            <Copy className="w-3.5 h-3.5 shrink-0" />
-                            가져감 <span className="tabular-nums">{post.forks ?? 0}</span>
-                        </span>
+                        <span>· 댓글 {post.comments}</span>
                     </div>
+                    <span className="flex shrink-0 items-center gap-1.5 text-[17px] font-extrabold text-[#1344FF]">
+                        <Copy className="w-4 h-4" aria-hidden="true" />
+                        {post.forks ?? 0}
+                    </span>
                 </div>
             </div>
 

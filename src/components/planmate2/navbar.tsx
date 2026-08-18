@@ -163,60 +163,52 @@ export default function Navbar({
   };
 
   return (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 h-16 w-full">
-      <div className="max-w-[1440px] mx-auto px-6 h-full">
-        <div className="flex justify-between items-center h-full">
+    <nav className="bg-white border-b border-[#dfe1e6] sticky top-0 z-50 h-[70px] w-full">
+      <div className="max-w-[1536px] mx-auto px-4 sm:px-8 h-full">
+        <div className="flex items-center h-full">
           {/* 로고 */}
           <div
             className="flex items-center cursor-pointer group"
             onClick={() => onNavigate("feed")}
           >
-            <Logo className="h-6" />
+            <Logo className="h-6 w-auto" />
           </div>
 
           {/* 데스크톱 메뉴 */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex flex-1 items-center gap-2 ml-7">
             <button
               onClick={() => onNavigate("feed")}
-              className={`px-4 py-2 rounded-lg font-bold transition-all text-sm ${
+              className={`relative px-3 py-6 font-bold transition-colors text-[16px] after:absolute after:bottom-[18px] after:left-3 after:right-3 after:h-0.5 ${
                 currentView === "feed"
-                  ? "bg-[#1344FF] text-white shadow-sm"
-                  : "text-[#666666] hover:bg-gray-50 hover:text-[#1344FF]"
+                  ? "text-[#111318] after:bg-[#1344FF]"
+                  : "text-[#343740] after:bg-transparent hover:text-[#1344FF]"
               }`}
             >
-              여행기 피드
+              여행기
             </button>
             <button
               onClick={() => onNavigate("community")}
-              className={`px-4 py-2 rounded-lg font-bold transition-all text-sm ${
+              className={`relative px-3 py-6 font-bold transition-colors text-[16px] after:absolute after:bottom-[18px] after:left-3 after:right-3 after:h-0.5 ${
                 currentView === "community" || currentView === "board-list"
-                  ? "bg-[#1344FF] text-white shadow-sm"
-                  : "text-[#666666] hover:bg-gray-50 hover:text-[#1344FF]"
+                  ? "text-[#111318] after:bg-[#1344FF]"
+                  : "text-[#343740] after:bg-transparent hover:text-[#1344FF]"
               }`}
             >
               커뮤니티
             </button>
             <button
               onClick={() => onNavigate("plan-maker")}
-              className={`px-4 py-2 rounded-lg font-bold transition-all text-sm ${
+              className={`relative px-3 py-6 font-bold transition-colors text-[16px] after:absolute after:bottom-[18px] after:left-3 after:right-3 after:h-0.5 ${
                 currentView === "plan-maker"
-                  ? "bg-[#1344FF] text-white shadow-sm"
-                  : "text-[#666666] hover:bg-gray-50 hover:text-[#1344FF]"
+                  ? "text-[#111318] after:bg-[#1344FF]"
+                  : "text-[#343740] after:bg-transparent hover:text-[#1344FF]"
               }`}
             >
-              일정 생성
-            </button>
-
-            <button
-              onClick={() => setIsFeedbackOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm text-[#666666] hover:bg-gray-50 hover:text-[#1344FF] transition-all"
-            >
-              <MessageSquare className="w-4 h-4" />
-              피드백
+              일정 만들기
             </button>
 
             {isAuthenticated() ? (
-              <div className="flex items-center gap-2 ml-1.5 relative">
+              <div className="flex items-center gap-2 ml-auto relative">
                 {/* Profile Button */}
                 <button
                   onClick={() => {
@@ -387,7 +379,7 @@ export default function Navbar({
             ) : (
               <button
                 onClick={() => setIsLoginOpen(true)}
-                className="px-6 py-2.5 rounded-xl font-bold bg-[#f0f4ff] text-[#1344FF] hover:bg-[#e0e7ff] transition-all ml-2"
+                className="px-6 py-2.5 rounded-xl font-bold bg-[#f0f4ff] text-[#1344FF] hover:bg-[#e0e7ff] transition-all ml-auto"
               >
                 로그인
               </button>
@@ -395,7 +387,7 @@ export default function Navbar({
           </div>
 
           {/* 모바일 메뉴 버튼 */}
-          <div className="md:hidden flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 md:hidden">
             {isAuthenticated() && (
               <div className="relative">
                 <Bell

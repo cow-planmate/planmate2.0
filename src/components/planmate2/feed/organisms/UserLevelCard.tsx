@@ -1,4 +1,4 @@
-import { Award, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { LEVEL_TIERS, calculateLevelProgress, levelRangeLabel } from '../../community/constants/levels';
 import { useMyStats } from '../../community/hooks/queries';
@@ -17,18 +17,15 @@ export const UserLevelCard: React.FC<UserLevelCardProps> = ({ isAuthenticated })
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Award className="w-5 h-5 text-[#1344FF]" />
-        <h3 className="text-lg font-bold text-[#1a1a1a]">사용자 레벨</h3>
-      </div>
+    <div className="rounded-[18px] border border-[#d9dce2] bg-white p-6">
 
       {!isAuthenticated ? (
         <div className="space-y-2">
-          <p className="text-sm text-[#666666] mb-3 text-center">
+          <h3 className="text-base font-extrabold text-[#111318]">나의 활동 레벨</h3>
+          <p className="text-sm text-[#666666] mb-3">
             로그인하면 내 활동 레벨과 진행도를 확인할 수 있어요!
           </p>
-          {LEVEL_TIERS.map(tier => (
+          {LEVEL_TIERS.slice(0, 3).map(tier => (
             <div
               key={tier.level}
               className="flex items-center justify-between gap-3 p-2 rounded-xl bg-[#f8f9fa]"
@@ -50,65 +47,24 @@ export const UserLevelCard: React.FC<UserLevelCardProps> = ({ isAuthenticated })
         <p className="text-sm text-[#666666] text-center py-4">레벨 정보를 불러오지 못했습니다.</p>
       ) : (
         <div className="space-y-4">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-[#1344FF] to-[#7c3aed] rounded-full flex items-center justify-center text-white font-bold">
-                Lv.{progress.level}
-              </div>
-              <div>
-                <p className="font-bold text-[#1a1a1a]">{progress.name}</p>
-                <p className="text-sm text-[#666666]">{progress.rangeLabel}</p>
-              </div>
+          <div>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <p className="font-extrabold text-[#111318]">Lv.{progress.level} {progress.name}</p>
+              <p className="text-sm text-[#6d7280]">
+                {progress.nextMin !== null ? `다음까지 ${progress.remaining}P` : `${progress.score}P`}
+              </p>
             </div>
-            <p className="text-xs text-[#666666] mb-3">
-              여행기·게시글 {stats?.postCount ?? 0}개 · 댓글 {stats?.commentCount ?? 0}개
-            </p>
             <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-[#666666]">진행도</span>
-                <span className="font-medium text-[#1344FF]">
-                  {progress.nextMin !== null ? `${progress.score}/${progress.nextMin}점` : `${progress.score}점`}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-[#eef0f3] rounded-full h-2.5">
                 <div
-                  className="bg-gradient-to-r from-[#1344FF] to-[#7c3aed] h-2 rounded-full transition-all"
+                  className="bg-[#1344FF] h-2.5 rounded-full transition-all"
                   style={{ width: `${progress.percent}%` }}
                 />
               </div>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            {LEVEL_TIERS.map(tier => {
-              const isCurrent = tier.level === progress.level;
-              return (
-                <div
-                  key={tier.level}
-                  className={`flex items-center justify-between gap-3 p-2 rounded-xl border-2 ${isCurrent
-                    ? 'bg-blue-50 border-[#1344FF]'
-                    : 'bg-[#f8f9fa] border-transparent'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Star
-                      className={`w-4 h-4 ${isCurrent ? 'text-[#1344FF] fill-current' : 'text-gray-300'}`}
-                    />
-                    <p className={`text-sm font-medium ${isCurrent ? 'text-[#1344FF]' : 'text-[#666666]'}`}>
-                      Lv.{tier.level} {tier.name}
-                    </p>
-                  </div>
-                  <span className="text-[11px] text-[#999999] whitespace-nowrap">{levelRangeLabel(tier.level)}</span>
-                </div>
-              );
-            })}
-            <div className="text-center">
-              <p className="text-xs text-[#666666]">
-                {progress.nextMin !== null
-                  ? `다음 레벨까지 ${progress.remaining}점 남았어요!`
-                  : '최고 레벨을 달성했어요! 🎉'}
-              </p>
-            </div>
+            <p className="mt-4 text-sm text-[#525865]">
+              여행기가 가져가질 때마다 활동 포인트가 쌓입니다.
+            </p>
           </div>
         </div>
       )}

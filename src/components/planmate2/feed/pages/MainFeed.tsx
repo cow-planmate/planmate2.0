@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { LayoutGrid, List, SlidersHorizontal } from 'lucide-react';
+import { Plus, SlidersHorizontal } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApiClient } from '../../../../hooks/useApiClient';
 import useKakaoLoader from '../../../../hooks/useKakaoLoader';
@@ -11,8 +11,6 @@ import { DEFAULT_MAP_CENTER, FEED_REGIONS, getRegionCoords } from '../utils/regi
 import { PostCardSkeleton } from '../molecules/PostCardSkeleton';
 import { SearchBar } from '../molecules/SearchBar';
 import { DetailFilterPanel } from '../organisms/DetailFilterPanel';
-import { FeedQuickFilters } from '../organisms/FeedQuickFilters';
-import { MainFeedHeader } from '../organisms/MainFeedHeader';
 import { MainFeedSidebar } from '../organisms/MainFeedSidebar';
 import { MainPostsGrid } from '../organisms/MainPostsGrid';
 
@@ -27,7 +25,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
   const queryClient = useQueryClient();
   const { filters, setters, serverParams } = useMainFeedFilters(initialRegion, onNavigate);
 
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useFeedPosts(serverParams);
+  const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useFeedPosts(serverParams);
   const { data: regionCountList } = useFeedRegionCounts();
 
   const posts = useMemo(
@@ -37,11 +35,6 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
   // 게시글이 있는 모든 여행지를 지도에 표시 (좌표 미상 지역은 지오코딩으로 보완)
   const regionMarkers = useRegionMarkers(regionCountList);
 
-  // 모바일은 그리드 카드 하나가 화면을 거의 다 먹어 한 번에 한 건밖에 안 보인다 —
-  // 좁은 화면에서는 리스트로 시작한다. 첫 렌더에서만 정하므로 사용자가 토글하면 그 선택이 유지된다.
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>(
-    () => (typeof window !== 'undefined' && window.innerWidth < 640 ? 'list' : 'grid'),
-  );
   // 눌림 표시는 세션 로컬 (목록 요약에는 myReaction이 없음) — 카운트는 서버 값 그대로 표시
   // 비추천은 목록에서 아예 노출하지 않는다(상세에서만) — 훑어보다 누르는 버튼이 되면 안 된다
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
@@ -67,23 +60,6 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
     }
     return ['전체', ...FEED_REGIONS, ...extras];
   }, [regionCountList, filters.selectedRegion]);
-
-  const activeChips = useMemo(() => {
-    const chips: { key: string; label: string; onRemove: () => void }[] = [];
-    if (filters.searchQuery) {
-      chips.push({ key: 'q', label: `"${filters.searchQuery}"`, onRemove: () => setters.setSearchQuery('') });
-    }
-    if (filters.selectedRegion !== '전체') {
-      chips.push({ key: 'region', label: filters.selectedRegion, onRemove: () => setters.handleRegionSelect(filters.selectedRegion) });
-    }
-    if (filters.selectedDuration !== '전체') {
-      chips.push({ key: 'duration', label: filters.selectedDuration, onRemove: () => setters.setSelectedDuration('전체') });
-    }
-    if (filters.sortOrder !== 'desc') {
-      chips.push({ key: 'order', label: '오름차순', onRemove: () => setters.setSortOrder('desc') });
-    }
-    return chips;
-  }, [filters.searchQuery, filters.selectedRegion, filters.selectedDuration, filters.sortOrder, setters]);
 
   useEffect(() => {
     if (filters.selectedRegion === '전체') {
@@ -121,112 +97,100 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
     react(postId, 'like');
   };
 
+  const handleWrite = () => {
+    if (!isAuthenticated()) {
+      alert('로그인 후 여행기를 작성할 수 있습니다.');
+      return;
+    }
+    onNavigate('create');
+  };
+
   return (
-    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <MainFeedHeader
-        onNavigate={onNavigate}
-        isAuthenticated={isAuthenticated()}
-      />
-
-      {/* 검색 & 필터 바 */}
-      {/* 모바일에서는 검색창이 한 줄을 다 쓰고, 토글·필터가 그 아래로 내려간다.
-          한 줄에 몰아넣으면 폭이 모자라 버튼 글자가 두 줄로 쪼개진다. */}
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 min-w-0">
-            <SearchBar
-              value={filters.searchQuery}
-              onChange={setters.setSearchQuery}
-              placeholder="제목, 지역, 작성자로 검색..."
-            />
-          </div>
-
-          <div className="flex gap-3">
-            {/* 뷰 모드 토글 (그리드 / 리스트) */}
-            <div className="flex flex-1 sm:flex-none bg-white rounded-xl border border-[#e5e7eb] p-1 shadow-sm">
+    <div className="min-h-[calc(100vh-70px)] bg-[#f4f5f7] px-3 py-6 sm:px-6 sm:py-10">
+      <div className="mx-auto grid max-w-[1450px] grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-10">
+        <section className="min-w-0 overflow-hidden rounded-[18px] border border-[#d9dce2] bg-white">
+          <div className="px-4 pt-4 sm:px-6 sm:pt-5">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="min-w-0 flex-1 [&_input]:min-h-14 [&_input]:rounded-xl">
+                <SearchBar
+                  value={filters.searchQuery}
+                  onChange={setters.setSearchQuery}
+                  placeholder="제목, 지역, 작성자로 검색"
+                />
+              </div>
               <button
-                onClick={() => setViewMode('grid')}
-                className={`flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all font-bold text-sm whitespace-nowrap ${viewMode === 'grid'
-                    ? 'bg-blue-50 text-[#1344FF]'
-                    : 'text-[#666666] hover:bg-gray-50'
-                  }`}
+                type="button"
+                onClick={() => setters.setShowFilters(!filters.showFilters)}
+                aria-expanded={filters.showFilters}
+                className={`flex min-h-14 items-center justify-center gap-2 rounded-xl border px-5 text-[15px] font-bold transition-colors ${filters.showFilters || filters.activeFilterCount > 0
+                  ? 'border-[#1344FF] bg-[#1344FF] text-white'
+                  : 'border-[#d9dce2] bg-white text-[#252830] hover:border-[#1344FF] hover:text-[#1344FF]'}`}
               >
-                <LayoutGrid className="w-4 h-4 shrink-0" />
-                <span>그리드</span>
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all font-bold text-sm whitespace-nowrap ${viewMode === 'list'
-                    ? 'bg-blue-50 text-[#1344FF]'
-                    : 'text-[#666666] hover:bg-gray-50'
-                  }`}
-              >
-                <List className="w-4 h-4 shrink-0" />
-                <span>리스트</span>
+                <SlidersHorizontal className="h-4 w-4" />
+                상세 필터
+                {filters.activeFilterCount > 0 && <span>({filters.activeFilterCount})</span>}
               </button>
             </div>
 
-            <button
-              onClick={() => setters.setShowFilters(!filters.showFilters)}
-              className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl border transition-all font-medium whitespace-nowrap ${filters.showFilters || filters.activeFilterCount > 0
-                ? 'bg-[#1344FF] text-white border-[#1344FF] shadow-md'
-                : 'bg-white text-[#666666] border-[#e5e7eb] hover:border-[#1344FF]'
-                }`}
-            >
-              <SlidersHorizontal className="w-5 h-5 shrink-0" />
-              <span>필터</span>
-              {filters.activeFilterCount > 0 && (
-                <span className="flex items-center justify-center w-5 h-5 shrink-0 bg-white text-[#1344FF] rounded-full text-xs font-bold">
-                  {filters.activeFilterCount}
-                </span>
-              )}
-            </button>
+            <div className="mt-3 flex items-center gap-6 border-b border-[#dfe1e6]">
+              {['최신순', '인기순', '가져가기순'].map(option => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setters.setSortBy(option)}
+                  className={`border-b-2 px-0.5 py-3 text-[15px] font-bold transition-colors ${filters.sortBy === option
+                    ? 'border-[#111318] text-[#111318]'
+                    : 'border-transparent text-[#a2a7b0] hover:text-[#1344FF]'}`}
+                >
+                  {option === '가져가기순' ? '가져간 순' : option}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
 
-      {filters.showFilters && (
-        <DetailFilterPanel
-          onClear={setters.clearFilters}
-          regions={regions}
-          durations={durations}
-          sortOptions={sortOptions}
-          selectedRegion={filters.selectedRegion}
-          selectedDuration={filters.selectedDuration}
-          sortBy={filters.sortBy}
-          sortOrder={filters.sortOrder}
-          onRegionChange={setters.setSelectedRegion}
-          onDurationChange={setters.setSelectedDuration}
-          onSortChange={setters.setSortBy}
-          onSortOrderChange={setters.setSortOrder}
-        />
-      )}
+          {filters.showFilters && (
+            <div className="px-4 pt-4 sm:px-6">
+              <DetailFilterPanel
+                onClear={setters.clearFilters}
+                regions={regions}
+                durations={durations}
+                sortOptions={sortOptions}
+                selectedRegion={filters.selectedRegion}
+                selectedDuration={filters.selectedDuration}
+                sortBy={filters.sortBy}
+                sortOrder={filters.sortOrder}
+                onRegionChange={setters.setSelectedRegion}
+                onDurationChange={setters.setSelectedDuration}
+                onSortChange={setters.setSortBy}
+                onSortOrderChange={setters.setSortOrder}
+              />
+            </div>
+          )}
 
-      <FeedQuickFilters
-        activeChips={activeChips}
-        onClearAll={setters.clearFilters}
-      />
+          {error && (
+            <div className="m-5 rounded-xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-600">
+              여행기를 불러오지 못했습니다: {(error as Error).message}
+            </div>
+          )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
           {isLoading ? (
-            <PostCardSkeleton viewMode={viewMode} />
+            <div className="p-5"><PostCardSkeleton viewMode="list" /></div>
           ) : (
             <>
               <MainPostsGrid
                 posts={posts}
-                viewMode={viewMode}
+                viewMode="list"
                 onNavigate={onNavigate}
                 likedPosts={likedPosts}
                 onLike={handleLike}
                 onClearFilters={setters.clearFilters}
               />
               {hasNextPage && (
-                <div className="mt-8 text-center">
+                <div className="border-t border-[#e5e7eb] p-6 text-center">
                   <button
                     onClick={() => fetchNextPage()}
                     disabled={isFetchingNextPage}
-                    className="px-8 py-3 bg-white border border-[#ececf0] rounded-xl text-[#1344FF] font-bold hover:border-[#1344FF] transition-all disabled:opacity-50"
+                    className="rounded-xl border border-[#d9dce2] bg-white px-8 py-3 font-bold text-[#1344FF] transition-colors hover:border-[#1344FF] disabled:opacity-50"
                   >
                     {isFetchingNextPage ? '불러오는 중...' : '더 보기'}
                   </button>
@@ -234,17 +198,27 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
               )}
             </>
           )}
-        </div>
+        </section>
 
-        <MainFeedSidebar
-          mapState={mapState}
-          onRegionSelect={setters.handleRegionSelect}
-          selectedRegion={filters.selectedRegion}
-          onNavigate={onNavigate}
-          regionMarkers={regionMarkers}
-          isAuthenticated={isAuthenticated()}
-        />
+        <aside className="min-w-0">
+          <MainFeedSidebar
+            mapState={mapState}
+            onRegionSelect={setters.handleRegionSelect}
+            selectedRegion={filters.selectedRegion}
+            onNavigate={onNavigate}
+            regionMarkers={regionMarkers}
+            isAuthenticated={isAuthenticated()}
+          />
+        </aside>
       </div>
+
+      <button
+        type="button"
+        onClick={handleWrite}
+        className="fixed bottom-6 right-4 z-40 flex min-h-14 items-center gap-2 rounded-full bg-[#1344FF] px-6 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(19,68,255,0.28)] transition-transform hover:-translate-y-0.5 hover:bg-[#0d34cc] sm:bottom-8 sm:right-8"
+      >
+        <Plus className="h-5 w-5" /> 여행기 쓰기
+      </button>
     </div>
   );
 };

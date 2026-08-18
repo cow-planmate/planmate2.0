@@ -328,8 +328,6 @@ export const formatDuration = (durationDays?: number): string => {
   return durationDays === 1 ? '1일' : `${durationDays - 1}박 ${durationDays}일`;
 };
 
-const FEED_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=800';
-
 /** 피드 카드 컴포넌트가 기대하는 형태로 변환 (목데이터 시절 필드명 호환) */
 export const mapFeedPost = (post: CommunityPostSummary & { createdAtIso: string }) => ({
   ...post,
@@ -337,7 +335,7 @@ export const mapFeedPost = (post: CommunityPostSummary & { createdAtIso: string 
   duration: formatDuration(post.durationDays),
   tags: post.tags ?? [],
   forks: post.forks ?? 0,
-  image: post.image ?? FEED_FALLBACK_IMAGE,
+  image: post.image,
   description: post.description ?? '',
   placeCount: post.placeCount ?? 0,
   placesByDay: post.placesByDay ?? [],

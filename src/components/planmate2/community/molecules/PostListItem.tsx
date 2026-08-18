@@ -1,6 +1,7 @@
 import { ImageIcon, MapPin, Star, Users } from 'lucide-react';
 import { authorNameClass, authorNavProps } from '../../common/authorLink';
 import { buildKakaoMapUrl } from '../../common/kakaoMapLink';
+import { UserAvatar } from '../../common/UserAvatar';
 
 interface PostListItemProps {
   post: any;
@@ -88,23 +89,41 @@ export const PostListItem = ({ post, type, isCurrent, onClick, onNavigate }: Pos
   );
 
   const author = (
-    <button
-      type="button"
-      disabled={!authorNav.onClick}
-      onClick={(e) => { e.stopPropagation(); authorNav.onClick?.(e); }}
-      className={`truncate font-medium ${authorNameClass(post, 'text-[#3a4150] hover:text-[#1344FF] hover:underline')}`}
-    >
-      {post.author}
-    </button>
+    <div className="flex min-w-0 items-center gap-2">
+      <UserAvatar
+        name={post.author}
+        imageUrl={post.authorImage}
+        avatarHash={post.authorAvatarHash}
+        sizeClass="h-6 w-6"
+        className="shrink-0"
+        onClick={(e) => { e.stopPropagation(); authorNav.onClick?.(e); }}
+      />
+      <button
+        type="button"
+        disabled={!authorNav.onClick}
+        onClick={(e) => { e.stopPropagation(); authorNav.onClick?.(e); }}
+        className={`truncate font-medium ${authorNameClass(post, 'text-[#3a4150] hover:text-[#1344FF] hover:underline')}`}
+      >
+        {post.author}
+      </button>
+    </div>
   );
 
   return (
     <div
       onClick={onClick}
-      className={`group cursor-pointer transition-colors ${isCurrent ? 'bg-[#eef2ff]' : 'hover:bg-[#f7f9ff]'}`}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role="link"
+      tabIndex={0}
+      className={`group cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1344FF] ${isCurrent ? 'bg-[#eef2ff]' : 'hover:bg-[#f7f9ff]'}`}
     >
       {/* 데스크톱: 표 */}
-      <div className="hidden sm:grid grid-cols-[minmax(0,1fr)_132px_100px_64px_64px] items-center gap-2 px-4 py-3 text-[15px]">
+      <div className="hidden sm:grid min-h-16 grid-cols-[minmax(0,1fr)_150px_100px_88px_88px] items-center gap-2 px-6 py-3 text-[16px]">
         <span className="flex items-center gap-1.5 min-w-0 text-[#16181d]">{title}</span>
         <span className="flex min-w-0 justify-center">{author}</span>
         <span className="text-center text-[13px] text-[#6b7280] whitespace-nowrap">{post.createdAt}</span>
