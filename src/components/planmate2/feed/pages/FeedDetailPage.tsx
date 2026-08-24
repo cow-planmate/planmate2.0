@@ -356,59 +356,6 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
 
             <h1 className="flex-1 min-w-0 text-xl sm:text-[27px] font-bold text-[#16181d] leading-snug break-keep">{post.title}</h1>
 
-            {/* 액션은 헤더 오른쪽 끝 — 이 화면의 목적은 "가져가기"라 본문을 읽기 전에 보여야 한다.
-                좁은 화면에서는 화면 아래 고정 바가 대신하므로 여기서는 감춘다 */}
-            <div className="hidden lg:flex items-center gap-1.5 shrink-0 mt-0.5 sm:mt-1">
-              <button
-                onClick={() => handleReact('like')}
-                title={`추천 ${post.likes}`}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[13px] font-bold transition-all ${isLiked
-                  ? 'border-[#1344FF] text-[#1344FF] bg-blue-50'
-                  : 'border-[#e5e7eb] text-[#5b6270] hover:border-[#1344FF] hover:text-[#1344FF]'
-                  }`}
-              >
-                <ThumbsUp className={`w-3.5 h-3.5 ${isLiked ? 'fill-current' : ''}`} />
-                <span className="tabular-nums">{post.likes}</span>
-              </button>
-              <button
-                onClick={() => handleReact('dislike')}
-                title={`비추천 ${post.dislikes}`}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[13px] font-bold transition-all ${isDisliked
-                  ? 'border-gray-900 text-gray-900 bg-gray-50'
-                  : 'border-[#e5e7eb] text-[#5b6270] hover:border-gray-900 hover:text-gray-900'
-                  }`}
-              >
-                <ThumbsDown className={`w-3.5 h-3.5 ${isDisliked ? 'fill-current' : ''}`} />
-                <span className="tabular-nums">{post.dislikes}</span>
-              </button>
-              <button
-                onClick={handleShare}
-                title="공유"
-                aria-label="공유"
-                className="p-1.5 rounded-lg border border-[#e5e7eb] text-[#5b6270] hover:border-[#1344FF] hover:text-[#1344FF] transition-all"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-              </button>
-
-              {/* 가져가기는 몇 번이든 가능하다 — 누를 때마다 내 여행에 새 플랜이 생긴다.
-                  못 가져가는 이유는 버튼 옆 글자가 아니라 툴팁으로 — 헤더 한 줄을 지켜야 한다 */}
-              <button
-                onClick={handleFork}
-                disabled={!isForkable || isCreatingPlan || forkMutation.isPending}
-                title={!isForkable ? '이 여행기에는 가져갈 수 있는 일정 정보가 없어요' : post.myFork ? '이전에 가져간 일정이에요' : undefined}
-                className={`ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-bold transition-all ${!isForkable
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-[#1344FF] text-white hover:bg-[#0d34cc] disabled:opacity-60'
-                  }`}
-              >
-                <Copy className="w-3.5 h-3.5" />
-                {!isForkable ? '가져갈 일정 없음' : isCreatingPlan ? '가져오는 중...' : '이 일정 가져가기'}
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${!isForkable ? 'bg-gray-200' : 'bg-white/20'}`}>
-                  {post.forks ?? 0}
-                </span>
-              </button>
-            </div>
-
             {/* 작성자 전용 수정/삭제 */}
             {isAuthor && (
               <div className="flex items-center gap-1.5 shrink-0 mt-0.5 sm:mt-1">
@@ -454,8 +401,8 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 relative z-10">
-        <div>
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
             {/* 여행기 본문 */}
             {hasContent && (
               <div className="bg-white rounded-2xl border border-[#ececf0] p-5 sm:p-6 mb-5">
@@ -861,6 +808,99 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                 </div>
               </div>
             )}
+          </div>
+
+          {/* 사이드바 — 예전처럼 오른쪽 칼럼에 sticky로 따라온다.
+              그리드가 한 줄로 접히는 lg 미만에서는 아래 고정 바가 대신한다 */}
+          <div className="hidden lg:block space-y-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-24">
+              {/* 가져가기는 몇 번이든 가능하다 — 누를 때마다 내 여행에 새 플랜이 생긴다 */}
+              <button
+                onClick={handleFork}
+                disabled={!isForkable || isCreatingPlan || forkMutation.isPending}
+                className={`w-full py-3 rounded-lg transition-all shadow-sm font-bold text-sm flex items-center justify-center gap-2 ${!isForkable
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-[#1344FF] text-white hover:bg-[#0d34cc] disabled:opacity-60'
+                  }`}
+              >
+                <Copy className="w-4 h-4" />
+                {isCreatingPlan ? '가져오는 중...' : '이 일정 가져가기'}
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${!isForkable ? 'bg-gray-200' : 'bg-white/20'}`}>
+                  {post.forks ?? 0}
+                </span>
+              </button>
+
+              {!isForkable ? (
+                <p className="mt-2 mb-3 text-xs text-gray-400 text-center leading-relaxed">
+                  이 여행기에는 가져갈 수 있는 일정 정보가 없어요
+                </p>
+              ) : post.myFork ? (
+                <p className="mt-2 mb-3 text-xs text-gray-400 text-center">
+                  이전에 가져간 일정이에요
+                </p>
+              ) : (
+                <div className="mb-3" />
+              )}
+
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => handleReact('like')}
+                  aria-pressed={isLiked}
+                  className={`flex-1 py-2.5 rounded-lg border transition-all flex flex-col items-center justify-center gap-0.5 ${isLiked
+                    ? 'border-[#1344FF] text-[#1344FF] bg-blue-50'
+                    : 'border-[#e5e7eb] text-[#666666] hover:border-[#1344FF] hover:text-[#1344FF]'
+                    }`}
+                >
+                  <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+                  <span className="text-[10px] font-bold">추천</span>
+                  <span className="text-[10px] font-bold tabular-nums">{post.likes}</span>
+                </button>
+                <button
+                  onClick={() => handleReact('dislike')}
+                  aria-pressed={isDisliked}
+                  className={`flex-1 py-2.5 rounded-lg border transition-all flex flex-col items-center justify-center gap-0.5 ${isDisliked
+                    ? 'border-gray-900 text-gray-900 bg-gray-50'
+                    : 'border-[#e5e7eb] text-[#666666] hover:border-gray-900 hover:text-gray-900'
+                    }`}
+                >
+                  <ThumbsDown className={`w-4 h-4 ${isDisliked ? 'fill-current' : ''}`} />
+                  <span className="text-[10px] font-bold">비추천</span>
+                  <span className="text-[10px] font-bold tabular-nums">{post.dislikes}</span>
+                </button>
+                <button
+                  onClick={handleShare}
+                  aria-label="공유"
+                  className="flex-1 py-2.5 rounded-lg border border-[#e5e7eb] text-[#666666] hover:border-[#1344FF] hover:text-[#1344FF] transition-all flex flex-col items-center justify-center gap-0.5"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span className="text-[10px] font-bold">공유</span>
+                </button>
+              </div>
+
+              {/* 통계 */}
+              <div className="border-t border-gray-100 pt-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">추천</span>
+                  <span className="font-bold text-[#1a1a1a] tabular-nums">{post.likes}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">비추천</span>
+                  <span className="font-bold text-[#1a1a1a] tabular-nums">{post.dislikes}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">조회수</span>
+                  <span className="font-bold text-[#1a1a1a] tabular-nums">{post.views.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">가져감</span>
+                  <span className="font-bold text-[#1a1a1a] tabular-nums">{post.forks ?? 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">댓글</span>
+                  <span className="font-bold text-[#1a1a1a] tabular-nums">{commentCount}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>

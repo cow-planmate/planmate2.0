@@ -16,7 +16,6 @@ const DEFAULT_BLOCK_MINUTES = 30;
 export interface CreatePlanRequestBody {
   planFrame: {
     destinationId: number;
-    transportationType: string;
     adultCount: number;
     childCount: number;
   };
@@ -121,7 +120,6 @@ export const buildCreatePlanRequest = (
     body: {
       planFrame: {
         destinationId: plan.destinationId,
-        transportationType: plan.transportationType,
         adultCount: plan.adultCount ?? 0,
         childCount: plan.childCount ?? 0,
       },

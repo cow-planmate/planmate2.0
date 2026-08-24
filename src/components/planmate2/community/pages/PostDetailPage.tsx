@@ -88,7 +88,7 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
               )}
             </div>
           )}
-          <h1 className="min-w-0 break-keep text-[24px] font-extrabold tracking-[-0.02em] text-[#1344FF] sm:text-[28px]">{post.title}</h1>
+          <h1 className="min-w-0 break-keep text-[19px] font-semibold tracking-[-0.02em] text-[#16181d] sm:text-[22px]">{post.title}</h1>
           {/* 메이트 정보 바 */}
           {post.category === 'mate' && (
             <div className="mt-4 flex items-center justify-between bg-blue-50/50 rounded-xl px-4 py-3">
