@@ -18,6 +18,10 @@ interface RouteHoverPopoverProps {
 
 const POPOVER_WIDTH = 300;
 const VIEWPORT_MARGIN = 12;
+/** 커서 기준으로 띄울 때 커서와 팝업 사이 간격 */
+const CURSOR_GAP = 12;
+/** 커서 오른쪽에 이만큼도 안 남으면 그때만 왼쪽으로 접는다 */
+const MIN_WIDTH = 150;
 
 /**
  * 카드 호버 시 뜨는 동선 팝업.
@@ -35,7 +39,7 @@ export const RouteHoverPopover: React.FC<RouteHoverPopoverProps> = ({
 }) => {
   const [dayIndex, setDayIndex] = useState(0);
   const boxRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // 카드가 바뀌면 항상 첫날부터 — 이전 카드에서 보던 Day가 남아 있으면 헷갈린다
   useEffect(() => {
@@ -44,26 +48,41 @@ export const RouteHoverPopover: React.FC<RouteHoverPopoverProps> = ({
 
   // 화면 밖으로 나가지 않게 위치를 잡는다.
   //
-  // 카드 오른쪽에 붙이는 게 기본이지만, 리스트 뷰의 카드는 폭을 다 써서 오른쪽에 자리가 없다.
-  // 그때 예전처럼 카드 왼쪽에 붙이면 팝업이 썸네일과 제목을 그대로 덮는다 → 커서 오른쪽에 띄운다.
+  // 카드 오른쪽에 붙이는 게 기본이지만, 리스트 뷰나 폰 화면의 카드는 폭을 다 써서 오른쪽에 자리가 없다.
+  // 그때는 커서의 오른쪽 위 대각선에 붙인다 — 폭을 남은 공간에 맞춰 줄여서라도 커서를 기준으로
+  // 둔다. 폭을 고정하면 폰에서는 매번 화면 왼쪽 끝으로 밀려나 커서와 상관없는 자리에 뜬다.
   useLayoutEffect(() => {
     const height = boxRef.current?.offsetHeight ?? 200;
-    const maxLeft = window.innerWidth - POPOVER_WIDTH - VIEWPORT_MARGIN;
+    let width = Math.min(POPOVER_WIDTH, window.innerWidth - VIEWPORT_MARGIN * 2);
 
-    let left = anchor.right + 12;
+    let left = anchor.right + CURSOR_GAP;
     let top = anchor.top;
 
-    if (left > maxLeft) {
-      const fromCursor = (cursor?.x ?? anchor.left) + 16;
-      // 커서 오른쪽도 좁으면 커서 왼쪽으로 — 어느 쪽이든 커서 기준이라 카드 내용은 가리지 않는다
-      left = fromCursor > maxLeft ? (cursor?.x ?? anchor.right) - POPOVER_WIDTH - 16 : fromCursor;
-      top = (cursor?.y ?? anchor.top) - 16;
+    if (left + width > window.innerWidth - VIEWPORT_MARGIN) {
+      const cx = cursor?.x ?? anchor.left;
+      const cy = cursor?.y ?? anchor.top;
+
+      // 커서 오른쪽에 남은 폭
+      const roomRight = window.innerWidth - (cx + CURSOR_GAP) - VIEWPORT_MARGIN;
+      if (roomRight >= MIN_WIDTH) {
+        width = Math.min(width, roomRight);
+        left = cx + CURSOR_GAP;
+      } else {
+        // 오른쪽이 정말 좁을 때만 왼쪽으로 접는다
+        width = Math.min(width, cx - CURSOR_GAP - VIEWPORT_MARGIN);
+        left = cx - width - CURSOR_GAP;
+      }
+
+      top = cy - height - CURSOR_GAP;
+      // 위가 모자라면 아래로 넘긴다 (화면 상단 카드)
+      if (top < VIEWPORT_MARGIN) top = cy + CURSOR_GAP;
     }
 
-    left = Math.max(VIEWPORT_MARGIN, Math.min(left, maxLeft));
+    width = Math.max(MIN_WIDTH, width);
+    left = Math.max(VIEWPORT_MARGIN, Math.min(left, window.innerWidth - width - VIEWPORT_MARGIN));
     top = Math.min(top, window.innerHeight - height - VIEWPORT_MARGIN);
     top = Math.max(VIEWPORT_MARGIN, top);
-    setPos({ top, left });
+    setPos({ top, left, width });
   }, [anchor, cursor, dayIndex]);
 
   // 팝업 위에서 휠을 굴리면 Day가 넘어간다.
@@ -93,10 +112,11 @@ export const RouteHoverPopover: React.FC<RouteHoverPopoverProps> = ({
   return createPortal(
     <div
       ref={boxRef}
+      data-route-popover=""
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className="fixed z-[9999]"
-      style={{ width: POPOVER_WIDTH, top: pos?.top ?? anchor.top, left: pos?.left ?? anchor.right + 12, visibility: pos ? 'visible' : 'hidden' }}
+      style={{ width: pos?.width ?? POPOVER_WIDTH, top: pos?.top ?? anchor.top, left: pos?.left ?? anchor.right + CURSOR_GAP, visibility: pos ? 'visible' : 'hidden' }}
     >
       <div className="bg-white rounded-xl shadow-2xl border border-[#e0e2e7] overflow-hidden">
         <div className="px-3.5 py-2.5">

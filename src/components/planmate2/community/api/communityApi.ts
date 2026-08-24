@@ -21,7 +21,6 @@ const COMMUNITY_BASE_URL: string =
 export interface ItineraryPlanSnapshot {
   destinationId: number;
   destinationName?: string | null;
-  transportationType: string;
   adultCount?: number | null;
   childCount?: number | null;
 }

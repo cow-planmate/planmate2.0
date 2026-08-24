@@ -218,7 +218,6 @@ export const useCreatePostLogic = (
             ? {
                 destinationId: Number(planFrame.destinationId),
                 destinationName: travelName || null,
-                transportationType: planFrame.transportationType,
                 adultCount: planFrame.adultCount ?? 0,
                 childCount: planFrame.childCount ?? 0,
               }
