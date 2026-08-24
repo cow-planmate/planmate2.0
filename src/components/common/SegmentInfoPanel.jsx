@@ -74,20 +74,27 @@ const joinParts = (...parts) => {
   return filtered.length > 0 ? filtered.join(" · ") : null;
 };
 
-const SegmentRow = ({ icon, label, value, isLoading, title }) => (
-  <div className="flex items-center gap-2 text-sm" title={title}>
-    <FontAwesomeIcon icon={icon} className="w-4 flex-none text-main" />
-    <span className="w-14 flex-none text-slate-500">{label}</span>
+const SegmentRow = ({ icon, label, value, isLoading, title, tone = "blue" }) => (
+  <div
+    className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5"
+    title={title}
+  >
+    <span className={`flex h-8 w-8 flex-none items-center justify-center rounded-lg ${
+      tone === "green" ? "bg-emerald-50 text-emerald-600" : tone === "gray" ? "bg-white text-slate-500" : "bg-blue-50 text-main"
+    }`}>
+      <FontAwesomeIcon icon={icon} className="text-sm" />
+    </span>
+    <span className="sr-only">{label}</span>
     {isLoading ? (
-      <span className="text-slate-400">불러오는 중…</span>
+      <span className="h-4 w-16 animate-pulse rounded bg-slate-200" aria-label={`${label} 정보 불러오는 중`} />
     ) : (
-      <span className="font-medium text-slate-700">{value ?? "—"}</span>
+      <span className="min-w-0 text-sm font-semibold text-slate-700">{value ?? "정보 없음"}</span>
     )}
   </div>
 );
 
 const NumberBadge = ({ number }) => (
-  <span className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full border border-main text-sm font-semibold text-main">
+  <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-main text-xs font-bold text-white shadow-sm shadow-blue-200">
     {number}
   </span>
 );
@@ -101,7 +108,7 @@ const stepColor = (step) => {
 
 // 경로 하나의 비율 막대(도보=회색, 버스=초록, 지하철=노선색). 폭 ∝ sectionTime.
 const RouteBar = ({ steps }) => (
-  <div className="mb-2 flex h-5 overflow-hidden rounded-full">
+  <div className="mb-3 flex h-2.5 overflow-hidden rounded-full bg-slate-100">
     {steps.map((step, i) => {
       const isWalk = step.trafficType === 3;
       const color = stepColor(step);
@@ -109,22 +116,10 @@ const RouteBar = ({ steps }) => (
         <div
           key={i}
           style={{ flexGrow: step.sectionTime || 1, backgroundColor: color ?? undefined }}
-          className={`flex min-w-[10px] items-center justify-center gap-0.5 overflow-hidden ${
+          className={`flex min-w-[8px] items-center justify-center gap-0.5 overflow-hidden ${
             isWalk ? "bg-slate-300" : ""
           }`}
         >
-          {isWalk && (
-            <FontAwesomeIcon icon={faPersonWalking} className="text-[9px] text-slate-500" />
-          )}
-          {step.sectionTime != null && (
-            <span
-              className={`truncate px-0.5 text-[10px] ${
-                isWalk ? "text-slate-500" : "text-white"
-              }`}
-            >
-              {step.sectionTime}분
-            </span>
-          )}
         </div>
       );
     })}
@@ -138,17 +133,17 @@ const PassStopsToggle = ({ passStops }) => {
   if (!passStops || passStops.length === 0) return null;
 
   return (
-    <div className="pl-1">
+    <div className="pl-4">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex items-center gap-1 text-[11px] text-slate-400 hover:underline"
+        className="flex items-center gap-1 text-[11px] font-medium text-slate-400 transition hover:text-slate-600"
       >
         경유 정류장 {passStops.length}개
         <FontAwesomeIcon icon={open ? faChevronUp : faChevronDown} className="text-[9px]" />
       </button>
       {open && (
-        <ul className="mt-0.5 space-y-0.5 pl-3">
+        <ul className="mt-1 space-y-1 border-l border-dashed border-slate-200 pl-3">
           {passStops.map((stop, i) => (
             <li key={i} className="text-xs text-slate-500">
               {stop.stationName}
@@ -166,13 +161,13 @@ const RouteDetailRow = ({ step }) => {
 
   if (step.trafficType === 2) {
     rowContent = (
-      <div className="flex flex-wrap items-center gap-1 text-xs text-slate-600">
-        <span className="rounded bg-green-50 px-1.5 text-green-700">
+      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+        <span className="rounded-md bg-green-50 px-1.5 py-0.5 font-semibold text-green-700">
           {BUS_TYPE_LABELS[step.busType] || "버스"}
         </span>
         {step.startName && <span>{step.startName}</span>}
         {step.laneName && (
-          <span className="rounded border border-slate-300 px-1 font-semibold">
+          <span className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-bold">
             {step.laneName}
           </span>
         )}
@@ -184,10 +179,10 @@ const RouteDetailRow = ({ step }) => {
   } else if (step.trafficType === 1) {
     const color = SUBWAY_COLORS[step.subwayCode] || DEFAULT_SUBWAY_COLOR;
     rowContent = (
-      <div className="flex flex-wrap items-center gap-1 text-xs text-slate-600">
+      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
         <span
           style={{ backgroundColor: color }}
-          className="rounded px-1.5 font-semibold text-white"
+          className="rounded-md px-1.5 py-0.5 font-semibold text-white"
         >
           {step.laneName || "지하철"}
         </span>
@@ -205,7 +200,7 @@ const RouteDetailRow = ({ step }) => {
   if (!rowContent) return null;
 
   return (
-    <div className="space-y-0.5">
+    <div className="relative space-y-1 border-l-2 border-slate-100 py-1 pl-3 before:absolute before:-left-[5px] before:top-2 before:h-2 before:w-2 before:rounded-full before:bg-slate-300">
       {rowContent}
       <PassStopsToggle passStops={step.passStops} />
     </div>
@@ -235,17 +230,17 @@ const TransitRoutes = ({
   const filtered = selected === "전체" ? routes : routes.filter((r) => r.pathType === selected);
 
   return (
-    <div className="mt-2">
-      <div className="mb-2 flex flex-wrap gap-1">
+    <div className="mt-3 border-t border-slate-100 pt-3">
+      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
         {chips.map((chip) => (
           <button
             key={chip.key}
             type="button"
             onClick={() => setSelected(chip.key)}
-            className={`rounded-full px-3 py-1 text-xs ${
+            className={`flex-none rounded-full px-3 py-1.5 text-xs font-semibold transition ${
               selected === chip.key
-                ? "bg-slate-800 text-white"
-                : "bg-slate-100 text-slate-600"
+                ? "bg-main text-white shadow-sm"
+                : "border border-slate-200 bg-white text-slate-500 hover:border-slate-300"
             }`}
           >
             {chip.label}
@@ -264,35 +259,35 @@ const TransitRoutes = ({
         const laneActive = activeTransitKey === laneKey;
 
         return (
-          <div key={ri} className="mb-2 rounded-xl border border-slate-200 p-3">
+          <div key={ri} className="mb-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm transition hover:border-blue-200">
             <div className="flex items-baseline justify-between">
-              <span className="text-lg font-bold text-slate-800">{route.totalTime}분</span>
-              <span className="text-sm font-semibold text-slate-700">
+              <div><span className="text-xl font-extrabold tracking-tight text-slate-900">{route.totalTime}</span><span className="ml-0.5 text-sm font-bold text-slate-600">분</span></div>
+              <span className="text-xs font-medium text-slate-500">
                 {route.payment?.toLocaleString()}원
               </span>
             </div>
-            {subtitle && <div className="mb-2 text-xs text-slate-400">{subtitle}</div>}
+            {subtitle && <div className="mb-3 mt-0.5 text-xs font-medium text-slate-400">{subtitle}</div>}
 
             <RouteBar steps={route.steps} />
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {route.steps.map((step, si) =>
                 step.trafficType === 3 ? null : <RouteDetailRow key={si} step={step} />
               )}
             </div>
 
             {route.lastEndStation && (
-              <div className="mt-1.5 text-xs text-slate-400">○ 하차 {route.lastEndStation}</div>
+              <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500"><span className="h-2 w-2 rounded-full border-2 border-slate-400" />{route.lastEndStation} 하차</div>
             )}
 
             {onShowTransitRoute && route.mapObj && (
               <button
                 type="button"
                 onClick={() => onShowTransitRoute(route.mapObj, laneKey)}
-                className={`mt-2 w-full rounded-lg py-1.5 text-xs font-semibold transition ${
+                className={`mt-3 w-full rounded-xl py-2 text-xs font-bold transition ${
                   laneActive
                     ? "bg-slate-800 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    : "bg-blue-50 text-main hover:bg-blue-100"
                 }`}
               >
                 {laneActive ? "지도에서 숨기기" : "지도에 보기"}
@@ -320,6 +315,7 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
       <SegmentRow
         icon={faBus}
         label="대중교통"
+        tone="green"
         isLoading={isLoading}
         title={!available ? transit?.message ?? undefined : undefined}
         value={
@@ -337,7 +333,7 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="mt-1 flex items-center gap-1 pl-6 text-xs font-medium text-main hover:underline"
+            className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-white py-2 text-xs font-bold text-main ring-1 ring-slate-100 transition hover:bg-blue-50"
           >
             {expanded ? "접기" : `경로 ${transit.routes.length}개 보기`}
             <FontAwesomeIcon icon={expanded ? faChevronUp : faChevronDown} className="text-[10px]" />
@@ -373,6 +369,7 @@ export default function SegmentInfoPanel({
   activeTransitKey,
   isOpen,
   onOpenChange,
+  panelVariant = "floating",
 }) {
   const { post } = useApiClient();
 
@@ -445,34 +442,37 @@ export default function SegmentInfoPanel({
           onClick={() => onOpenChange(true)}
           aria-label="구간 정보 펼치기"
           title="구간 정보 펼치기"
-          className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200 transition hover:bg-white md:bottom-auto md:left-4 md:top-4 md:translate-x-0"
+          className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-slate-900/95 px-4 py-2.5 text-sm font-bold text-white shadow-xl transition hover:bg-slate-800 md:bottom-auto md:left-4 md:top-4 md:translate-x-0"
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-main/10 text-main">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 text-white">
             <FontAwesomeIcon icon={faRoute} className="text-xs" />
           </span>
           구간 정보
-          <FontAwesomeIcon icon={faChevronRight} className="hidden text-xs text-slate-400 md:block" />
-          <FontAwesomeIcon icon={faChevronUp} className="text-xs text-slate-400 md:hidden" />
+          <FontAwesomeIcon icon={faChevronRight} className="hidden text-xs text-white/60 md:block" />
+          <FontAwesomeIcon icon={faChevronUp} className="text-xs text-white/60 md:hidden" />
         </button>
       )}
 
       {isOpen && <aside
         aria-label="구간 정보"
-        className="absolute bottom-0 left-0 right-0 z-20 flex max-h-[55%] flex-col bg-white/95 shadow-[0_-4px_18px_rgba(15,23,42,0.16)] backdrop-blur-sm md:bottom-0 md:right-auto md:top-0 md:max-h-none md:w-[clamp(320px,36%,380px)] md:shadow-[4px_0_18px_rgba(15,23,42,0.14)]"
+        className={panelVariant === "edge"
+          ? "absolute bottom-0 left-0 top-0 z-20 flex w-[min(400px,88vw)] flex-col border-r border-slate-200 bg-white/95 backdrop-blur-md"
+          : "absolute bottom-0 left-0 right-0 z-20 flex max-h-[70%] flex-col rounded-t-3xl bg-white/95 shadow-[0_-8px_30px_rgba(15,23,42,0.18)] backdrop-blur-md md:bottom-4 md:left-4 md:right-auto md:top-4 md:max-h-none md:w-[clamp(340px,36%,400px)] md:rounded-3xl md:ring-1 md:ring-black/5 md:shadow-[0_12px_40px_rgba(15,23,42,0.18)]"}
       >
-        <header className="flex flex-none items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3">
+        {panelVariant !== "edge" && <div className="mx-auto mt-2 h-1 w-10 flex-none rounded-full bg-slate-200 md:hidden" />}
+        <header className="flex flex-none items-center justify-between border-b border-slate-100 bg-white/90 px-5 py-4">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-main/10 text-main">
+            <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-main text-white shadow-sm shadow-blue-200">
               <FontAwesomeIcon icon={faRoute} className="text-sm" />
             </span>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-slate-800">구간 정보</h2>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-                  총 {Math.max(0, sortedSchedule.length - 1)}개
+                <h2 className="text-base font-bold text-slate-900">구간별 이동</h2>
+                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-main">
+                  {Math.max(0, sortedSchedule.length - 1)}구간
                 </span>
               </div>
-              <p className="truncate text-xs text-slate-400">장소 사이의 이동 정보를 확인하세요</p>
+              <p className="truncate text-xs text-slate-400">이동 수단별 시간과 경로를 비교해 보세요</p>
             </div>
           </div>
           <button
@@ -491,7 +491,7 @@ export default function SegmentInfoPanel({
           onClick={() => onOpenChange(false)}
           aria-label="구간 정보 접기"
           title="구간 정보 접기"
-          className="absolute left-full top-1/2 z-30 hidden h-12 w-7 -translate-y-1/2 items-center justify-center rounded-r-lg bg-white text-slate-500 shadow-[4px_1px_8px_rgba(15,23,42,0.16)] transition hover:bg-slate-50 hover:text-main md:flex"
+          className={`absolute left-full top-1/2 z-30 hidden h-12 w-7 -translate-y-1/2 items-center justify-center rounded-r-xl bg-white text-slate-500 transition hover:text-main md:flex ${panelVariant === "edge" ? "border border-l-0 border-slate-200" : "shadow-[5px_1px_10px_rgba(15,23,42,0.14)]"}`}
         >
           <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
         </button>
@@ -502,57 +502,70 @@ export default function SegmentInfoPanel({
               구간 정보를 불러오지 못했어요.<br />
               잠시 후 다시 시도해 주세요.
             </div>
-          ) : sortedSchedule.slice(0, -1).map((item, i) => {
-            const next = sortedSchedule[i + 1];
-            const transit = segmentData.transit?.[i];
+          ) : (
+            <div className="px-5 py-5">
+              {sortedSchedule.map((item, i) => {
+                const next = sortedSchedule[i + 1];
+                const transit = segmentData.transit?.[i];
 
-            return (
-              <div
-                key={`${item.id}-${next.id}`}
-                className="border-b border-slate-100 px-4 py-3 last:border-b-0"
-              >
-                <div className="mb-2 flex items-center gap-1.5">
-                  <NumberBadge number={i + 1} />
-                  <span className="min-w-0 truncate text-sm font-semibold text-slate-800">
-                    {item.place.name}
-                  </span>
-                  <span className="flex-none text-sm text-slate-400">→</span>
-                  <NumberBadge number={i + 2} />
-                  <span className="min-w-0 truncate text-sm font-semibold text-slate-800">
-                    {next.place.name}
-                  </span>
-                </div>
+                return (
+                  <div key={item.id} className="relative grid grid-cols-[28px_minmax(0,1fr)] gap-x-3">
+                    <div className="relative flex justify-center">
+                      {next && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute bottom-0 top-7 w-px bg-blue-200"
+                        />
+                      )}
+                      <NumberBadge number={i + 1} />
+                    </div>
 
-                <div className="space-y-1">
-                  <SegmentRow
-                    icon={faCar}
-                    label="차량"
-                    isLoading={isLoading}
-                    value={joinParts(
-                      formatSeconds(segmentData.driving?.durations?.[i]?.[i + 1]),
-                      formatMeters(segmentData.driving?.distances?.[i]?.[i + 1])
-                    )}
-                  />
-                  <SegmentRow
-                    icon={faPersonWalking}
-                    label="도보"
-                    isLoading={isLoading}
-                    value={joinParts(
-                      formatSeconds(segmentData.foot?.durations?.[i]?.[i + 1]),
-                      formatMeters(segmentData.foot?.distances?.[i]?.[i + 1])
-                    )}
-                  />
-                  <TransitInfo
-                    transit={transit}
-                    isLoading={isLoading}
-                    segmentIndex={i}
-                    onShowTransitRoute={onShowTransitRoute}
-                    activeTransitKey={activeTransitKey}
-                  />
-                </div>
-              </div>
-            );
-          })}
+                    <div className={next ? "pb-7" : "pb-1"}>
+                      <div className="flex h-7 min-w-0 items-center">
+                        <span className="truncate text-[15px] font-bold text-slate-900">
+                          {item.place.name}
+                        </span>
+                      </div>
+
+                      {next && (
+                        <div className="mt-4 grid grid-cols-2 gap-2" aria-label={`${item.place.name}에서 ${next.place.name}까지 이동 정보`}>
+                          <SegmentRow
+                            icon={faCar}
+                            label="차량"
+                            tone="blue"
+                            isLoading={isLoading}
+                            value={joinParts(
+                              formatSeconds(segmentData.driving?.durations?.[i]?.[i + 1]),
+                              formatMeters(segmentData.driving?.distances?.[i]?.[i + 1])
+                            )}
+                          />
+                          <SegmentRow
+                            icon={faPersonWalking}
+                            label="도보"
+                            tone="gray"
+                            isLoading={isLoading}
+                            value={joinParts(
+                              formatSeconds(segmentData.foot?.durations?.[i]?.[i + 1]),
+                              formatMeters(segmentData.foot?.distances?.[i]?.[i + 1])
+                            )}
+                          />
+                          <div className="col-span-2">
+                            <TransitInfo
+                              transit={transit}
+                              isLoading={isLoading}
+                              segmentIndex={i}
+                              onShowTransitRoute={onShowTransitRoute}
+                              activeTransitKey={activeTransitKey}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </aside>}
     </>

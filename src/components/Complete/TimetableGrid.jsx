@@ -1,64 +1,35 @@
-import { useEffect, useState } from "react";
+import { CalendarDays, MapPin } from "lucide-react";
 import { getTimeTableId } from "../../utils/createUtils";
 import { ScheduledItem } from "./ScheduledItem";
-import Weather from "../common/Weather";
 
-const TimetableGrid = ({ planFrame, placeBlocks, selectedDay, timetables, showTimetable }) => {
-  const destinationId = planFrame?.destinationId;
-
-  const SLOT_HEIGHT = 40;
-  const [TOTAL_SLOTS, setTotalSlots] = useState(0);
-  const [START_HOUR, setStartHour] = useState(0);
-
-  const formatTime = (slotIndex) => {
-    const totalMin = slotIndex * 15 + START_HOUR * 60;
-    const h = Math.floor(totalMin / 60).toString().padStart(2, '0');
-    const m = (totalMin % 60).toString().padStart(2, '0');
-    return `${h}:${m}`;
-  }
-
-  useEffect(() => {
-    const timetable = timetables[selectedDay];
-    const startHour = Number(timetable.timeTableStartTime.split(":")[0]);
-    const endHour = Number(timetable.timeTableEndTime.split(":")[0]);
-    setStartHour(startHour);
-    setTotalSlots(((endHour - startHour) * 60) / 15);
-  }, [selectedDay]);
+export default function TimetableGrid({ placeBlocks, selectedDay, timetables, showTimetable }) {
+  const timetable = timetables[selectedDay];
+  const schedule = [...(placeBlocks[getTimeTableId(timetables, selectedDay)] || [])].sort((a, b) => a.start - b.start);
+  const startHour = timetable ? Number(timetable.timeTableStartTime.split(":")[0]) : 0;
+  const dateLabel = timetable?.date
+    ? new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" }).format(new Date(timetable.date))
+    : "";
 
   return (
-    <div className={`flex-1 md:w-[36%] md:flex-initial flex flex-col md:border md:border-gray-300 rounded-lg transition-all duration-300 ${showTimetable ? 'opacity-100 z-10' : 'opacity-0 absolute inset-0 -z-10'}`}>
-      <Weather
-        timetables={timetables}
-        selectedDay={selectedDay}
-        destinationId={destinationId}
-      />
-      <div className="h-full flex flex-col overflow-hidden relative py-4 px-5 overflow-y-auto overflow-x-hidden">
-        <div className="md:hidden block py-1">
-          <div className="h-10"></div>
+    <section className={`${showTimetable ? "block" : "hidden lg:block"} rounded-2xl border border-[#ececf0] bg-white shadow-sm`}>
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ececf0] px-5 py-5 sm:px-6">
+        <div>
+          <h2 className="text-lg font-black text-[#111318]">상세 일정</h2>
+          <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-[#8b909a]"><CalendarDays className="h-3.5 w-3.5" />{dateLabel}</p>
         </div>
-        <div className="flex-1 relative">
-          {/* Grid Lines */}
-          {Array.from({ length: TOTAL_SLOTS }).map((_, i) => (
-            <div key={i} className="flex items-center box-border" style={{ height: SLOT_HEIGHT }}>
-              <div className="w-12 text-center pr-3 text-xs text-gray-500">{formatTime(i)}</div>
-              <div className="flex-1 h-px bg-gray-200"></div>
-            </div>
-          ))}
-          {/* Last Time Slot Label */}
-          <div className="h-10">
-            <div className="flex items-center box-border" style={{ height: SLOT_HEIGHT }}>
-              <div className="w-12 text-center pr-3 text-xs text-gray-500">{formatTime(TOTAL_SLOTS)}</div>
-              <div className="flex-1 h-px bg-gray-200"></div>
-            </div>
-          </div>
-          <div className="block md:hidden h-12"></div>
-          {(placeBlocks[getTimeTableId(timetables, selectedDay)] || []).map(item => (
-            <ScheduledItem key={item.id} item={item} START_HOUR={START_HOUR} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f4f6ff] px-3 py-1.5 text-xs font-bold text-[#1344FF]"><MapPin className="h-3.5 w-3.5" />{schedule.length}개 장소</span>
+      </header>
 
-export default TimetableGrid;
+      <div className="p-4 sm:p-6">
+        {schedule.length ? (
+          <ol>{schedule.map((item, index) => <ScheduledItem key={item.id} item={item} START_HOUR={startHour} index={index} isLast={index === schedule.length - 1} />)}</ol>
+        ) : (
+          <div className="flex min-h-56 flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#e5e7eb] bg-[#fafafa] text-center">
+            <MapPin className="mb-3 h-8 w-8 text-[#c8ccd3]" />
+            <p className="font-bold text-[#666666]">이 날짜에는 일정이 없어요</p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}

@@ -235,7 +235,7 @@ function App() {
   }
 
   return (
-    <div className="font-pretendard h-screen">
+    <div className="font-pretendard min-h-screen bg-[#f6f7f9] text-slate-950">
       <Helmet>
         <title>planMate : 여행 일정 결과</title>
         <meta
@@ -247,29 +247,19 @@ function App() {
         <Navbar currentView="" onNavigate={handleNavbarNavigate} />
       </div>
       <PlanInfo planFrame={planFrame} isOwner={isOwner} />
-      <ChecklistSheet planId={id} enabled={isAuthenticated()} />
-      <div
-        className="
-          min-[1464px]:w-[1400px] min-[1464px]:px-0
-          md:px-8 md:py-6 py-3
-          mx-auto
-          md:h-[calc(100vh-134px)]
-          h-[calc(100vh-112px)]
-        "
-      >
-        <div className="flex md:flex-row flex-col md:space-x-6 space-y-4 md:space-y-0 h-full">
+      <main className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:pb-8">
           <DaySelector
             timetables={timetables}
             selectedDay={selectedDay}
             setSelectedDay={setSelectedDay}
           />
           <div
-            className="flex flex-1 flex-col h-full overflow-hidden select-none"
+            className="select-none"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            <div className="flex-1 flex overflow-hidden relative md:space-x-6">
+            <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
               <TimetableGrid
                 planFrame={planFrame}
                 placeBlocks={placeBlocks}
@@ -277,18 +267,26 @@ function App() {
                 timetables={timetables}
                 showTimetable={showTimetable}
               />
-              <MapArea
-                placeBlocks={placeBlocks}
-                timetables={timetables}
-                selectedDay={selectedDay}
-                showSidebar={showSidebar}
-              />
+              <aside className="space-y-4 lg:col-start-2 lg:row-start-1">
+                <MapArea
+                  placeBlocks={placeBlocks}
+                  timetables={timetables}
+                  selectedDay={selectedDay}
+                  showSidebar={showSidebar}
+                />
+                <ChecklistSheet
+                  planId={id}
+                  enabled={isAuthenticated()}
+                  variant="summary"
+                />
+              </aside>
             </div>
             {isMobile && (
-              <nav className="fixed left-0 right-0 bottom-0 z-40 bg-white border-t h-16 flex">
+              <nav className="fixed bottom-4 left-1/2 z-40 flex h-14 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-2xl border border-slate-200 bg-white/95 p-1.5 shadow-[0_16px_40px_rgba(15,23,42,0.18)] backdrop-blur">
                 <button
                   onClick={() => setActiveTab("timetable")}
-                  className={`flex-1 flex flex-col items-center justify-center ${activeTab === "timetable" ? "text-main" : "text-gray-400"}`}
+                  aria-label="여정 보기"
+                  className={`flex-1 flex items-center gap-2 justify-center rounded-xl text-sm font-semibold [&>span:last-child]:hidden after:content-['여정'] ${activeTab === "timetable" ? "bg-slate-950 text-white" : "text-slate-400"}`}
                 >
                   <span className="text-xl">
                     <FontAwesomeIcon icon={faCalendar} />
@@ -297,7 +295,8 @@ function App() {
                 </button>
                 <button
                   onClick={() => setActiveTab("recommend")}
-                  className={`flex-1 flex flex-col items-center justify-center ${activeTab === "recommend" ? "text-main" : "text-gray-400"}`}
+                  aria-label="지도 보기"
+                  className={`flex-1 flex items-center gap-2 justify-center rounded-xl text-sm font-semibold [&>span:last-child]:hidden after:content-['지도'] ${activeTab === "recommend" ? "bg-slate-950 text-white" : "text-slate-400"}`}
                 >
                   <span className="text-xl">
                     <FontAwesomeIcon icon={faMap} />
@@ -307,8 +306,7 @@ function App() {
               </nav>
             )}
           </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -8,7 +8,12 @@ const isValidPosition = (place) =>
   (place?.yLocation != null || place?.ylocation != null) &&
   (place?.xLocation != null || place?.xlocation != null);
 
-export default function MapComponent({ schedule }) {
+export default function MapComponent({
+  schedule,
+  defaultSegmentInfoOpen = true,
+  onSegmentInfoRequest,
+  segmentPanelVariant = "floating",
+}) {
   useKakaoLoader()
   const { post } = useApiClient();
 
@@ -19,7 +24,15 @@ export default function MapComponent({ schedule }) {
   const [routePath, setRoutePath] = useState([]);
   const [transitLanes, setTransitLanes] = useState([]); // [{ color, path:[{lat,lng}] }]
   const [activeTransitKey, setActiveTransitKey] = useState(null);
-  const [isSegmentInfoOpen, setIsSegmentInfoOpen] = useState(true);
+  const [isSegmentInfoOpen, setIsSegmentInfoOpen] = useState(defaultSegmentInfoOpen);
+
+  const handleSegmentInfoOpenChange = (nextOpen) => {
+    if (nextOpen && onSegmentInfoRequest) {
+      onSegmentInfoRequest();
+      return;
+    }
+    setIsSegmentInfoOpen(nextOpen);
+  };
 
   // 선택한 대중교통 경로(mapObj)의 폴리라인을 지도에 그린다. 같은 카드를 다시 누르면 지운다.
   const showTransitRoute = async (mapObj, key) => {
@@ -81,15 +94,23 @@ export default function MapComponent({ schedule }) {
     });
 
     // 패널 상태가 바뀌면 실제로 보이는 지도 영역 안에 마커를 맞춥니다.
-    const fitTimer = window.setTimeout(() => {
+    const fitMapToPositions = () => {
       map.relayout();
       const isDesktop = window.matchMedia("(min-width: 768px)").matches;
       const leftPadding = isSegmentInfoOpen && isDesktop ? 400 : 48;
       const bottomPadding = isSegmentInfoOpen && !isDesktop ? 280 : 48;
       map.setBounds(bounds, 48, 48, bottomPadding, leftPadding);
-    }, 0);
+    };
 
-    return () => window.clearTimeout(fitTimer);
+    const frameId = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(fitMapToPositions);
+    });
+    const fitTimer = window.setTimeout(fitMapToPositions, 180);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(fitTimer);
+    };
   }, [map, positions, isSegmentInfoOpen]);
 
   // 도로를 따라가는 실제 경로를 백엔드(OSRM 길찾기)에서 받아온다.
@@ -174,7 +195,8 @@ export default function MapComponent({ schedule }) {
             onShowTransitRoute={showTransitRoute}
             activeTransitKey={activeTransitKey}
             isOpen={isSegmentInfoOpen}
-            onOpenChange={setIsSegmentInfoOpen}
+            onOpenChange={handleSegmentInfoOpenChange}
+            panelVariant={segmentPanelVariant}
           />
         )}
 
@@ -197,7 +219,6 @@ export default function MapComponent({ schedule }) {
         )}
 
         <Map // 지도를 표시할 Container
-          id="map"
           center={{
             // 지도의 중심좌표
             lat: 33.452278,

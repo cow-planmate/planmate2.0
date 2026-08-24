@@ -1,121 +1,58 @@
 import { useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPencilAlt } from "@fortawesome/free-solid-svg-icons";
+import { BedDouble, Camera, Coffee, ExternalLink, MapPin, Sparkles } from "lucide-react";
+import fallbackImage from "../../assets/imgs/default.png";
 import DetailPopup from "../Create2/Timetable/DetailPopup";
 
-export const ScheduledItem = ({ item, START_HOUR }) => {
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const SLOT_HEIGHT = 40;
-  
-  const place = item?.place;
+const CATEGORIES = {
+  0: { label: "관광", Icon: Camera, chip: "bg-blue-50 text-[#1344FF]" },
+  1: { label: "숙소", Icon: BedDouble, chip: "bg-orange-50 text-orange-600" },
+  2: { label: "식당", Icon: Coffee, chip: "bg-emerald-50 text-emerald-600" },
+  3: { label: "직접 추가", Icon: Sparkles, chip: "bg-violet-50 text-violet-600" },
+  4: { label: "기타", Icon: MapPin, chip: "bg-gray-100 text-gray-600" },
+};
 
-  const localState = {
-    height: item.duration * SLOT_HEIGHT,
-    top: 20 + item.start * SLOT_HEIGHT,
-  };
+export const ScheduledItem = ({ item, START_HOUR, index, isLast }) => {
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const place = item?.place;
+  const category = CATEGORIES[place.categoryId] || CATEGORIES[4];
+  const Icon = category.Icon;
 
   const formatTime = (slotIndex) => {
     const totalMin = slotIndex * 15 + START_HOUR * 60;
-    const h = Math.floor(totalMin / 60).toString().padStart(2, '0');
-    const m = (totalMin % 60).toString().padStart(2, '0');
-    return `${h}:${m}`;
-  }
-
-  const tripCategory = {
-    0: "관광지",
-    1: "숙소",
-    2: "식당",
-    3: "직접 추가",
-    4: "검색",
-  };
-  const tripColor1 = {
-    0: "bg-lime-50",
-    1: "bg-orange-50",
-    2: "bg-blue-50",
-    3: "bg-violet-50",
-    4: "bg-gray-50",
-  };
-  const tripColor3 = {
-    0: "border-lime-500",
-    1: "border-orange-500",
-    2: "border-blue-500",
-    3: "border-violet-500",
-    4: "border-gray-500",
-  };
-  const tripColor4 = {
-    0: "text-lime-600",
-    1: "text-orange-600",
-    2: "text-blue-600",
-    3: "text-violet-600",
-    4: "text-gray-600",
-  };
-  const tripColor5 = {
-    0: "text-lime-900",
-    1: "text-orange-900",
-    2: "text-blue-900",
-    3: "text-violet-900",
-    4: "text-gray-900",
+    return `${String(Math.floor(totalMin / 60)).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
   };
 
   return (
-    <div
-      style={{
-        top: localState.top,
-        height: localState.height,
-        position: 'absolute',
-        left: '4rem',
-        right: '8px',
-      }}
-      className="absolute touch-none"
-    >
-        <div
-          className={`w-full h-full ${tripColor1[place.categoryId]} border-l-4 ${tripColor3[place.categoryId]} rounded ring-1 ring-inset ring-slate-900/15 shadow-sm overflow-hidden select-none transition-colors
-            ${localState.height <= 80 ? 'flex flex-col items-start justify-center px-5' : "p-5"}`}
-        >
-          <div className="w-full flex items-center gap-2 min-w-0">
-            <div className="flex-1 min-w-0">
-              <div
-                className={`font-bold text-lg ${tripColor5[place.categoryId]} truncate pointer-events-none`}
-              >
-                {place.name}
-              </div>
+    <li className="group relative grid grid-cols-[52px_14px_minmax(0,1fr)] gap-3 pb-5 sm:grid-cols-[64px_14px_minmax(0,1fr)]">
+      <div className="pt-3 text-right">
+        <span className="text-sm font-black tabular-nums text-[#111318]">{formatTime(item.start)}</span>
+      </div>
 
-              <div
-                className={`text-xs ${tripColor4[place.categoryId]} font-medium pointer-events-none`}
-              >
-                <p>
-                  {tripCategory[place.categoryId]} | {formatTime(item.start)} -{' '}
-                  {formatTime(item.start + Math.round(localState.height / SLOT_HEIGHT))}
-                </p>
-              </div>
-            </div>
+      <div className="relative flex justify-center pt-4">
+        <span className={`relative z-10 h-2.5 w-2.5 rounded-full border-2 border-white shadow-sm ${index === 0 ? "bg-[#1344FF]" : "bg-[#cfd3da]"}`} />
+        {!isLast ? <span className="absolute bottom-[-20px] top-[21px] w-0.5 bg-[#e2e5ea]" aria-hidden="true" /> : null}
+      </div>
 
-            <div className="flex shrink-0 gap-1 mt-[-4px]">
-              <button
-                className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[place.categoryId]} text-xs flex items-center justify-center transition-colors pointer-events-auto`}
-                onClick={() => setIsDetailOpen(true)}
-                title="상세보기"
-              >
-                <FontAwesomeIcon icon={faPencilAlt} />
-              </button>
-            </div>
+      <button type="button" onClick={() => setIsDetailOpen(true)} className="min-w-0 overflow-hidden rounded-xl border border-[#ececf0] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#1344FF]/25 hover:shadow-md" aria-label={`${place.name} 상세 보기`}>
+        <div className="flex min-h-[132px]">
+          <div className="hidden w-[142px] shrink-0 overflow-hidden bg-gray-100 sm:block">
+            <img src={place.photoUrl || fallbackImage} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
           </div>
-          {item.memo && localState.height > 80 && (
-            <div className="mt-2 text-xs text-black line-clamp-2 pointer-events-none">
-              {item.memo}
+          <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
+            <div>
+              <div className="mb-2 flex min-w-0 items-center gap-2">
+                <span className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold ${category.chip}`}><Icon className="h-3.5 w-3.5" />{category.label}</span>
+                <h3 className="truncate text-[15px] font-black text-[#111318] sm:text-base">{place.name}</h3>
+              </div>
+              {place.formatted_address ? <p className="line-clamp-2 text-xs leading-5 text-[#666666]">{place.formatted_address}</p> : null}
+              {item.memo ? <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#1344FF]">{item.memo}</p> : null}
             </div>
-          )}
+            <span className="mt-3 flex h-8 w-8 items-center justify-center rounded-lg border border-[#e5e7eb] text-[#9aa0ab] transition group-hover:border-[#1344FF]/30 group-hover:text-[#1344FF]"><ExternalLink className="h-3.5 w-3.5" /></span>
+          </div>
         </div>
+      </button>
 
-      {isDetailOpen && (
-        <DetailPopup
-          isOpen={isDetailOpen}
-          onClose={() => setIsDetailOpen(false)}
-          item={item}
-          readOnly={true}
-          onUpdateMemo={() => {}}
-        />
-      )}
-    </div>
+      {isDetailOpen ? <DetailPopup isOpen onClose={() => setIsDetailOpen(false)} item={item} readOnly onUpdateMemo={() => {}} /> : null}
+    </li>
   );
 };

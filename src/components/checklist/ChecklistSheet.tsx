@@ -96,7 +96,7 @@ export const ChecklistSheet = ({
             event.stopPropagation();
             setOpen(true);
           }}
-          className={`group w-full rounded-2xl border border-gray-100 bg-gray-50/70 p-4 text-left transition-colors hover:border-gray-200 hover:bg-gray-100 active:bg-gray-200 ${className}`}
+          className={`group w-full rounded-2xl border border-[#ececf0] bg-white p-4 text-left shadow-sm transition-colors hover:border-gray-200 hover:bg-gray-50 active:bg-gray-100 ${className}`}
         >
           <div className="mb-3 flex items-center justify-between">
             <span className="flex items-center gap-2 text-xs font-black text-gray-600">

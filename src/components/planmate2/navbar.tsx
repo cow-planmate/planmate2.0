@@ -7,7 +7,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useApiClient } from "../../hooks/useApiClient";
 import { getAccessToken } from "../../shared/auth/tokenStore";
 import useNicknameStore from "../../store/Nickname";
@@ -73,6 +73,30 @@ export default function Navbar({
   }
 
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [isNewNotificationVisible, setIsNewNotificationVisible] =
+    useState(false);
+  const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  const hideNewNotification = useCallback(() => {
+    setIsNewNotificationVisible(false);
+    if (notificationTimerRef.current) {
+      clearTimeout(notificationTimerRef.current);
+      notificationTimerRef.current = null;
+    }
+  }, []);
+
+  const showNewNotification = useCallback(() => {
+    if (notificationTimerRef.current) {
+      clearTimeout(notificationTimerRef.current);
+    }
+    setIsNewNotificationVisible(true);
+    notificationTimerRef.current = setTimeout(() => {
+      setIsNewNotificationVisible(false);
+      notificationTimerRef.current = null;
+    }, 5000);
+  }, []);
 
   const fetchInvitations = useCallback(async () => {
     if (isAuthenticated()) {
@@ -111,19 +135,25 @@ export default function Navbar({
     const eventSource = new EventSource(
       `${BASE_URL}/api/sse/subscribe?token=${encodeURIComponent(token)}`,
     );
+    const handleNewInvitation = () => {
+      showNewNotification();
+      void fetchInvitations();
+    };
     const refreshPendingRequests = () => {
       void fetchInvitations();
     };
 
-    eventSource.addEventListener("invitation", refreshPendingRequests);
+    eventSource.addEventListener("invitation", handleNewInvitation);
     eventSource.addEventListener("requestResult", refreshPendingRequests);
 
     return () => {
-      eventSource.removeEventListener("invitation", refreshPendingRequests);
+      eventSource.removeEventListener("invitation", handleNewInvitation);
       eventSource.removeEventListener("requestResult", refreshPendingRequests);
       eventSource.close();
     };
-  }, [BASE_URL, fetchInvitations, nickname]);
+  }, [BASE_URL, fetchInvitations, nickname, showNewNotification]);
+
+  useEffect(() => hideNewNotification, [hideNewNotification]);
 
   const acceptRequest = async (collaborationRequestId: number) => {
     try {
@@ -241,6 +271,7 @@ export default function Navbar({
                 <div className="relative">
                   <button
                     onClick={() => {
+                      hideNewNotification();
                       setIsInvitationOpen(!isInvitationOpen);
                       setIsProfileMenuOpen(false); // 💡 UX 개선: 알림창 열 때 프로필 닫기
                       if (!isInvitationOpen) fetchInvitations();
@@ -256,6 +287,35 @@ export default function Navbar({
                       <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                     )}
                   </button>
+
+                  {isNewNotificationVisible && !isInvitationOpen && (
+                    <button
+                      type="button"
+                      role="status"
+                      aria-live="polite"
+                      onClick={() => {
+                        hideNewNotification();
+                        setIsInvitationOpen(true);
+                        setIsProfileMenuOpen(false);
+                        void fetchInvitations();
+                      }}
+                      className="absolute right-0 top-12 z-30 w-max max-w-[260px] rounded-xl border border-[#dce5ff] bg-white px-3.5 py-3 text-left shadow-[0_10px_30px_rgba(17,24,39,0.14)] transition-all animate-in fade-in slide-in-from-top-2 duration-200 before:absolute before:-top-1.5 before:right-4 before:h-3 before:w-3 before:rotate-45 before:border-l before:border-t before:border-[#dce5ff] before:bg-white hover:-translate-y-0.5 hover:border-[#bfd0ff] hover:shadow-[0_14px_34px_rgba(17,24,39,0.18)]"
+                    >
+                      <span className="flex items-start gap-2.5">
+                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#eef3ff] text-[#1344FF]">
+                          <Bell className="h-3.5 w-3.5" />
+                        </span>
+                        <span>
+                          <span className="block text-sm font-bold leading-5 text-[#20232a]">
+                            새로운 알림이 도착했어요
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-4 text-[#747986]">
+                            눌러서 알림 내용을 확인해 보세요
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                  )}
 
                   {/* Invitation Dropdown */}
                   {isInvitationOpen && (

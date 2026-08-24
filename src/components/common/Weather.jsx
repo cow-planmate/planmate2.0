@@ -64,14 +64,14 @@ export default function Weather({ timetables, selectedDay, destinationId }) {
 
   return (
     <div className="
-      mx-5 md:m-0
-      rounded-2xl md:rounded-none 
-      border md:border-0
-      md:border-b 
-      px-4 py-2 md:py-4 
+      mx-3 mt-3 md:m-0
+      rounded-xl md:rounded-none
+      border border-slate-200 md:border-0
+      md:border-b md:border-slate-100
+      px-4 py-3 md:px-5 md:py-4
       absolute left-0 right-0 md:relative z-30
       flex items-center justify-between
-      bg-white md:bg-transparent bg-clip-padding backdrop-filter backdrop-blur-md md:backdrop-blur-none bg-opacity-10
+      bg-white/95 md:bg-white bg-clip-padding backdrop-filter backdrop-blur-md md:backdrop-blur-none
     ">
       {nowWeather?.dataSource === "SEASONAL_AVERAGE" &&
         <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 group/tooltip z-50">
