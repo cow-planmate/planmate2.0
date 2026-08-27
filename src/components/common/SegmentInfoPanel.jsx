@@ -74,24 +74,46 @@ const joinParts = (...parts) => {
   return filtered.length > 0 ? filtered.join(" · ") : null;
 };
 
-const SegmentRow = ({ icon, label, value, isLoading, title, tone = "blue" }) => (
-  <div
-    className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5"
-    title={title}
-  >
-    <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-lg ${
-      tone === "green" ? "bg-emerald-50 text-emerald-600" : tone === "gray" ? "bg-white text-slate-500" : "bg-blue-50 text-main"
-    }`}>
-      <FontAwesomeIcon icon={icon} className="text-xs" />
-    </span>
-    <span className="sr-only">{label}</span>
-    {isLoading ? (
-      <span className="h-4 w-16 animate-pulse rounded bg-slate-200" aria-label={`${label} 정보 불러오는 중`} />
-    ) : (
-      <span className="min-w-0 text-[13px] font-semibold leading-5 text-slate-700">{value ?? "정보 없음"}</span>
-    )}
-  </div>
-);
+// 이동 수단 한 칸. onSelect가 있으면 눌러서 지도에 경로를 그릴 수 있는 버튼이 된다.
+const SegmentRow = ({ icon, label, value, isLoading, title, tone = "blue", onSelect, isActive }) => {
+  const body = (
+    <>
+      <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-lg ${
+        isActive
+          ? "bg-main text-white"
+          : tone === "green" ? "bg-emerald-50 text-emerald-600" : tone === "gray" ? "bg-white text-slate-500" : "bg-blue-50 text-main"
+      }`}>
+        <FontAwesomeIcon icon={icon} className="text-xs" />
+      </span>
+      <span className="sr-only">{label}</span>
+      {isLoading ? (
+        <span className="h-4 w-16 animate-pulse rounded bg-slate-200" aria-label={`${label} 정보 불러오는 중`} />
+      ) : (
+        <span className={`min-w-0 text-[13px] font-semibold leading-5 ${isActive ? "text-main" : "text-slate-700"}`}>
+          {value ?? "정보 없음"}
+        </span>
+      )}
+    </>
+  );
+
+  const className = "flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5";
+
+  if (!onSelect || isLoading || value == null) {
+    return <div className={className} title={title}>{body}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={!!isActive}
+      title={title ?? `${label} 경로를 지도에서 보기`}
+      className={`${className} text-left transition ${isActive ? "bg-blue-50" : "hover:bg-blue-50/60"}`}
+    >
+      {body}
+    </button>
+  );
+};
 
 const NumberBadge = ({ number }) => (
   <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-main text-xs font-bold text-white shadow-sm shadow-blue-200">
@@ -203,6 +225,104 @@ const RouteDetailRow = ({ step }) => {
     <div className="relative space-y-1 border-l-2 border-slate-100 py-1 pl-3 before:absolute before:-left-[5px] before:top-2 before:h-2 before:w-2 before:rounded-full before:bg-slate-300">
       {rowContent}
       <PassStopsToggle passStops={step.passStops} />
+    </div>
+  );
+};
+
+// 차량/도보 경로 한 개의 턴바이턴 안내 토글. 대안 경로에는 안내가 없어 렌더하지 않는다.
+const RouteStepsToggle = ({ steps }) => {
+  const [open, setOpen] = useState(false);
+
+  if (!steps || steps.length === 0) return null;
+
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex items-center gap-1 text-[11px] font-medium text-slate-400 transition hover:text-slate-600"
+      >
+        안내 {steps.length}단계
+        <FontAwesomeIcon icon={open ? faChevronUp : faChevronDown} className="text-[9px]" />
+      </button>
+      {open && (
+        <ol className="mt-1.5 space-y-1.5 border-l border-dashed border-slate-200 pl-3">
+          {steps.map((step, i) => (
+            <li key={i} className="flex items-baseline justify-between gap-2 text-xs text-slate-600">
+              <span className="min-w-0">{step.instruction ?? step.name ?? "계속 이동"}</span>
+              {step.distance > 0 && (
+                <span className="flex-none text-[11px] text-slate-400">{formatMeters(step.distance)}</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+};
+
+// 차량/도보의 경로 후보 목록. 첫 번째가 추천 경로, 나머지는 대안 경로.
+const RoadRoutes = ({ profile, routes, selectedIndex, isLoading, onSelectRoute }) => {
+  if (isLoading) {
+    return (
+      <div className="mt-3 border-t border-slate-100 pt-3">
+        <div className="h-20 animate-pulse rounded-2xl bg-slate-100" aria-label="경로 불러오는 중" />
+      </div>
+    );
+  }
+
+  if (!routes || routes.length === 0) {
+    return (
+      <div className="mt-3 border-t border-slate-100 pt-3 text-center text-xs text-slate-400">
+        경로를 불러오지 못했어요.
+      </div>
+    );
+  }
+
+  const label = profile === "foot" ? "도보" : "차량";
+
+  return (
+    <div className="mt-3 border-t border-slate-100 pt-3">
+      <div className="mb-2 text-[11px] font-bold text-slate-400">{label} 경로 {routes.length}개</div>
+
+      {routes.map((route, ri) => {
+        const isSelected = selectedIndex === ri;
+
+        return (
+          <div
+            key={ri}
+            className={`mb-3 rounded-2xl border bg-white p-3.5 shadow-sm transition ${
+              isSelected ? "border-blue-300 ring-1 ring-blue-100" : "border-slate-200 hover:border-blue-200"
+            }`}
+          >
+            <div className="flex items-baseline justify-between">
+              <div>
+                <span className="text-xl font-extrabold tracking-tight text-slate-900">
+                  {formatSeconds(route.duration)}
+                </span>
+                <span className="ml-1.5 text-xs font-medium text-slate-500">
+                  {formatMeters(route.distance)}
+                </span>
+              </div>
+              <span className="text-[11px] font-bold text-slate-400">
+                {ri === 0 ? "추천" : `대안 ${ri}`}
+              </span>
+            </div>
+
+            <RouteStepsToggle steps={route.steps} />
+
+            <button
+              type="button"
+              onClick={() => onSelectRoute(ri)}
+              className={`mt-3 w-full rounded-xl py-2 text-xs font-bold transition ${
+                isSelected ? "bg-slate-800 text-white" : "bg-blue-50 text-main hover:bg-blue-100"
+              }`}
+            >
+              {isSelected ? "지도에 표시 중" : "지도에 보기"}
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -367,6 +487,9 @@ export default function SegmentInfoPanel({
   positionsKey,
   onShowTransitRoute,
   activeTransitKey,
+  onShowRoadRoute,
+  onSelectRoadRoute,
+  roadRoute,
   isOpen,
   onOpenChange,
   panelVariant = "floating",
@@ -554,6 +677,8 @@ export default function SegmentInfoPanel({
                                 label="차량"
                                 tone="blue"
                                 isLoading={isLoading}
+                                onSelect={onShowRoadRoute ? () => onShowRoadRoute("driving", i) : undefined}
+                                isActive={roadRoute?.key === `${i}-driving`}
                                 value={joinParts(
                                   formatSeconds(segmentData.driving?.durations?.[i]?.[i + 1]),
                                   formatMeters(segmentData.driving?.distances?.[i]?.[i + 1])
@@ -564,12 +689,25 @@ export default function SegmentInfoPanel({
                                 label="도보"
                                 tone="gray"
                                 isLoading={isLoading}
+                                onSelect={onShowRoadRoute ? () => onShowRoadRoute("foot", i) : undefined}
+                                isActive={roadRoute?.key === `${i}-foot`}
                                 value={joinParts(
                                   formatSeconds(segmentData.foot?.durations?.[i]?.[i + 1]),
                                   formatMeters(segmentData.foot?.distances?.[i]?.[i + 1])
                                 )}
                               />
                             </div>
+                            {roadRoute?.segmentIndex === i && (
+                              <div className="border-t border-slate-200/80 px-3.5 pb-3.5">
+                                <RoadRoutes
+                                  profile={roadRoute.profile}
+                                  routes={roadRoute.routes}
+                                  selectedIndex={roadRoute.selectedIndex}
+                                  isLoading={roadRoute.isLoading}
+                                  onSelectRoute={onSelectRoadRoute}
+                                />
+                              </div>
+                            )}
                             <div className="border-t border-slate-200/80">
                               <TransitInfo
                                 transit={transit}
