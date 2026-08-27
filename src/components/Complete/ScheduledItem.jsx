@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { BedDouble, Camera, Coffee, ExternalLink, MapPin, Sparkles } from "lucide-react";
-import fallbackImage from "../../assets/imgs/default.png";
+import { useEffect, useState } from "react";
+import { BedDouble, Camera, Coffee, MapPin, MessageSquareText, Sparkles } from "lucide-react";
 import DetailPopup from "../Create2/Timetable/DetailPopup";
 
 const CATEGORIES = {
@@ -14,13 +13,21 @@ const CATEGORIES = {
 export const ScheduledItem = ({ item, START_HOUR, index, isLast }) => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const place = item?.place;
+  const imageUrl = place?.photoUrl?.replace(/^http:\/\//i, "https://");
+  const [imageFailed, setImageFailed] = useState(false);
   const category = CATEGORIES[place.categoryId] || CATEGORIES[4];
   const Icon = category.Icon;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
 
   const formatTime = (slotIndex) => {
     const totalMin = slotIndex * 15 + START_HOUR * 60;
     return `${String(Math.floor(totalMin / 60)).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
   };
+
+  const endTime = formatTime(item.start + item.duration);
 
   return (
     <li className="group relative grid grid-cols-[52px_14px_minmax(0,1fr)] gap-3 pb-5 sm:grid-cols-[64px_14px_minmax(0,1fr)]">
@@ -30,27 +37,56 @@ export const ScheduledItem = ({ item, START_HOUR, index, isLast }) => {
 
       <div className="relative flex justify-center pt-4">
         <span className={`relative z-10 h-2.5 w-2.5 rounded-full border-2 border-white shadow-sm ${index === 0 ? "bg-[#1344FF]" : "bg-[#cfd3da]"}`} />
-        {!isLast ? <span className="absolute bottom-[-20px] top-[21px] w-0.5 bg-[#e2e5ea]" aria-hidden="true" /> : null}
+        <span className="absolute bottom-[-20px] top-[21px] w-0.5 bg-[#e2e5ea]" aria-hidden="true" />
       </div>
 
       <button type="button" onClick={() => setIsDetailOpen(true)} className="min-w-0 overflow-hidden rounded-xl border border-[#ececf0] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#1344FF]/25 hover:shadow-md" aria-label={`${place.name} 상세 보기`}>
         <div className="flex min-h-[132px]">
-          <div className="hidden w-[142px] shrink-0 overflow-hidden bg-gray-100 sm:block">
-            <img src={place.photoUrl || fallbackImage} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+          <div className="hidden w-[142px] shrink-0 items-center justify-center overflow-hidden bg-[#f3f5f8] sm:flex">
+            {!imageFailed && imageUrl ? (
+              <img
+                src={imageUrl}
+                alt=""
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                onError={() => setImageFailed(true)}
+              />
+            ) : (
+              <MapPin className="h-9 w-9 text-[#aeb4bf]" aria-label="장소 기본 이미지" />
+            )}
           </div>
-          <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
+          <div className="flex min-w-0 flex-1 flex-col p-4">
             <div>
               <div className="mb-2 flex min-w-0 items-center gap-2">
                 <span className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold ${category.chip}`}><Icon className="h-3.5 w-3.5" />{category.label}</span>
                 <h3 className="truncate text-[15px] font-black text-[#111318] sm:text-base">{place.name}</h3>
               </div>
               {place.formatted_address ? <p className="line-clamp-2 text-xs leading-5 text-[#666666]">{place.formatted_address}</p> : null}
-              {item.memo ? <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#1344FF]">{item.memo}</p> : null}
+              {item.memo ? (
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-[#dfe5ff] bg-[#f7f8ff] px-3 py-2.5 text-[#3f4b68] transition-colors group-hover:border-[#cbd5ff] group-hover:bg-[#f2f4ff]">
+                  <MessageSquareText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#1344FF]" />
+                  <div className="min-w-0">
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-[#7d88a5]">메모</span>
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-5">{item.memo}</p>
+                  </div>
+                </div>
+              ) : null}
             </div>
-            <span className="mt-3 flex h-8 w-8 items-center justify-center rounded-lg border border-[#e5e7eb] text-[#9aa0ab] transition group-hover:border-[#1344FF]/30 group-hover:text-[#1344FF]"><ExternalLink className="h-3.5 w-3.5" /></span>
           </div>
         </div>
       </button>
+
+      {isLast ? (
+        <>
+          <div className="pt-1 text-right">
+            <span className="text-sm font-black tabular-nums text-[#111318]">{endTime}</span>
+          </div>
+          <div className="relative flex justify-center pt-2">
+            <span className="absolute bottom-2 top-[-20px] w-0.5 bg-[#e2e5ea]" aria-hidden="true" />
+            <span className="relative z-10 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#1344FF] shadow-sm" />
+          </div>
+          <div aria-hidden="true" />
+        </>
+      ) : null}
 
       {isDetailOpen ? <DetailPopup isOpen onClose={() => setIsDetailOpen(false)} item={item} readOnly onUpdateMemo={() => {}} /> : null}
     </li>

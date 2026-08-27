@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
+import { CustomOverlayMap, Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
+import { LocateFixed, RotateCcw, Route } from "lucide-react";
 import useKakaoLoader from "../../hooks/useKakaoLoader";
 import { useApiClient } from "../../hooks/useApiClient";
 import SegmentInfoPanel, { SUBWAY_COLORS, BUS_COLOR } from "./SegmentInfoPanel";
@@ -7,6 +8,36 @@ import SegmentInfoPanel, { SUBWAY_COLORS, BUS_COLOR } from "./SegmentInfoPanel";
 const isValidPosition = (place) =>
   (place?.yLocation != null || place?.ylocation != null) &&
   (place?.xLocation != null || place?.xlocation != null);
+
+const distanceSquared = (a, b) =>
+  ((a.lat - b.lat) ** 2) + ((a.lng - b.lng) ** 2);
+
+// 하나로 전달된 전체 도로 경로를 일정 장소 기준의 구간들로 나눈다.
+const splitPathByWaypoints = (path, waypoints) => {
+  if (path.length < 2 || waypoints.length < 2) return [];
+
+  const boundaries = [0];
+  let searchFrom = 0;
+  waypoints.slice(1, -1).forEach((waypoint) => {
+    let nearestIndex = searchFrom;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (let i = searchFrom; i < path.length; i += 1) {
+      const nextDistance = distanceSquared(path[i], waypoint);
+      if (nextDistance < nearestDistance) {
+        nearestDistance = nextDistance;
+        nearestIndex = i;
+      }
+    }
+    boundaries.push(nearestIndex);
+    searchFrom = nearestIndex;
+  });
+  boundaries.push(path.length - 1);
+
+  return boundaries.slice(0, -1).map((start, index) => {
+    const end = boundaries[index + 1];
+    return path.slice(start, Math.max(start + 2, end + 1));
+  });
+};
 
 export default function MapComponent({
   schedule,
@@ -25,6 +56,8 @@ export default function MapComponent({
   const [transitLanes, setTransitLanes] = useState([]); // [{ color, path:[{lat,lng}] }]
   const [activeTransitKey, setActiveTransitKey] = useState(null);
   const [isSegmentInfoOpen, setIsSegmentInfoOpen] = useState(defaultSegmentInfoOpen);
+  const [activeSegmentIndex, setActiveSegmentIndex] = useState(null);
+  const [activePlaceIndex, setActivePlaceIndex] = useState(null);
 
   const handleSegmentInfoOpenChange = (nextOpen) => {
     if (nextOpen && onSegmentInfoRequest) {
@@ -39,6 +72,7 @@ export default function MapComponent({
     if (key === activeTransitKey) {
       setTransitLanes([]);
       setActiveTransitKey(null);
+      setActiveSegmentIndex(null);
       return;
     }
     try {
@@ -52,6 +86,8 @@ export default function MapComponent({
       }));
       setTransitLanes(lanes);
       setActiveTransitKey(key);
+      setActiveSegmentIndex(Number.parseInt(key.split("-")[0], 10));
+      setActivePlaceIndex(null);
     } catch {
       // 폴리라인 조회 실패 시 조용히 무시(기존 지도 상태 유지)
     }
@@ -82,6 +118,23 @@ export default function MapComponent({
   const positionsKey = positions
     .map((pos) => `${pos.lat},${pos.lng}`)
     .join("|");
+
+  const routeSegments = useMemo(() => {
+    if (routePath.length > 0) return splitPathByWaypoints(routePath, positions);
+    return positions.slice(0, -1).map((position, index) => [position, positions[index + 1]]);
+  }, [routePath, positions]);
+
+  const resetMapFocus = () => {
+    setActiveSegmentIndex(null);
+    setActivePlaceIndex(null);
+    setTransitLanes([]);
+    setActiveTransitKey(null);
+  };
+
+  const focusSegment = (index) => {
+    setActiveSegmentIndex((current) => current === index ? null : index);
+    setActivePlaceIndex(null);
+  };
 
   // useEffect를 사용하여 map 인스턴스가 생성된 후 한 번만 실행되도록 설정
   useEffect(() => {
@@ -197,8 +250,26 @@ export default function MapComponent({
             isOpen={isSegmentInfoOpen}
             onOpenChange={handleSegmentInfoOpenChange}
             panelVariant={segmentPanelVariant}
+            activeSegmentIndex={activeSegmentIndex}
+            onFocusSegment={focusSegment}
           />
         )}
+
+        <div className={`absolute right-4 top-4 z-10 flex items-center gap-2 transition ${isSegmentInfoOpen ? "max-md:hidden" : ""}`}>
+          <div className="hidden rounded-full bg-white/95 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-lg ring-1 ring-slate-200/80 sm:flex sm:items-center sm:gap-2">
+            <Route className="h-3.5 w-3.5 text-main" />
+            전체 동선 · {positions.length}곳
+          </div>
+          {(activeSegmentIndex != null || activePlaceIndex != null || activeTransitKey) && (
+            <button
+              type="button"
+              onClick={resetMapFocus}
+              className="flex h-9 items-center gap-1.5 rounded-full bg-slate-900 px-3.5 text-xs font-bold text-white shadow-lg transition hover:bg-slate-800"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> 전체 보기
+            </button>
+          )}
+        </div>
 
         <button
           type="button"
@@ -206,9 +277,7 @@ export default function MapComponent({
           disabled={isLocating}
           className="absolute bottom-4 right-4 z-10 flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-main/10 text-main">
-            ⌖
-          </span>
+          <LocateFixed className="h-4 w-4 text-main" />
           {isLocating ? "현재 위치 찾는 중..." : "현재 위치"}
         </button>
 
@@ -232,34 +301,72 @@ export default function MapComponent({
           level={3} // 지도의 확대 레벨
           onCreate={setMap}
         >
-          {sortedSchedule.map((item, index) => {
+          {routeSegments.map((segment, index) => {
+            const isActive = activeSegmentIndex === index;
+            const isDimmed = (activeSegmentIndex != null && !isActive) || activeTransitKey;
             return (
-              <MapMarker
-                key={item.id}
-                position={{
-                  lat: item.place.yLocation || item.place.ylocation,
-                  lng: item.place.xLocation || item.place.xlocation,
-                }}
-              >
-                <div className="p-2 w-[159px]" style={{ borderRadius: "4rem" }}>
-                  <p className="text-lg font-semibold truncate">
-                    {item.place.name}
-                  </p>
-                  <div className="flex items-center space-x-1">
-                    <div className="text-sm w-[22px] h-[22px] border border-main text-main font-semibold rounded-full flex items-center justify-center">
-                      {index + 1}
+              <Polyline
+                key={`route-outline-${index}`}
+                path={segment}
+                strokeWeight={isActive ? 10 : 8}
+                strokeColor="#FFFFFF"
+                strokeOpacity={isDimmed ? 0.28 : 0.9}
+                strokeStyle="solid"
+              />
+            );
+          })}
+          {routeSegments.map((segment, index) => {
+            const isActive = activeSegmentIndex === index;
+            const isDimmed = (activeSegmentIndex != null && !isActive) || activeTransitKey;
+            return (
+              <Polyline
+                key={`route-${index}`}
+                path={segment}
+                strokeWeight={isActive ? 6 : 4}
+                strokeColor={isActive ? "#1344FF" : "#5B78E5"}
+                strokeOpacity={isDimmed ? 0.18 : (isActive ? 1 : 0.72)}
+                strokeStyle="solid"
+              />
+            );
+          })}
+          {sortedSchedule.map((item, index) => {
+            const position = {
+              lat: item.place.yLocation ?? item.place.ylocation,
+              lng: item.place.xLocation ?? item.place.xlocation,
+            };
+            const isActive = activePlaceIndex === index;
+            const isRelated = activeSegmentIndex === index || activeSegmentIndex === index - 1;
+            const isDimmed = activeSegmentIndex != null && !isRelated;
+
+            return (
+              <CustomOverlayMap key={item.id} position={position} yAnchor={1.12} zIndex={isActive ? 12 : 10}>
+                <div className="relative flex flex-col items-center">
+                  {isActive && (
+                    <div className="mb-2 w-[190px] rounded-2xl bg-white p-3 shadow-[0_8px_28px_rgba(15,23,42,0.22)] ring-1 ring-slate-200">
+                      <p className="truncate text-sm font-extrabold text-slate-900">{item.place.name}</p>
+                      {item.place.url && (
+                        <a href={item.place.url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-bold text-main hover:underline">
+                          장소 정보 보기
+                        </a>
+                      )}
                     </div>
-                    <a
-                      href={item.place.url}
-                      className="text-sm hover:underline"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      장소 정보 보기
-                    </a>
-                  </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActivePlaceIndex(isActive ? null : index);
+                      setActiveSegmentIndex(null);
+                    }}
+                    aria-label={`${index + 1}번 ${item.place.name}${isActive ? " 정보 닫기" : " 정보 보기"}`}
+                    title={item.place.name}
+                    className={`flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-white text-sm font-extrabold text-white shadow-[0_3px_12px_rgba(15,23,42,0.3)] transition hover:-translate-y-0.5 hover:scale-105 ${
+                      isActive ? "scale-110 bg-slate-900" : isDimmed ? "bg-slate-400 opacity-60" : "bg-main"
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
                 </div>
-              </MapMarker>
+              </CustomOverlayMap>
             );
           })}
           {currentLocation && (
@@ -271,33 +378,6 @@ export default function MapComponent({
               </div>
             </MapMarker>
           )}
-          {positions.length > 1 &&
-            (routePath.length > 0 ? (
-              // 도로 경로가 있으면 실제 길을 따라 한 줄로 그린다
-              <Polyline
-                path={routePath.map((pos) => ({ lat: pos.lat, lng: pos.lng }))}
-                strokeWeight={4}
-                strokeColor="#1344FF"
-                strokeOpacity={0.5}
-                strokeStyle="solid"
-              />
-            ) : (
-              // 폴백(직선)은 Complete 페이지와 동일하게 구간별 화살표로 그린다
-              positions.slice(0, -1).map((pos, idx) => (
-                <Polyline
-                  key={`polyline-${idx}`}
-                  path={[
-                    { lat: pos.lat, lng: pos.lng },
-                    { lat: positions[idx + 1].lat, lng: positions[idx + 1].lng },
-                  ]}
-                  strokeWeight={4}
-                  strokeColor={"#1344FF"}
-                  strokeOpacity={0.5}
-                  strokeStyle={"arrow"}
-                  endArrow={true}
-                />
-              ))
-            ))}
           {transitLanes.map((lane, i) => (
             <Polyline
               key={i}

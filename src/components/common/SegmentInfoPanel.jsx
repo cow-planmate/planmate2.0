@@ -76,19 +76,19 @@ const joinParts = (...parts) => {
 
 const SegmentRow = ({ icon, label, value, isLoading, title, tone = "blue" }) => (
   <div
-    className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5"
+    className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5"
     title={title}
   >
-    <span className={`flex h-8 w-8 flex-none items-center justify-center rounded-lg ${
+    <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-lg ${
       tone === "green" ? "bg-emerald-50 text-emerald-600" : tone === "gray" ? "bg-white text-slate-500" : "bg-blue-50 text-main"
     }`}>
-      <FontAwesomeIcon icon={icon} className="text-sm" />
+      <FontAwesomeIcon icon={icon} className="text-xs" />
     </span>
     <span className="sr-only">{label}</span>
     {isLoading ? (
       <span className="h-4 w-16 animate-pulse rounded bg-slate-200" aria-label={`${label} 정보 불러오는 중`} />
     ) : (
-      <span className="min-w-0 text-sm font-semibold text-slate-700">{value ?? "정보 없음"}</span>
+      <span className="min-w-0 text-[13px] font-semibold leading-5 text-slate-700">{value ?? "정보 없음"}</span>
     )}
   </div>
 );
@@ -333,7 +333,7 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-white py-2 text-xs font-bold text-main ring-1 ring-slate-100 transition hover:bg-blue-50"
+            className="flex w-full items-center justify-center gap-1 border-t border-slate-100 bg-white/60 py-2 text-[11px] font-bold text-main transition hover:bg-blue-50"
           >
             {expanded ? "접기" : `경로 ${transit.routes.length}개 보기`}
             <FontAwesomeIcon icon={expanded ? faChevronUp : faChevronDown} className="text-[10px]" />
@@ -370,6 +370,8 @@ export default function SegmentInfoPanel({
   isOpen,
   onOpenChange,
   panelVariant = "floating",
+  activeSegmentIndex,
+  onFocusSegment,
 }) {
   const { post } = useApiClient();
 
@@ -528,35 +530,55 @@ export default function SegmentInfoPanel({
                       </div>
 
                       {next && (
-                        <div className="mt-4 grid grid-cols-2 gap-2" aria-label={`${item.place.name}에서 ${next.place.name}까지 이동 정보`}>
-                          <SegmentRow
-                            icon={faCar}
-                            label="차량"
-                            tone="blue"
-                            isLoading={isLoading}
-                            value={joinParts(
-                              formatSeconds(segmentData.driving?.durations?.[i]?.[i + 1]),
-                              formatMeters(segmentData.driving?.distances?.[i]?.[i + 1])
-                            )}
-                          />
-                          <SegmentRow
-                            icon={faPersonWalking}
-                            label="도보"
-                            tone="gray"
-                            isLoading={isLoading}
-                            value={joinParts(
-                              formatSeconds(segmentData.foot?.durations?.[i]?.[i + 1]),
-                              formatMeters(segmentData.foot?.distances?.[i]?.[i + 1])
-                            )}
-                          />
-                          <div className="col-span-2">
-                            <TransitInfo
-                              transit={transit}
-                              isLoading={isLoading}
-                              segmentIndex={i}
-                              onShowTransitRoute={onShowTransitRoute}
-                              activeTransitKey={activeTransitKey}
-                            />
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={() => onFocusSegment?.(i)}
+                            aria-pressed={activeSegmentIndex === i}
+                            className={`mb-2.5 flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition ${
+                              activeSegmentIndex === i
+                                ? "bg-main text-white shadow-sm"
+                                : "bg-blue-50 text-main hover:bg-blue-100"
+                            }`}
+                          >
+                            <span>{i + 1} → {i + 2} 구간</span>
+                            <span>{activeSegmentIndex === i ? "선택됨" : "지도에서 보기"}</span>
+                          </button>
+                          <div
+                            className="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/80 shadow-sm"
+                            aria-label={`${item.place.name}에서 ${next.place.name}까지 이동 정보`}
+                          >
+                            <div className="grid grid-cols-2 divide-x divide-slate-200/80">
+                              <SegmentRow
+                                icon={faCar}
+                                label="차량"
+                                tone="blue"
+                                isLoading={isLoading}
+                                value={joinParts(
+                                  formatSeconds(segmentData.driving?.durations?.[i]?.[i + 1]),
+                                  formatMeters(segmentData.driving?.distances?.[i]?.[i + 1])
+                                )}
+                              />
+                              <SegmentRow
+                                icon={faPersonWalking}
+                                label="도보"
+                                tone="gray"
+                                isLoading={isLoading}
+                                value={joinParts(
+                                  formatSeconds(segmentData.foot?.durations?.[i]?.[i + 1]),
+                                  formatMeters(segmentData.foot?.distances?.[i]?.[i + 1])
+                                )}
+                              />
+                            </div>
+                            <div className="border-t border-slate-200/80">
+                              <TransitInfo
+                                transit={transit}
+                                isLoading={isLoading}
+                                segmentIndex={i}
+                                onShowTransitRoute={onShowTransitRoute}
+                                activeTransitKey={activeTransitKey}
+                              />
+                            </div>
                           </div>
                         </div>
                       )}
