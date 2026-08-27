@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CustomOverlayMap, Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
 import { LocateFixed, RotateCcw, Route } from "lucide-react";
 import useKakaoLoader from "../../hooks/useKakaoLoader";
@@ -55,6 +55,8 @@ export default function MapComponent({
   const [routePath, setRoutePath] = useState([]);
   const [transitLanes, setTransitLanes] = useState([]); // [{ color, path:[{lat,lng}] }]
   const [activeTransitKey, setActiveTransitKey] = useState(null);
+  // 선택한 구간의 차량/도보 실제 경로. { key, profile, path }
+  const [activeRoadRoute, setActiveRoadRoute] = useState(null);
   const [isSegmentInfoOpen, setIsSegmentInfoOpen] = useState(defaultSegmentInfoOpen);
   const [activeSegmentIndex, setActiveSegmentIndex] = useState(null);
   const [activePlaceIndex, setActivePlaceIndex] = useState(null);
@@ -65,6 +67,86 @@ export default function MapComponent({
       return;
     }
     setIsSegmentInfoOpen(nextOpen);
+  };
+
+  // 구간+수단별 경로 목록 캐시. 같은 칸을 다시 눌러도 재요청하지 않는다.
+  // (Map 식별자는 react-kakao-maps-sdk의 지도 컴포넌트가 차지하고 있어 평범한 객체를 쓴다)
+  const roadRouteCacheRef = useRef({});
+
+  // 선택한 구간의 차량/도보 경로 후보를 받아온다. 같은 칸을 다시 누르면 접는다.
+  const showRoadRoute = async (profile, segmentIndex) => {
+    const key = `${segmentIndex}-${profile}`;
+    if (key === activeRoadRoute?.key) {
+      setActiveRoadRoute(null);
+      setActiveSegmentIndex(null);
+      return;
+    }
+
+    const from = positions[segmentIndex];
+    const to = positions[segmentIndex + 1];
+    if (!from || !to) return;
+
+    // 대중교통 폴리라인과는 동시에 표시하지 않는다
+    setTransitLanes([]);
+    setActiveTransitKey(null);
+    setActivePlaceIndex(null);
+    setActiveSegmentIndex(segmentIndex);
+
+    const cached = roadRouteCacheRef.current[key];
+    if (cached) {
+      setActiveRoadRoute({ key, profile, segmentIndex, routes: cached, selectedIndex: 0, isLoading: false });
+      return;
+    }
+
+    setActiveRoadRoute({ key, profile, segmentIndex, routes: [], selectedIndex: 0, isLoading: true });
+
+    const toPoint = ({ lat, lng, placeId }) => ({ lat, lng, ...(placeId ? { placeId } : {}) });
+    try {
+      const res = await post(`${import.meta.env.VITE_API_URL}/api/route/directions`, {
+        waypoints: [toPoint(from), toPoint(to)],
+        profile,
+      });
+
+      // 백엔드는 경로 탐색 실패 시 입력 좌표를 그대로(거리/시간 0) 돌려준다
+      const isFallback = !res || (res.distance === 0 && res.duration === 0);
+      const leg = res?.legs?.[0];
+      const mainPath = isFallback ? [] : (res?.path ?? []);
+
+      // 첫 번째가 추천 경로, 나머지는 대안 경로(대안에는 턴바이턴 안내가 없다)
+      const routes = mainPath.length >= 2
+        ? [
+            {
+              path: mainPath,
+              distance: res.distance,
+              duration: res.duration,
+              steps: leg?.steps ?? [],
+            },
+            ...(leg?.alternatives ?? [])
+              .filter((alt) => (alt.path?.length ?? 0) >= 2)
+              .map((alt) => ({
+                path: alt.path,
+                distance: alt.distance,
+                duration: alt.duration,
+                steps: [],
+              })),
+          ]
+        : [];
+
+      roadRouteCacheRef.current[key] = routes;
+      // 응답이 오는 사이 다른 칸을 눌렀다면 그쪽 선택을 덮어쓰지 않는다
+      setActiveRoadRoute((current) =>
+        current?.key === key ? { ...current, routes, isLoading: false } : current
+      );
+    } catch {
+      setActiveRoadRoute((current) =>
+        current?.key === key ? { ...current, routes: [], isLoading: false } : current
+      );
+    }
+  };
+
+  // 펼친 목록에서 다른 경로 후보를 고른다.
+  const selectRoadRoute = (index) => {
+    setActiveRoadRoute((current) => (current ? { ...current, selectedIndex: index } : current));
   };
 
   // 선택한 대중교통 경로(mapObj)의 폴리라인을 지도에 그린다. 같은 카드를 다시 누르면 지운다.
@@ -85,6 +167,7 @@ export default function MapComponent({
         path: (lane.path ?? []).map((p) => ({ lat: p.lat, lng: p.lng })),
       }));
       setTransitLanes(lanes);
+      setActiveRoadRoute(null);
       setActiveTransitKey(key);
       setActiveSegmentIndex(Number.parseInt(key.split("-")[0], 10));
       setActivePlaceIndex(null);
@@ -129,6 +212,7 @@ export default function MapComponent({
     setActivePlaceIndex(null);
     setTransitLanes([]);
     setActiveTransitKey(null);
+    setActiveRoadRoute(null);
   };
 
   const focusSegment = (index) => {
@@ -170,6 +254,8 @@ export default function MapComponent({
   // 실패 시 routePath는 빈 배열로 남아 직선(positions)으로 대체된다.
   useEffect(() => {
     setRoutePath([]); // 좌표가 바뀌면 이전 경로 잔상을 지운다
+    roadRouteCacheRef.current = {};
+    setActiveRoadRoute(null);
 
     if (positions.length < 2) {
       return;
@@ -247,6 +333,9 @@ export default function MapComponent({
             positionsKey={positionsKey}
             onShowTransitRoute={showTransitRoute}
             activeTransitKey={activeTransitKey}
+            onShowRoadRoute={showRoadRoute}
+            onSelectRoadRoute={selectRoadRoute}
+            roadRoute={activeRoadRoute}
             isOpen={isSegmentInfoOpen}
             onOpenChange={handleSegmentInfoOpenChange}
             panelVariant={segmentPanelVariant}
@@ -260,7 +349,7 @@ export default function MapComponent({
             <Route className="h-3.5 w-3.5 text-main" />
             전체 동선 · {positions.length}곳
           </div>
-          {(activeSegmentIndex != null || activePlaceIndex != null || activeTransitKey) && (
+          {(activeSegmentIndex != null || activePlaceIndex != null || activeTransitKey || activeRoadRoute) && (
             <button
               type="button"
               onClick={resetMapFocus}
@@ -303,7 +392,7 @@ export default function MapComponent({
         >
           {routeSegments.map((segment, index) => {
             const isActive = activeSegmentIndex === index;
-            const isDimmed = (activeSegmentIndex != null && !isActive) || activeTransitKey;
+            const isDimmed = (activeSegmentIndex != null && !isActive) || activeTransitKey || activeRoadRoute;
             return (
               <Polyline
                 key={`route-outline-${index}`}
@@ -317,7 +406,7 @@ export default function MapComponent({
           })}
           {routeSegments.map((segment, index) => {
             const isActive = activeSegmentIndex === index;
-            const isDimmed = (activeSegmentIndex != null && !isActive) || activeTransitKey;
+            const isDimmed = (activeSegmentIndex != null && !isActive) || activeTransitKey || activeRoadRoute;
             return (
               <Polyline
                 key={`route-${index}`}
@@ -377,6 +466,24 @@ export default function MapComponent({
                 </p>
               </div>
             </MapMarker>
+          )}
+          {activeRoadRoute?.routes?.[activeRoadRoute.selectedIndex] && (
+            <>
+              <Polyline
+                path={activeRoadRoute.routes[activeRoadRoute.selectedIndex].path}
+                strokeColor="#FFFFFF"
+                strokeWeight={10}
+                strokeOpacity={0.9}
+                strokeStyle="solid"
+              />
+              <Polyline
+                path={activeRoadRoute.routes[activeRoadRoute.selectedIndex].path}
+                strokeColor={activeRoadRoute.profile === "foot" ? "#64748B" : "#1344FF"}
+                strokeWeight={6}
+                strokeOpacity={1}
+                strokeStyle={activeRoadRoute.profile === "foot" ? "shortdash" : "solid"}
+              />
+            </>
           )}
           {transitLanes.map((lane, i) => (
             <Polyline
