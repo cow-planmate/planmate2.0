@@ -11,9 +11,8 @@ interface BestPlannerCardProps {
 
 export const BestPlannerCard: React.FC<BestPlannerCardProps> = ({ name, forkCount, avatar, userId, onNavigate }) => {
   return (
-    <div 
-      className="flex-shrink-0 bg-white rounded-lg p-3 shadow-sm border border-blue-100 min-w-[140px] cursor-pointer hover:border-[#1344FF] transition-all group"
-      onClick={() => onNavigate && userId && onNavigate('mypage', { userId })}
+    <div
+      className="flex-shrink-0 bg-white rounded-lg p-3 shadow-sm border border-blue-100 min-w-[140px] transition-all group"
     >
       <div className="flex items-center gap-2.5">
         <div className="text-2xl group-hover:scale-110 transition-transform">{avatar}</div>

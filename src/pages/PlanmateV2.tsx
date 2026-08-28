@@ -36,7 +36,7 @@ export default function PlanmateV2() {
     return 'feed';
   };
 
-  const ArrayBoardTypes = ['free', 'qna', 'mate', 'recommend'] as const;
+  const ArrayBoardTypes = ['free', 'qna', 'recommend'] as const;
   const getInitialBoardType = () => {
     if (category && (ArrayBoardTypes as any).includes(category)) return category as any;
     return 'free';
@@ -44,7 +44,7 @@ export default function PlanmateV2() {
 
   const [currentView, setCurrentView] = useState<'feed' | 'detail' | 'create' | 'feed-edit' | 'mypage' | 'board-list' | 'plan-maker' | 'community-create' | 'community-edit' | 'recommend-detail' | 'social'>(getInitialView() as any);
   const [selectedPost, setSelectedPost] = useState<any>(null);
-  const [boardType, setBoardType] = useState<'free' | 'qna' | 'mate' | 'recommend'>('free');
+  const [boardType, setBoardType] = useState<'free' | 'qna' | 'recommend'>('free');
   const [filterRegion, setFilterRegion] = useState<string>(region ? decodeURIComponent(region) : '전체');
   // 마이페이지로 전환할 때 currentView는 즉시 바뀌지만 useParams().userId는 navigate가 커밋된
   // 다음 렌더에야 들어온다. 그 한 프레임 동안 MyPage가 옛 userId로 마운트되어 엉뚱한 프로필이
@@ -74,12 +74,12 @@ export default function PlanmateV2() {
       if (path === '/community/create' || path.startsWith('/community/create/')) {
         setCurrentView('community-create');
         const typeFromPath = path.split('/')[3];
-        if (typeFromPath && ['free', 'qna', 'mate', 'recommend'].includes(typeFromPath)) {
+        if (typeFromPath && ['free', 'qna', 'recommend'].includes(typeFromPath)) {
           setBoardType(typeFromPath as any);
         }
       } else if (path.startsWith('/community/edit/')) {
         setCurrentView('community-edit');
-        if (category && ['free', 'qna', 'mate', 'recommend'].includes(category)) {
+        if (category && ['free', 'qna', 'recommend'].includes(category)) {
           setBoardType(category as any);
         }
       } else if (category === 'recommend' && id) {
@@ -91,7 +91,7 @@ export default function PlanmateV2() {
         setCurrentView('detail');
         setBoardType(category as any);
       } else if (category) {
-        if (['free', 'qna', 'mate', 'recommend'].includes(category)) {
+        if (['free', 'qna', 'recommend'].includes(category)) {
           setCurrentView('board-list');
           setBoardType(category as any);
         } else {
@@ -209,8 +209,8 @@ export default function PlanmateV2() {
             onNavigate={handleViewChange}
           />
         )}
-        {/* 커뮤니티 게시글 상세 (자유/QnA/메이트) — 딥링크 안전 (URL id로 직접 조회) */}
-        {currentView === 'detail' && category && id && ['free', 'qna', 'mate'].includes(category) && (
+        {/* 커뮤니티 게시글 상세 (자유/QnA) — 딥링크 안전 (URL id로 직접 조회) */}
+        {currentView === 'detail' && category && id && ['free', 'qna'].includes(category) && (
           <CommunityPostDetail
             postId={id}
             onBack={() => handleViewChange('board-list', { boardType: category as any })}
@@ -218,7 +218,7 @@ export default function PlanmateV2() {
           />
         )}
         {/* 여행 피드 상세 — 딥링크 안전 (URL id로 직접 조회) */}
-        {currentView === 'detail' && !(category && id && ['free', 'qna', 'mate'].includes(category)) && id && (
+        {currentView === 'detail' && !(category && id && ['free', 'qna'].includes(category)) && id && (
           <PostDetail
             postId={id}
             onBack={() => navigate(-1)}

@@ -20,7 +20,7 @@ const firstImageUrl = (blocks: any[]): string | null => {
 };
 
 export const useCommunityCreateLogic = (
-  type: 'free' | 'qna' | 'mate' | 'recommend',
+  type: 'free' | 'qna' | 'recommend',
   onSubmit: () => void,
   /** 지정하면 수정 모드로 동작한다 (기존 글을 불러와 프리필 후 PATCH) */
   editPostId?: number | string
@@ -32,7 +32,6 @@ export const useCommunityCreateLogic = (
   // 장소 추천 글에 담은 장소들 ("일산 카페들"처럼 여러 곳을 한 글에 묶는다). 첫 번째가 대표 장소다
   const [places, setPlaces] = useState<RecommendPlace[]>([]);
   const [rating, setRating] = useState('5.0');
-  const [mateCount, setMateCount] = useState('2');
 
   const isEditMode = editPostId != null;
   const { data: existingPost } = usePost(isEditMode ? editPostId : undefined);
@@ -77,7 +76,6 @@ export const useCommunityCreateLogic = (
     }
     if (existingPost.region) setLocation(existingPost.region);
     if (existingPost.rating) setRating(String(existingPost.rating));
-    if (existingPost.maxParticipants) setMateCount(String(existingPost.maxParticipants));
 
     const blocks = existingPost.content as any[];
     if (Array.isArray(blocks) && blocks.length > 0) {
@@ -160,12 +158,6 @@ export const useCommunityCreateLogic = (
 
   const getTips = () => {
     switch (type) {
-      case 'mate':
-        return [
-          "성별, 연령대 등 희망하는 메이트 성향을 적어주세요.",
-          "여행 일정과 방문하고 싶은 장소를 공유하면 매칭이 빨라요.",
-          "참여 방법(댓글, 오픈채팅 등)을 명확하게 알려주세요."
-        ];
       case 'recommend':
         return [
           "직접 촬영한 고화질 사진을 첨부하면 인기가 많아요.",
@@ -204,10 +196,6 @@ export const useCommunityCreateLogic = (
       alert('장소를 한 곳 이상 추가해주세요.');
       return;
     }
-    if (type === 'mate' && !location.trim()) {
-      alert('여행 희망 지역을 입력해주세요.');
-      return;
-    }
 
     // 검증 통과 후에만 본문의 data: 이미지를 MinIO에 업로드해 URL로 교체한다
     let uploadedUrls: string[] = [];
@@ -224,10 +212,6 @@ export const useCommunityCreateLogic = (
         ...(type === 'recommend' && {
           // 대표 장소(첫 번째)의 이름·주소·좌표는 서버가 places에서 뽑아 단일 장소 필드에 채운다
           places: submittedPlaces,
-        }),
-        ...(type === 'mate' && {
-          region: location.trim(),
-          maxParticipants: mateCount === 'unlimited' ? null : Number(mateCount),
         }),
       };
 
@@ -260,8 +244,6 @@ export const useCommunityCreateLogic = (
     setPlaceRating,
     rating,
     setRating,
-    mateCount,
-    setMateCount,
     editor,
     handleSubmit,
     isSubmitting: createPostMutation.isPending || updatePostMutation.isPending,

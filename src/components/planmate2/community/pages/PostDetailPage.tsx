@@ -1,10 +1,10 @@
 import {
-  ArrowLeft, CheckCircle2, Eye, MapPin, Pencil, ThumbsDown, ThumbsUp, Trash2, Users,
+  ArrowLeft, CheckCircle2, Eye, Pencil, ThumbsDown, ThumbsUp, Trash2,
 } from 'lucide-react';
 import { UserAvatar } from '../../common/UserAvatar';
 import { LevelBadge } from '../atoms/LevelBadge';
 import {
-  useChangeMateStatus, useDeletePost, useJoinMate, useLeaveMate, usePost, usePosts, useReactToPost, useUpdateAnswered,
+  useDeletePost, usePost, usePosts, useReactToPost, useUpdateAnswered,
 } from '../hooks/queries';
 import { useState } from 'react';
 import { CommentSection } from '../organisms/CommentSection';
@@ -17,7 +17,7 @@ interface PostDetailPageProps {
   onNavigate?: (view: any, data?: any) => void;
 }
 
-/** 자유/QnA/메이트 게시글 상세 (딥링크 안전 — id로 직접 조회) */
+/** 자유/QnA 게시글 상세 (딥링크 안전 — id로 직접 조회) */
 export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPageProps) => {
   const { data: post, isLoading, error } = usePost(postId);
   // 하단 목록은 상세와 독립적으로 페이지를 넘긴다 (지금 글은 그대로 두고 목록만 이동)
@@ -25,9 +25,6 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
   const { data: boardPage } = usePosts(post?.category, listPage, 'latest', '');
   const boardPosts = boardPage?.items ?? [];
   const react = useReactToPost(postId);
-  const joinMate = useJoinMate(postId);
-  const leaveMate = useLeaveMate(postId);
-  const changeStatus = useChangeMateStatus(postId);
   const updateAnswered = useUpdateAnswered(postId);
   const deletePost = useDeletePost();
 
@@ -74,50 +71,14 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
       <article className="overflow-hidden rounded-[24px] border border-[#e1e3e8] bg-white shadow-[0_8px_28px_rgba(30,40,60,0.03)]">
         {/* 헤더 */}
         <header className="border-b border-[#eef0f3] px-6 py-4 sm:px-9 sm:py-5">
-          {(post.category === 'qna' || post.category === 'mate') && (
+          {post.category === 'qna' && (
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              {post.category === 'qna' && (
               <span className={`shrink-0 whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-bold ${post.isAnswered ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
                 {post.isAnswered ? '답변완료' : '답변대기'}
               </span>
-            )}
-              {post.category === 'mate' && (
-              <span className={`shrink-0 whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-bold ${post.status === 'recruiting' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
-                {post.status === 'recruiting' ? '모집중' : '모집마감'}
-              </span>
-              )}
             </div>
           )}
           <h1 className="min-w-0 break-keep text-[19px] font-semibold tracking-[-0.02em] text-[#16181d] sm:text-[22px]">{post.title}</h1>
-          {/* 메이트 정보 바 */}
-          {post.category === 'mate' && (
-            <div className="mt-4 flex items-center justify-between bg-blue-50/50 rounded-xl px-4 py-3">
-              <div className="flex items-center gap-4 text-sm font-medium text-gray-700">
-                <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-[#1344FF]" />
-                  {post.participants ?? 0}{post.maxParticipants ? ` / ${post.maxParticipants}명` : '명 (제한 없음)'}
-                </span>
-              </div>
-              {isLoggedIn && !isAuthor && (
-                <button
-                  onClick={async () => {
-                    try { await joinMate.mutateAsync(); alert('참여했습니다!'); }
-                    catch (e) {
-                      const msg = (e as Error).message;
-                      if (msg.includes('이미 참여')) {
-                        if (confirm('이미 참여 중입니다. 참여를 취소할까요?')) {
-                          try { await leaveMate.mutateAsync(); } catch (e2) { alert((e2 as Error).message); }
-                        }
-                      } else alert(msg);
-                    }
-                  }}
-                  disabled={post.status === 'closed'}
-                  className="px-4 py-2 rounded-xl bg-[#1344FF] text-white text-sm font-bold disabled:opacity-40 hover:bg-blue-700 transition-colors"
-                >
-                  {post.status === 'closed' ? '모집 마감' : '참여하기'}
-                </button>
-              )}
-            </div>
-          )}
 
           {/* 작성자 정보 */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -128,7 +89,6 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
                 avatarHash={post.authorAvatarHash}
                 sizeClass="w-8 h-8"
                 className="text-xs"
-                onClick={() => onNavigate?.('mypage', { userId: post.userId })}
               />
               <span className="whitespace-nowrap font-extrabold text-[#29303b]">{post.author}</span>
               <LevelBadge level={post.level} />
@@ -145,14 +105,6 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     {post.isAnswered ? '답변대기로 변경' : '답변완료로 표시'}
-                  </button>
-                )}
-                {post.category === 'mate' && (
-                  <button
-                    onClick={() => changeStatus.mutate(post.status === 'recruiting' ? 'closed' : 'recruiting')}
-                    className="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-[#1344FF] hover:bg-blue-100 transition-colors"
-                  >
-                    {post.status === 'recruiting' ? '모집 마감하기' : '다시 모집하기'}
                   </button>
                 )}
                 <button
@@ -200,13 +152,6 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
             <ThumbsDown className="w-4 h-4 shrink-0" />싫어요 {post.dislikes}
           </button>
         </div>
-
-        {/* 지역 정보 (메이트) */}
-        {post.category === 'mate' && post.region && (
-          <div className="flex items-center gap-1.5 px-6 pb-5 text-sm text-gray-500 sm:px-9">
-            <MapPin className="w-4 h-4" />희망 지역: {post.region}
-          </div>
-        )}
 
         <CommentSection postId={post.id} />
       </article>

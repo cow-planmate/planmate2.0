@@ -45,33 +45,6 @@ export const MOCK_POSTS = {
     }?w=400&auto=format&fit=crop`,
     content: "궁금한 점이 있어서 질문드립니다. 답변 부탁드려요!",
   })),
-  mate: Array.from({ length: 15 }).map((_, i) => ({
-    id: i + 1,
-    userId: 400 + i,
-    title: `동행 구합니다 ${i + 1}`,
-    author: `동행자${i + 1}`,
-    level: Math.floor(Math.random() * 5) + 1,
-    likes: Math.floor(Math.random() * 30),
-    dislikes: Math.floor(Math.random() * 5),
-    comments: Math.floor(Math.random() * 10),
-    views: Math.floor(Math.random() * 20),
-    createdAt: `${Math.floor(Math.random() * 24) + 1}시간 전`,
-    participants: Math.floor(Math.random() * 3) + 1,
-    maxParticipants: 4,
-    status:
-      Math.random() > 0.3
-        ? "recruiting"
-        : ("closed" as "recruiting" | "closed"),
-    image: `https://images.unsplash.com/photo-${
-      [
-        "1527631746610-bca00a040d60",
-        "1530789253388-582c481c54b0",
-        "1523906834658-6e24ef23a6f8",
-        "1501785888041-af3ef285b470",
-      ][Math.floor(Math.random() * 4)]
-    }?w=400&auto=format&fit=crop`,
-    content: "함께 여행하실 분을 찾습니다. 일정 조율 가능합니다.",
-  })),
   recommend: Array.from({ length: 15 }).map((_, i) => ({
     id: i + 1,
     userId: 500 + i,

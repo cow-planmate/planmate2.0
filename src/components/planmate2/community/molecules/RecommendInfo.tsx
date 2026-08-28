@@ -15,9 +15,8 @@ export const RecommendInfo = ({ author, authorImage, authorAvatarHash, userId, c
   return (
     <div className="p-8 border-b border-gray-50">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div 
-          className="flex items-center gap-3 cursor-pointer hover:opacity-70 transition-opacity"
-          onClick={() => onNavigate && userId && onNavigate('mypage', { userId })}
+        <div
+          className="flex items-center gap-3"
         >
           <UserAvatar
             name={author}

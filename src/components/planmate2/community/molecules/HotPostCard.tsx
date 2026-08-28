@@ -36,13 +36,6 @@ export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostC
                     {post.isAnswered ? '답변완료' : '답변대기'}
                   </span>
                 )}
-                {type === 'mate' && (
-                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
-                    post.status === 'closed' ? 'bg-gray-100 text-gray-500' : 'bg-purple-50 text-purple-600'
-                  }`}>
-                    {post.status === 'closed' ? '모집완료' : `모집중 ${post.participants}/${post.maxParticipants}`}
-                  </span>
-                )}
                 {type === 'recommend' && (
                   <span className="bg-emerald-50 text-emerald-600 text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
                     <Star className="w-2 h-2 fill-current" />

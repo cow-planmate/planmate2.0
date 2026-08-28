@@ -5,10 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useApiClient } from "../../../../hooks/useApiClient";
 import useKakaoLoader from "../../../../hooks/useKakaoLoader";
 import useNicknameStore from "../../../../store/Nickname";
-import { LEVEL_CONFIG } from "../constants";
 import { DEFAULT_MAP_CENTER, getRegionCoords } from "../../feed/utils/region";
 import { useCalendar } from "../hooks/useCalendar";
-import { useUserStats } from "../hooks/useUserStats";
 import {
   mapFeedPost,
   mapLikedFeedPost,
@@ -18,9 +16,7 @@ import {
 import {
   useDeletePost,
   useMyActivity,
-  useMyBadges,
   useMyStats,
-  useUserBadges,
   useUserComments,
   useUserPosts,
   useUserStats as useUserCommunityStats,
@@ -131,7 +127,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   // 커뮤니티 활동 (본인 프로필에서만 의미 있음 — me 엔드포인트)
   // 여행기(feed)는 별도 "나의 여행기" 섹션에서 다루므로 커뮤니티 게시판만 조회한다.
   // 활성 탭만 현재 페이지를 요청하고, 비활성 탭은 개수 배지용으로 1페이지만 유지한다.
-  const COMMUNITY_CATEGORIES = "free,qna,mate,recommend";
+  const COMMUNITY_CATEGORIES = "free,qna,recommend";
   const { data: myCommunityPostsPage } = useMyActivity(
     "posts",
     communityTab === "my_posts" ? communityPage : 0,
@@ -367,23 +363,13 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     if (!isOtherUser) setStoreProfileImage(url);
   };
 
-  // 레벨/경험치 — 서버 통계를 그대로 사용한다.
-  // 본인은 /api/community/me/stats, 타인은 공개 목록과 같은 게이트를 쓰는
+  // 통계 — 본인은 /api/community/me/stats, 타인은 공개 목록과 같은 게이트를 쓰는
   // /api/community/users/{id}/stats 를 조회한다.
   const { data: myStats } = useMyStats(!isOtherUser && isAuthenticated());
   const { data: otherUserStats } = useUserCommunityStats(
     isOtherUser && !isProfilePrivate ? userId : undefined,
   );
   const stats = isOtherUser ? otherUserStats : myStats;
-  const { exp, userLevel, levelName, displayMax, remainingCount, percent } =
-    useUserStats(stats);
-
-  // 업적(뱃지) — 통계와 같은 게이트를 쓰는 /badges 를 조회한다
-  const { data: myBadges } = useMyBadges(!isOtherUser && isAuthenticated());
-  const { data: otherUserBadges } = useUserBadges(
-    isOtherUser && !isProfilePrivate ? userId : undefined,
-  );
-  const badges = isOtherUser ? otherUserBadges : myBadges;
 
   const handleLogout = () => {
     logout();
@@ -981,12 +967,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
             Q&A
           </span>
         );
-      case "mate":
-        return (
-          <span className="bg-purple-100 text-purple-600 text-xs px-2 py-0.5 rounded-full font-bold">
-            메이트
-          </span>
-        );
       default:
         return null;
     }
@@ -1051,12 +1031,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   );
 
   const userStats = {
-    userLevel,
-    level: levelName,
-    exp,
-    expToNext: remainingCount,
-    maxExp: displayMax,
-    progress: percent,
     stats: {
       postCount: stats?.postCount ?? 0,
       commentCount: stats?.commentCount ?? 0,
@@ -1070,7 +1044,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
         <ProfileHeader
           dummyUser={dummyUser}
           userStats={userStats}
-          badges={badges}
           onEditProfile={() => {
             setNewNickname(userProfile?.nickname || "");
             setNewBirthdate(userProfile?.birthdate || "");
@@ -1079,7 +1052,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
             setConfirmPassword("");
             setActiveModal("profile");
           }}
-          onViewLevel={() => setActiveModal("level")}
           onAddFriend={handleFriendAdd}
           onSendMessage={handleSendMessage}
           myPlansCount={otherUserPlanCounts?.myPlanCount ?? myPlans.length}
@@ -1222,8 +1194,6 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           setActiveModal(null);
         }}
         dummyUser={dummyUser}
-        userStats={userStats}
-        LEVEL_CONFIG={LEVEL_CONFIG}
         handleDeleteAccount={handleDeleteAccount}
         selectedDateEvents={
           selectedCalendarEvent ? [selectedCalendarEvent] : []

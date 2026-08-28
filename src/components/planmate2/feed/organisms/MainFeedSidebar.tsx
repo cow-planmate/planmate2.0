@@ -2,7 +2,6 @@ import { MapPin, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { CustomOverlayMap, Map } from "react-kakao-maps-sdk";
 import type { RegionMarker } from '../hooks/useRegionMarkers';
-import { UserLevelCard } from './UserLevelCard';
 
 interface MainFeedSidebarProps {
   mapState: { center: { lat: number; lng: number }; level: number };
@@ -76,9 +75,6 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
         </div>
 
       </div>
-
-      {/* 사용자 레벨 시스템 */}
-      <UserLevelCard isAuthenticated={isAuthenticated} />
 
       {/* 지도 크게 보기 모달 */}
       {isModalOpen && (
