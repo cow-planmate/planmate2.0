@@ -37,20 +37,6 @@ export const LIKED_COMMUNITY_POSTS = [
     views: 120,
     author: "제주조아",
   },
-  {
-    id: 201,
-    type: "mate",
-    title: "7월 몽골 동행 구합니다",
-    content:
-      "7월 15일부터 4박 5일 일정으로 고비사막 투어 같이 하실 분 구해요. 현재 2명 있고 2명 더 모십니다. 성별 무관합니다.",
-    createdAt: "3일 전",
-    likes: 8,
-    comments: 12,
-    views: 300,
-    participants: 2,
-    maxParticipants: 4,
-    author: "몽골러",
-  },
 ];
 
 export const FRIENDS_LIST = [

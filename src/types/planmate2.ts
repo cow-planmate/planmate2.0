@@ -34,7 +34,7 @@ export interface TravelPost {
 
 export type CommunityPost = {
   id: string;
-  category: 'free' | 'qna' | 'mate' | 'recommend';
+  category: 'free' | 'qna' | 'recommend';
   title: string;
   content: string;
   author: string;

@@ -47,10 +47,9 @@ export const FriendSection: React.FC<FriendSectionProps> = ({
 
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
         {friends.map((friend) => (
-          <div 
-            key={friend.id} 
-            onClick={() => onNavigate('mypage', { userId: friend.id })}
-            className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-colors group cursor-pointer"
+          <div
+            key={friend.id}
+            className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-colors group"
           >
             <div className="flex items-center gap-3">
               <div className="relative">

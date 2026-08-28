@@ -1,28 +1,10 @@
-import { Award, Camera, Globe, Lock, MessageSquare, Settings, User, UserPlus } from 'lucide-react';
+import { Camera, Globe, Lock, MessageSquare, Settings, User, UserPlus } from 'lucide-react';
 import React from 'react';
-// @ts-ignore
-import type { UserBadges } from '../../community/api/communityApi';
-
-/** 달성한 뱃지의 색 — 서버는 코드만 내려주고 표현은 클라이언트가 정한다 */
-const BADGE_COLORS: Record<string, string> = {
-  first_step: 'bg-amber-100 text-amber-600 border-amber-200',
-  plan_master: 'bg-blue-100 text-blue-600 border-blue-200',
-  eager_reviewer: 'bg-pink-100 text-pink-600 border-pink-200',
-  best_partner: 'bg-emerald-100 text-emerald-600 border-emerald-200',
-  nationwide: 'bg-purple-100 text-purple-600 border-purple-200',
-};
-
-/** 달성 시각 표기 — 백필된 기존 사용자는 마이그레이션 시각이라 날짜만 보여준다 */
-const formatEarnedAt = (earnedAt: string | null) =>
-  earnedAt ? new Date(earnedAt).toLocaleDateString('ko-KR') : '달성 완료';
 
 interface ProfileHeaderProps {
   dummyUser: any;
   userStats: any;
-  /** 활동 뱃지 (아직 로드되지 않았거나 비공개 프로필이면 undefined → 섹션 숨김) */
-  badges?: UserBadges;
   onEditProfile?: () => void;
-  onViewLevel: () => void;
   onAddFriend?: () => void;
   onSendMessage?: () => void;
   myPlansCount: number;
@@ -37,9 +19,7 @@ interface ProfileHeaderProps {
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   dummyUser,
   userStats,
-  badges,
   onEditProfile,
-  onViewLevel,
   onAddFriend,
   onSendMessage,
   myPlansCount,
@@ -115,18 +95,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         {/* 프로필 정보 */}
         <div className="flex-1 min-w-0 w-full text-center md:text-left">
           <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-4 mb-2">
-            {/* 닉네임이 길면 레벨 배지를 밀어내 배지 글자가 쪼개진다 — 배지는 고정하고 닉네임만 줄바꿈한다 */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 min-w-0">
               <h1 className="min-w-0 max-w-full break-all text-2xl sm:text-4xl font-black text-[#1a1a1a] tracking-tight">{dummyUser.nickName}</h1>
-              <button
-                onClick={onViewLevel}
-                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1 bg-gradient-to-r from-[#1344FF] to-[#4B70FF] text-white rounded-full shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95"
-              >
-                <Award className="w-3 h-3 shrink-0" />
-                <span className="text-[10px] font-black uppercase tracking-wider">LV.{userStats.userLevel}</span>
-                <span className="w-1 h-1 shrink-0 bg-white/50 rounded-full" />
-                <span className="text-xs font-bold">{userStats.level}</span>
-              </button>
             </div>
 
             {/* 프로필 공개 범위 — 본인만 변경할 수 있다 */}
@@ -192,26 +162,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
           )}
           
-          {/* 레벨 진행바 — 활동 통계는 본인만 조회할 수 있어 타인 프로필에서는 감춘다 */}
-          <div className={`max-w-xs mx-auto md:mx-0 mb-6 ${isOtherUser ? 'hidden' : ''}`}>
-            <div className="flex justify-between text-xs mb-1.5">
-              <span className="text-[#1344FF] font-bold text-xs uppercase tracking-tighter">현재 경험치</span>
-              <span className="text-gray-400 font-medium">
-                {userStats.exp} / {userStats.maxExp} 점
-              </span>
-            </div>
-            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-[#1344FF] to-[#4B70FF] transition-all duration-1000"
-                style={{ width: `${userStats.progress}%` }}
-              />
-            </div>
-            <p className="mt-1.5 text-[11px] text-gray-400">
-              여행기·게시글 {userStats.stats?.postCount ?? 0}개 · 댓글 {userStats.stats?.commentCount ?? 0}개
-              {userStats.expToNext > 0 && ` · 다음 레벨까지 ${userStats.expToNext}점`}
-            </p>
-          </div>
-
           {/* 취향 태그 */}
           <div className="flex flex-wrap gap-2 justify-center md:justify-start">
             {(typeof dummyUser.preferredThemes === 'string' 
@@ -245,48 +195,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <p className="text-sm text-[#666666]">좋아요</p>
             </div>
           </div>
-
-          {/* 업적(뱃지) 섹션 — GET /api/community/{me|users/{id}}/badges */}
-          {badges && badges.badges.length > 0 && (
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-[#1344FF]" />
-                  <h3 className="text-lg font-bold text-[#1a1a1a]">
-                    {isOtherUser ? "업적" : "내 업적"}
-                  </h3>
-                </div>
-                <span className="text-xs font-bold text-[#1344FF] bg-blue-50 px-2 py-1 rounded-full">
-                  {badges.unlockedCount} / {badges.totalCount} 달성
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                {badges.badges.map((badge) => (
-                  <div
-                    key={badge.code}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all hover:scale-105 cursor-default ${
-                      badge.unlocked
-                        ? BADGE_COLORS[badge.code] || "bg-amber-100 text-amber-600 border-amber-200"
-                        : "bg-gray-100 text-gray-400 border-gray-200"
-                    }`}
-                    title={
-                      badge.unlocked
-                        ? `${badge.description} · ${formatEarnedAt(badge.earnedAt)} 달성`
-                        : `${badge.description} (${badge.progress}/${badge.goal})`
-                    }
-                  >
-                    {badge.unlocked ? "🏆 " : "🔒 "}
-                    {badge.name}
-                    {!badge.unlocked && (
-                      <span className="ml-1 font-medium text-[10px] text-gray-400">
-                        {badge.progress}/{badge.goal}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

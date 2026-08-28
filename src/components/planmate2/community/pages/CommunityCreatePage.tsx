@@ -6,7 +6,7 @@ import { ExtraFields } from '../organisms/ExtraFields';
 import { PlaceListEditor } from '../organisms/PlaceListEditor';
 
 interface CommunityCreatePageProps {
-  type: 'free' | 'qna' | 'mate' | 'recommend';
+  type: 'free' | 'qna' | 'recommend';
   onBack: () => void;
   onSubmit: () => void;
   /** 지정하면 해당 게시글의 수정 모드로 연다 */
@@ -30,8 +30,6 @@ export const CommunityCreatePage = ({ type, onBack, onSubmit, editPostId }: Comm
     setPlaceRating,
     rating,
     setRating,
-    mateCount,
-    setMateCount,
     editor,
     handleSubmit,
     isEditMode,
@@ -43,7 +41,6 @@ export const CommunityCreatePage = ({ type, onBack, onSubmit, editPostId }: Comm
     switch (type) {
       case 'free': return '자유게시판 글쓰기';
       case 'qna': return 'Q&A 질문하기';
-      case 'mate': return '메이트 찾기 글쓰기';
       case 'recommend': return '장소 추천 글쓰기';
       default: return '글쓰기';
     }
@@ -74,8 +71,6 @@ export const CommunityCreatePage = ({ type, onBack, onSubmit, editPostId }: Comm
           setLocation={setLocation}
           rating={rating}
           setRating={setRating}
-          mateCount={mateCount}
-          setMateCount={setMateCount}
         />
 
         {type === 'recommend' && (
