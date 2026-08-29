@@ -16,7 +16,7 @@ const OAuthAdditionalInfo = () => {
 
   const [formData, setFormData] = useState({
     email: "",
-    age: "",
+    birthdate: "",
     gender: "MALE", // 📌 v2 Enum 스펙 반영 ("MALE" | "FEMALE")
   });
 
@@ -38,7 +38,11 @@ const OAuthAdditionalInfo = () => {
   };
 
   const validateForm = () => {
-    if ((needEmail && !formData.email) || !formData.age || !formData.gender) {
+    if (
+      (needEmail && !formData.email) ||
+      !formData.birthdate ||
+      !formData.gender
+    ) {
       setError("모든 필드를 입력해주세요.");
       return false;
     }
@@ -51,9 +55,9 @@ const OAuthAdditionalInfo = () => {
       }
     }
 
-    const age = parseInt(formData.age, 10);
-    if (isNaN(age) || age < 0 || age > 150) {
-      setError("올바른 나이를 입력해주세요. (0-150)");
+    const birthdate = new Date(`${formData.birthdate}T00:00:00`);
+    if (Number.isNaN(birthdate.getTime()) || birthdate >= new Date()) {
+      setError("올바른 생년월일을 입력해주세요.");
       return false;
     }
 
@@ -71,16 +75,11 @@ const OAuthAdditionalInfo = () => {
     setIsSubmitting(true);
 
     try {
-      // 📌 나이(age)를 v2 LocalDate 형태("YYYY-01-01")로 변환하여 백엔드 지원
-      const currentYear = new Date().getFullYear();
-      const birthYear = currentYear - parseInt(formData.age, 10) + 1;
-      const formattedBirthdate = `${birthYear}-01-01`;
-
       // 📌 Native fetch 대신 useApiClient 공통 모듈 활용
       const data = await post(`${API_BASE_URL}/api/oauth/complete`, {
         signupId,
         email: needEmail ? formData.email : null,
-        birthdate: formattedBirthdate,
+        birthdate: formData.birthdate,
         gender: formData.gender, // "MALE" | "FEMALE"
       });
 
@@ -116,8 +115,11 @@ const OAuthAdditionalInfo = () => {
 
         {/* 안내 메시지 */}
         <div className="mb-6 p-4 bg-blue-50/60 border border-blue-100 rounded-xl">
-          <p className="text-xs text-blue-700 font-medium">
+          <p className="text-xs text-blue-700 font-medium leading-5">
             💡 닉네임은 마이페이지에서 변경할 수 있습니다.
+            <br />
+            여행 선호 테마는 가입 후 마이페이지의 프로필 설정에서 등록할
+            수 있습니다.
           </p>
         </div>
 
@@ -142,23 +144,21 @@ const OAuthAdditionalInfo = () => {
             </div>
           )}
 
-          {/* 나이 입력 */}
+          {/* 생년월일 입력 */}
           <div>
             <label
-              htmlFor="age"
+              htmlFor="birthdate"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              나이 <span className="text-red-500">*</span>
+              생년월일 <span className="text-red-500">*</span>
             </label>
             <input
-              type="number"
-              id="age"
-              name="age"
-              value={formData.age}
+              type="date"
+              id="birthdate"
+              name="birthdate"
+              value={formData.birthdate}
               onChange={handleChange}
-              placeholder="나이를 입력하세요"
-              min="0"
-              max="150"
+              max={new Date().toISOString().split("T")[0]}
               required
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1344FF]/20 focus:border-[#1344FF] transition-all"
             />

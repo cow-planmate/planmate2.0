@@ -31,8 +31,9 @@ export const ScheduledItem = ({ item, START_HOUR, index, isLast }) => {
 
   return (
     <li className="group relative grid grid-cols-[52px_14px_minmax(0,1fr)] gap-3 pb-5 sm:grid-cols-[64px_14px_minmax(0,1fr)]">
-      <div className="pt-3 text-right">
+      <div className="flex flex-col items-end pt-3 text-right">
         <span className="text-sm font-black tabular-nums text-[#111318]">{formatTime(item.start)}</span>
+        <span className="mt-0.5 text-[11px] font-semibold tabular-nums text-[#9aa0ab]">~{endTime}</span>
       </div>
 
       <div className="relative flex justify-center pt-4">
@@ -62,12 +63,9 @@ export const ScheduledItem = ({ item, START_HOUR, index, isLast }) => {
               </div>
               {place.formatted_address ? <p className="line-clamp-2 text-xs leading-5 text-[#666666]">{place.formatted_address}</p> : null}
               {item.memo ? (
-                <div className="mt-3 flex items-start gap-2 rounded-lg border border-[#dfe5ff] bg-[#f7f8ff] px-3 py-2.5 text-[#3f4b68] transition-colors group-hover:border-[#cbd5ff] group-hover:bg-[#f2f4ff]">
-                  <MessageSquareText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#1344FF]" />
-                  <div className="min-w-0">
-                    <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-[#7d88a5]">메모</span>
-                    <p className="mt-0.5 line-clamp-2 text-xs leading-5">{item.memo}</p>
-                  </div>
+                <div className="mt-3 flex min-w-0 items-start gap-2 text-[#596174]">
+                  <MessageSquareText className="mt-[3px] h-3.5 w-3.5 shrink-0 text-[#1344FF]/80" aria-hidden="true" />
+                  <p className="line-clamp-2 text-xs leading-5">{item.memo}</p>
                 </div>
               ) : null}
             </div>

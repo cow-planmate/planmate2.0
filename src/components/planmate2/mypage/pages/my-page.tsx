@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Lock } from "lucide-react";
+import { CalendarDays, Lock, MapPinned, NotebookPen } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApiClient } from "../../../../hooks/useApiClient";
@@ -33,6 +33,7 @@ import { categoryKeyToId } from "../../../../shared/theme/category";
 import { CalendarSection } from "../organisms/CalendarSection";
 import { CommunityActivitySection } from "../organisms/CommunityActivitySection";
 import { MapSection } from "../organisms/MapSection";
+import { MyPageSectionDeck, type MyPageSection } from "../organisms/MyPageSectionDeck";
 import { MyPageModals } from "../organisms/MyPageModals";
 import { ProfileHeader } from "../organisms/ProfileHeader";
 import { TravelLogsSection } from "../organisms/TravelLogsSection";
@@ -1038,9 +1039,114 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     },
   };
 
+  const myPageSections: MyPageSection[] = [
+    ...(!isOtherUser
+      ? [
+          {
+            id: "trips",
+            eyebrow: "TRIP PLAN",
+            title: "여행 상세 일정",
+            description: "다가오는 여행부터 지난 일정까지, 나의 모든 여행 계획을 한곳에서 관리해요.",
+            icon: CalendarDays,
+            content: (
+              <TripSection
+                isDeleteMode={isDeleteMode}
+                selectedPlanIds={selectedPlanIds}
+                toggleSelectAll={toggleSelectAll}
+                allPlans={allPlans}
+                handleBulkDelete={handleBulkDelete}
+                setIsDeleteMode={setIsDeleteMode}
+                ongoingPlans={ongoingPlans}
+                upcomingPlans={upcomingPlans}
+                pastPlans={pastPlans}
+                togglePlanSelection={togglePlanSelection}
+                handleDeletePlan={handleDeletePlan}
+                onRenamePlan={(plan) => {
+                  setActionPlan(plan);
+                  setIsTitleModalOpen(true);
+                }}
+                onSharePlan={(plan) => {
+                  setActionPlan(plan);
+                  setIsShareModalOpen(true);
+                }}
+                onNavigateTrip={(id: string) => navigate(`/complete?id=${id}`)}
+                onNavigateToPlanMaker={() => onNavigate("plan-maker")}
+                showChecklists
+              />
+            ),
+          },
+          {
+            id: "footprints",
+            eyebrow: "MY JOURNEY",
+            title: "캘린더와 여행 발자취",
+            description: "여행한 날과 장소를 달력과 지도 위에서 한눈에 되돌아봐요.",
+            icon: MapPinned,
+            content: (
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
+                <CalendarSection
+                  currentYear={currentYear}
+                  currentMonth={currentMonth}
+                  onSetDate={setDate}
+                  onPrevMonth={handlePrevMonth}
+                  onNextMonth={handleNextMonth}
+                  onToday={() => setDate(new Date())}
+                  gridCells={gridCells}
+                  getEventsForDate={getEventsForDate}
+                  onEventClick={(event) => {
+                    setSelectedCalendarEvent(event);
+                    setActiveModal("eventDetail");
+                  }}
+                />
+                <MapSection allPlansCount={allPlans.length} groupedPlansByRegion={groupedPlansByRegion} />
+              </div>
+            ),
+          },
+        ]
+      : []),
+    {
+      id: "stories",
+      eyebrow: "MY STORIES",
+      title: isOtherUser ? "여행기와 커뮤니티 활동" : "나의 여행기와 커뮤니티 활동",
+      description: "여행에서 남긴 이야기와 커뮤니티에서 나눈 기록을 차분히 모아봤어요.",
+      icon: NotebookPen,
+      content: (
+        <div>
+          <TravelLogsSection
+            travelTab={travelTab}
+            setTravelTab={changeTravelTab}
+            myTravelPosts={myTravelPosts}
+            myTravelPostsCount={travelPostsPage?.totalElements ?? myTravelPosts.length}
+            likedTravelPosts={likedTravelPosts}
+            isOtherUser={!!isOtherUser}
+            page={travelPage}
+            totalPages={activeTravelPage?.totalPages ?? 1}
+            onPageChange={setTravelPage}
+            onNavigateDetail={(post) => onNavigate("detail", { post })}
+            onEditPost={(post) => onNavigate("feed-edit", { post })}
+            onDeletePost={handleDeleteTravelPost}
+          />
+          <CommunityActivitySection
+            communityTab={communityTab === "my_posts" ? "written" : communityTab === "liked_posts" ? "liked" : "comments"}
+            setCommunityTab={(tab) => changeCommunityTab(tab === "written" ? "my_posts" : tab === "liked" ? "liked_posts" : "comments")}
+            myCommunityPosts={(communityPostsPage as any)?.items ?? []}
+            myCommunityPostsCount={(communityPostsPage as any)?.totalElements}
+            likedCommunityPosts={(likedCommunityPostsPage as any)?.items ?? []}
+            myComments={(communityCommentsPage as any)?.items ?? []}
+            isOtherUser={!!isOtherUser}
+            page={communityPage}
+            totalPages={activeCommunityPage?.totalPages ?? 1}
+            onPageChange={setCommunityPage}
+            onNavigateDetail={(post) => onNavigate("detail", { post })}
+          />
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#f8f9fa] pb-12">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-[#f3f6fa] pb-12 pt-5 sm:pt-8">
+      <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-[28px] border border-slate-200/90 bg-white shadow-[0_24px_70px_-46px_rgba(15,23,42,0.45)] sm:rounded-[36px]">
         <ProfileHeader
           dummyUser={dummyUser}
           userStats={userStats}
@@ -1052,6 +1158,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
             setConfirmPassword("");
             setActiveModal("profile");
           }}
+          onEditThemes={() => setIsThemeStartOpen(true)}
           onAddFriend={handleFriendAdd}
           onSendMessage={handleSendMessage}
           myPlansCount={otherUserPlanCounts?.myPlanCount ?? myPlans.length}
@@ -1064,101 +1171,8 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           onToggleVisibility={handleToggleProfileVisibility}
         />
 
-        {!isOtherUser && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <CalendarSection
-                currentYear={currentYear}
-                currentMonth={currentMonth}
-                onSetDate={setDate}
-                onPrevMonth={handlePrevMonth}
-                onNextMonth={handleNextMonth}
-                onToday={() => setDate(new Date())}
-                gridCells={gridCells}
-                getEventsForDate={getEventsForDate}
-                onEventClick={(event) => {
-                  setSelectedCalendarEvent(event);
-                  setActiveModal("eventDetail");
-                }}
-              />
-
-              <MapSection
-                allPlansCount={allPlans.length}
-                groupedPlansByRegion={groupedPlansByRegion}
-              />
-            </div>
-
-            <TripSection
-              isDeleteMode={isDeleteMode}
-              selectedPlanIds={selectedPlanIds}
-              toggleSelectAll={toggleSelectAll}
-              allPlans={allPlans}
-              handleBulkDelete={handleBulkDelete}
-              setIsDeleteMode={setIsDeleteMode}
-              ongoingPlans={ongoingPlans}
-              upcomingPlans={upcomingPlans}
-              pastPlans={pastPlans}
-              togglePlanSelection={togglePlanSelection}
-              handleDeletePlan={handleDeletePlan}
-              onRenamePlan={(plan) => {
-                setActionPlan(plan);
-                setIsTitleModalOpen(true);
-              }}
-              onSharePlan={(plan) => {
-                setActionPlan(plan);
-                setIsShareModalOpen(true);
-              }}
-              onNavigateTrip={(id: string) => navigate(`/complete?id=${id}`)}
-              onNavigateToPlanMaker={() => onNavigate("plan-maker")}
-              showChecklists={!isOtherUser}
-            />
-          </>
-        )}
-
-        <TravelLogsSection
-          travelTab={travelTab}
-          setTravelTab={changeTravelTab}
-          myTravelPosts={myTravelPosts}
-          myTravelPostsCount={
-            travelPostsPage?.totalElements ?? myTravelPosts.length
-          }
-          likedTravelPosts={likedTravelPosts}
-          isOtherUser={!!isOtherUser}
-          page={travelPage}
-          totalPages={activeTravelPage?.totalPages ?? 1}
-          onPageChange={setTravelPage}
-          onNavigateDetail={(post) => onNavigate("detail", { post })}
-          onEditPost={(post) => onNavigate("feed-edit", { post })}
-          onDeletePost={handleDeleteTravelPost}
-        />
-
-        <CommunityActivitySection
-            communityTab={
-              communityTab === "my_posts"
-                ? "written"
-                : communityTab === "liked_posts"
-                  ? "liked"
-                  : "comments"
-            }
-            setCommunityTab={(tab) =>
-              changeCommunityTab(
-                tab === "written"
-                  ? "my_posts"
-                  : tab === "liked"
-                    ? "liked_posts"
-                    : "comments",
-              )
-            }
-            myCommunityPosts={(communityPostsPage as any)?.items ?? []}
-            myCommunityPostsCount={(communityPostsPage as any)?.totalElements}
-            likedCommunityPosts={(likedCommunityPostsPage as any)?.items ?? []}
-            myComments={(communityCommentsPage as any)?.items ?? []}
-            isOtherUser={!!isOtherUser}
-            page={communityPage}
-            totalPages={activeCommunityPage?.totalPages ?? 1}
-            onPageChange={setCommunityPage}
-            onNavigateDetail={(post) => onNavigate("detail", { post })}
-          />
+        <MyPageSectionDeck sections={myPageSections} />
+        </div>
       </div>
 
       <MyPageModals
@@ -1252,6 +1266,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
           onComplete={(keywords: any) => {
             setSelectedThemeKeywords(keywords);
             setIsThemeOpen(false);
+            setIsThemeStartOpen(true);
           }}
         />
       )}

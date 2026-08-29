@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { CustomOverlayMap, Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
 import { LocateFixed, RotateCcw, Route } from "lucide-react";
 import useKakaoLoader from "../../hooks/useKakaoLoader";
@@ -53,7 +53,7 @@ export default function MapComponent({
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [routePath, setRoutePath] = useState([]);
-  const [transitLanes, setTransitLanes] = useState([]); // [{ color, path:[{lat,lng}] }]
+  const [transitLanes, setTransitLanes] = useState([]); // [{ color, path, isWalk }]
   const [activeTransitKey, setActiveTransitKey] = useState(null);
   // 선택한 구간의 차량/도보 실제 경로. { key, profile, path }
   const [activeRoadRoute, setActiveRoadRoute] = useState(null);
@@ -150,7 +150,7 @@ export default function MapComponent({
   };
 
   // 선택한 대중교통 경로(mapObj)의 폴리라인을 지도에 그린다. 같은 카드를 다시 누르면 지운다.
-  const showTransitRoute = async (mapObj, key) => {
+  const showTransitRoute = async (mapObj, key, segmentIndex) => {
     if (key === activeTransitKey) {
       setTransitLanes([]);
       setActiveTransitKey(null);
@@ -159,14 +159,46 @@ export default function MapComponent({
     }
     try {
       const res = await post(`${import.meta.env.VITE_API_URL}/api/route/transit/lane`, { mapObj });
-      const lanes = (res?.lanes ?? []).map((lane) => ({
+      const transitOnlyLanes = (res?.lanes ?? []).map((lane) => ({
         color:
           lane.trafficClass === 1
             ? BUS_COLOR
             : SUBWAY_COLORS[lane.type] || "#3B82F6",
         path: (lane.path ?? []).map((p) => ({ lat: p.lat, lng: p.lng })),
+        isWalk: false,
+      })).filter((lane) => lane.path.length >= 2);
+
+      // 출발지→승차 지점, 환승 사이, 하차 지점→도착지의 도보 경로도 함께 구한다.
+      const from = positions[segmentIndex];
+      const to = positions[segmentIndex + 1];
+      const walkPairs = [];
+      if (from && transitOnlyLanes[0]) walkPairs.push([from, transitOnlyLanes[0].path[0]]);
+      transitOnlyLanes.slice(0, -1).forEach((lane, index) => {
+        walkPairs.push([lane.path[lane.path.length - 1], transitOnlyLanes[index + 1].path[0]]);
+      });
+      if (to && transitOnlyLanes.length) {
+        const lastPath = transitOnlyLanes[transitOnlyLanes.length - 1].path;
+        walkPairs.push([lastPath[lastPath.length - 1], to]);
+      }
+
+      const meaningfulWalkPairs = walkPairs.filter(([start, end]) => distanceSquared(start, end) > 0.00000002);
+      const walkResults = await Promise.all(meaningfulWalkPairs.map(async ([start, end]) => {
+        try {
+          const walk = await post(`${import.meta.env.VITE_API_URL}/api/route/directions`, {
+            waypoints: [
+              { lat: start.lat, lng: start.lng },
+              { lat: end.lat, lng: end.lng },
+            ],
+            profile: "foot",
+          });
+          return (walk?.path?.length ?? 0) >= 2 ? walk.path : [start, end];
+        } catch {
+          return [start, end];
+        }
       }));
-      setTransitLanes(lanes);
+
+      const walkLanes = walkResults.map((path) => ({ color: "#64748B", path, isWalk: true }));
+      setTransitLanes([...walkLanes, ...transitOnlyLanes]);
       setActiveRoadRoute(null);
       setActiveTransitKey(key);
       setActiveSegmentIndex(Number.parseInt(key.split("-")[0], 10));
@@ -447,12 +479,22 @@ export default function MapComponent({
                       setActiveSegmentIndex(null);
                     }}
                     aria-label={`${index + 1}번 ${item.place.name}${isActive ? " 정보 닫기" : " 정보 보기"}`}
-                    title={item.place.name}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-white text-sm font-extrabold text-white shadow-[0_3px_12px_rgba(15,23,42,0.3)] transition hover:-translate-y-0.5 hover:scale-105 ${
-                      isActive ? "scale-110 bg-slate-900" : isDimmed ? "bg-slate-400 opacity-60" : "bg-main"
+                    className={`flex h-8 max-w-[190px] items-center gap-1.5 rounded-full border px-1.5 pr-3 shadow-[0_3px_10px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 ${
+                      isActive
+                        ? "border-slate-900 bg-slate-900 text-white"
+                        : isDimmed
+                          ? "border-slate-200 bg-white/90 text-slate-500 opacity-60"
+                          : "border-slate-200 bg-white/95 text-slate-800"
                     }`}
                   >
-                    {index + 1}
+                    <span className={`flex h-5 w-5 flex-none items-center justify-center rounded-full text-[10px] font-extrabold text-white ${
+                      isActive ? "bg-white/20" : isDimmed ? "bg-slate-400" : "bg-main"
+                    }`}>
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 truncate whitespace-nowrap text-xs font-bold">
+                      {item.place.name}
+                    </span>
                   </button>
                 </div>
               </CustomOverlayMap>
@@ -478,21 +520,32 @@ export default function MapComponent({
               />
               <Polyline
                 path={activeRoadRoute.routes[activeRoadRoute.selectedIndex].path}
-                strokeColor={activeRoadRoute.profile === "foot" ? "#64748B" : "#1344FF"}
-                strokeWeight={6}
+                strokeColor={activeRoadRoute.profile === "foot" ? "#475569" : "#1344FF"}
+                strokeWeight={activeRoadRoute.profile === "foot" ? 5 : 6}
                 strokeOpacity={1}
-                strokeStyle={activeRoadRoute.profile === "foot" ? "shortdash" : "solid"}
+                strokeStyle={activeRoadRoute.profile === "foot" ? "shortdot" : "solid"}
               />
             </>
           )}
           {transitLanes.map((lane, i) => (
-            <Polyline
-              key={i}
-              path={lane.path}
-              strokeColor={lane.color}
-              strokeWeight={5}
-              strokeOpacity={0.85}
-            />
+            <Fragment key={i}>
+              {lane.isWalk && (
+                <Polyline
+                  path={lane.path}
+                  strokeColor="#FFFFFF"
+                  strokeWeight={9}
+                  strokeOpacity={0.92}
+                  strokeStyle="solid"
+                />
+              )}
+              <Polyline
+                path={lane.path}
+                strokeColor={lane.color}
+                strokeWeight={lane.isWalk ? 5 : 6}
+                strokeOpacity={lane.isWalk ? 1 : 0.9}
+                strokeStyle={lane.isWalk ? "shortdot" : "solid"}
+              />
+            </Fragment>
           ))}
         </Map>
       </div>

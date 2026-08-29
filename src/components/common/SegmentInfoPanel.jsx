@@ -181,7 +181,20 @@ const PassStopsToggle = ({ passStops }) => {
 const RouteDetailRow = ({ step }) => {
   let rowContent = null;
 
-  if (step.trafficType === 2) {
+  if (step.trafficType === 3) {
+    rowContent = (
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <FontAwesomeIcon icon={faPersonWalking} className="text-slate-400" />
+        <span>
+          {step.startName && step.endName
+            ? `${step.startName}에서 ${step.endName}까지 도보`
+            : "도보 이동"}
+        </span>
+        {step.distance > 0 && <span className="font-semibold text-slate-400">{formatMeters(step.distance)}</span>}
+        {step.sectionTime > 0 && <span className="text-slate-400">약 {formatMinutes(step.sectionTime)}</span>}
+      </div>
+    );
+  } else if (step.trafficType === 2) {
     rowContent = (
       <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
         <span className="rounded-md bg-green-50 px-1.5 py-0.5 font-semibold text-green-700">
@@ -391,9 +404,7 @@ const TransitRoutes = ({
             <RouteBar steps={route.steps} />
 
             <div className="space-y-1.5">
-              {route.steps.map((step, si) =>
-                step.trafficType === 3 ? null : <RouteDetailRow key={si} step={step} />
-              )}
+              {route.steps.map((step, si) => <RouteDetailRow key={si} step={step} />)}
             </div>
 
             {route.lastEndStation && (
@@ -403,7 +414,7 @@ const TransitRoutes = ({
             {onShowTransitRoute && route.mapObj && (
               <button
                 type="button"
-                onClick={() => onShowTransitRoute(route.mapObj, laneKey)}
+                onClick={() => onShowTransitRoute(route.mapObj, laneKey, segmentIndex)}
                 className={`mt-3 w-full rounded-xl py-2 text-xs font-bold transition ${
                   laneActive
                     ? "bg-slate-800 text-white"
@@ -497,6 +508,7 @@ export default function SegmentInfoPanel({
   onFocusSegment,
 }) {
   const { post } = useApiClient();
+  const [segmentModes, setSegmentModes] = useState({});
 
   const [segmentData, setSegmentData] = useState({
     key: null,
@@ -632,6 +644,7 @@ export default function SegmentInfoPanel({
               {sortedSchedule.map((item, i) => {
                 const next = sortedSchedule[i + 1];
                 const transit = segmentData.transit?.[i];
+                const activeMode = segmentModes[i] ?? "transit";
 
                 return (
                   <div key={item.id} className="relative grid grid-cols-[28px_minmax(0,1fr)] gap-x-3">
@@ -671,33 +684,45 @@ export default function SegmentInfoPanel({
                             className="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/80 shadow-sm"
                             aria-label={`${item.place.name}에서 ${next.place.name}까지 이동 정보`}
                           >
-                            <div className="grid grid-cols-2 divide-x divide-slate-200/80">
-                              <SegmentRow
-                                icon={faCar}
-                                label="차량"
-                                tone="blue"
-                                isLoading={isLoading}
-                                onSelect={onShowRoadRoute ? () => onShowRoadRoute("driving", i) : undefined}
-                                isActive={roadRoute?.key === `${i}-driving`}
-                                value={joinParts(
-                                  formatSeconds(segmentData.driving?.durations?.[i]?.[i + 1]),
-                                  formatMeters(segmentData.driving?.distances?.[i]?.[i + 1])
-                                )}
-                              />
-                              <SegmentRow
-                                icon={faPersonWalking}
-                                label="도보"
-                                tone="gray"
-                                isLoading={isLoading}
-                                onSelect={onShowRoadRoute ? () => onShowRoadRoute("foot", i) : undefined}
-                                isActive={roadRoute?.key === `${i}-foot`}
-                                value={joinParts(
-                                  formatSeconds(segmentData.foot?.durations?.[i]?.[i + 1]),
-                                  formatMeters(segmentData.foot?.distances?.[i]?.[i + 1])
-                                )}
-                              />
+                            <div className="grid grid-cols-3 border-b border-slate-200 bg-white" role="tablist" aria-label={`${i + 1}구간 이동 수단 선택`}>
+                              {[
+                                { key: "transit", label: "대중교통", icon: faBus },
+                                { key: "driving", label: "자동차", icon: faCar },
+                                { key: "foot", label: "도보", icon: faPersonWalking },
+                              ].map((mode) => {
+                                const selected = activeMode === mode.key;
+                                return (
+                                  <button
+                                    key={mode.key}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={selected}
+                                    onClick={() => setSegmentModes((current) => ({ ...current, [i]: mode.key }))}
+                                    className={`flex min-w-0 items-center justify-center gap-1.5 border-r border-slate-100 px-1 py-3 text-xs font-bold transition last:border-r-0 ${
+                                      selected ? "bg-main text-white" : "bg-white text-slate-500 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    <FontAwesomeIcon icon={mode.icon} className="text-[11px]" />
+                                    <span className="truncate">{mode.label}</span>
+                                  </button>
+                                );
+                              })}
                             </div>
-                            {roadRoute?.segmentIndex === i && (
+                            {activeMode !== "transit" && <div>
+                              <SegmentRow
+                                icon={activeMode === "driving" ? faCar : faPersonWalking}
+                                label={activeMode === "driving" ? "자동차" : "도보"}
+                                tone={activeMode === "driving" ? "blue" : "gray"}
+                                isLoading={isLoading}
+                                onSelect={onShowRoadRoute ? () => onShowRoadRoute(activeMode, i) : undefined}
+                                isActive={roadRoute?.key === `${i}-${activeMode}`}
+                                value={joinParts(
+                                  formatSeconds(segmentData[activeMode]?.durations?.[i]?.[i + 1]),
+                                  formatMeters(segmentData[activeMode]?.distances?.[i]?.[i + 1])
+                                )}
+                              />
+                            </div>}
+                            {activeMode !== "transit" && roadRoute?.segmentIndex === i && roadRoute.profile === activeMode && (
                               <div className="border-t border-slate-200/80 px-3.5 pb-3.5">
                                 <RoadRoutes
                                   profile={roadRoute.profile}
@@ -708,7 +733,7 @@ export default function SegmentInfoPanel({
                                 />
                               </div>
                             )}
-                            <div className="border-t border-slate-200/80">
+                            {activeMode === "transit" && <div>
                               <TransitInfo
                                 transit={transit}
                                 isLoading={isLoading}
@@ -716,7 +741,7 @@ export default function SegmentInfoPanel({
                                 onShowTransitRoute={onShowTransitRoute}
                                 activeTransitKey={activeTransitKey}
                               />
-                            </div>
+                            </div>}
                           </div>
                         </div>
                       )}

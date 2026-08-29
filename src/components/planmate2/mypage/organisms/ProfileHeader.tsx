@@ -1,25 +1,86 @@
-import { Camera, Globe, Lock, MessageSquare, Settings, User, UserPlus } from 'lucide-react';
-import React from 'react';
+import {
+  BedDouble,
+  Camera,
+  Globe,
+  Heart,
+  Landmark,
+  Lock,
+  Mail,
+  MessageSquare,
+  Route,
+  Settings,
+  Sparkles,
+  User,
+  UserPlus,
+  Users,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
+import React, { useMemo } from "react";
 
 interface ProfileHeaderProps {
   dummyUser: any;
   userStats: any;
   onEditProfile?: () => void;
+  onEditThemes?: () => void;
   onAddFriend?: () => void;
   onSendMessage?: () => void;
   myPlansCount: number;
   editablePlansCount: number;
   isOtherUser?: boolean;
-  /** 내 프로필 공개 여부 (본인 프로필에서만 의미 있음) */
   isProfilePublic?: boolean;
   isSavingVisibility?: boolean;
   onToggleVisibility?: (nextPublic: boolean) => void;
 }
 
+type ThemeCategory = "ATTRACTION" | "ACCOMMODATION" | "RESTAURANT";
+
+const THEME_GROUPS: Array<{
+  key: ThemeCategory;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  color: string;
+}> = [
+  {
+    key: "ATTRACTION",
+    label: "즐길 곳",
+    description: "관광 · 체험",
+    icon: Landmark,
+    color: "bg-blue-50 text-[#1344FF]",
+  },
+  {
+    key: "ACCOMMODATION",
+    label: "머무는 방식",
+    description: "숙소",
+    icon: BedDouble,
+    color: "bg-violet-50 text-violet-600",
+  },
+  {
+    key: "RESTAURANT",
+    label: "미식 취향",
+    description: "음식점",
+    icon: UtensilsCrossed,
+    color: "bg-orange-50 text-orange-600",
+  },
+];
+
+const normalizeThemes = (themes: any): Array<{ preferredThemeName: string; category: ThemeCategory }> => {
+  if (typeof themes === "string") {
+    return themes
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean)
+      .map((preferredThemeName) => ({ preferredThemeName, category: "ATTRACTION" }));
+  }
+  return Array.isArray(themes) ? themes : [];
+};
+
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   dummyUser,
   userStats,
   onEditProfile,
+  onEditThemes,
   onAddFriend,
   onSendMessage,
   myPlansCount,
@@ -44,159 +105,189 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             : 0),
       )
     : null;
+
   const genderLabel =
-    dummyUser.gender === 'MALE'
-      ? '남성'
-      : dummyUser.gender === 'FEMALE'
-        ? '여성'
-        : dummyUser.gender === 'OTHER'
-          ? '기타'
-          : '성별미설정';
+    dummyUser.gender === "MALE"
+      ? "남성"
+      : dummyUser.gender === "FEMALE"
+        ? "여성"
+        : dummyUser.gender === "OTHER"
+          ? "기타"
+          : "성별 미설정";
+
+  const themesByCategory = useMemo(() => {
+    const grouped = new Map<ThemeCategory, string[]>();
+    THEME_GROUPS.forEach(({ key }) => grouped.set(key, []));
+    normalizeThemes(dummyUser.preferredThemes).forEach((theme) => {
+      const category = THEME_GROUPS.some(({ key }) => key === theme.category)
+        ? theme.category
+        : "ATTRACTION";
+      const name = theme.preferredThemeName?.trim();
+      if (name) grouped.get(category)?.push(name);
+    });
+    return grouped;
+  }, [dummyUser.preferredThemes]);
+
+  const totalThemes = Array.from(themesByCategory.values()).reduce(
+    (count, themes) => count + themes.length,
+    0,
+  );
+
+  const stats = [
+    { label: "나의 일정", value: myPlansCount, icon: Route },
+    { label: "초대된 일정", value: editablePlansCount, icon: Users },
+    { label: "받은 좋아요", value: userStats.stats?.receivedLikes ?? 0, icon: Heart },
+  ];
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-5 sm:p-8 mb-8">
-      <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8 min-w-0">
-        {/* 프로필 이미지 */}
-        <div className="relative group">
-          <div className="relative">
+    <header className="relative overflow-hidden bg-[linear-gradient(135deg,#f8faff_0%,#ffffff_52%,#f2f6ff_100%)] px-5 py-7 sm:px-9 sm:py-9 lg:px-12">
+      <div className="pointer-events-none absolute -right-24 -top-36 h-80 w-80 rounded-full border-[52px] border-[#1344FF]/[0.035]" />
+
+      <div className="relative">
+        <div className="flex min-w-0 flex-col items-center gap-6 md:flex-row md:items-start md:gap-8">
+          <div className="group relative shrink-0">
             {dummyUser.profileLogo ? (
               <img
                 src={dummyUser.profileLogo}
-                alt="프로필"
-                className="w-32 h-32 rounded-full border-4 border-[#1344FF] object-cover transition-all group-hover:brightness-90"
+                alt={`${dummyUser.nickName}님의 프로필`}
+                className="h-28 w-28 rounded-[32px] border-4 border-white object-cover shadow-[0_15px_35px_-18px_rgba(19,68,255,0.65)] ring-1 ring-slate-200 transition-all group-hover:brightness-90 sm:h-32 sm:w-32"
               />
             ) : (
-              <div className="w-32 h-32 rounded-full border-4 border-gray-200 bg-gray-100 flex items-center justify-center transition-all group-hover:brightness-90">
-                <User className="w-16 h-16 text-gray-400" />
+              <div className="flex h-28 w-28 items-center justify-center rounded-[32px] border-4 border-white bg-slate-100 shadow-lg ring-1 ring-slate-200 sm:h-32 sm:w-32">
+                <User className="h-14 w-14 text-slate-400" />
               </div>
             )}
-            {/* 사진 변경은 프로필 수정 모달에서 한다 — 아바타 클릭도 같은 곳으로 연결 */}
-            {!isOtherUser && (
-              <button
-                onClick={onEditProfile}
-                title="프로필 사진 변경"
-                className="absolute inset-0 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Camera className="w-8 h-8 text-white drop-shadow-lg" />
-              </button>
-            )}
+            {!isOtherUser ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onEditProfile}
+                  className="absolute inset-0 flex items-center justify-center rounded-[32px] opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label="프로필 사진 변경"
+                >
+                  <Camera className="h-8 w-8 text-white drop-shadow-lg" />
+                </button>
+                <button
+                  type="button"
+                  onClick={onEditProfile}
+                  className="absolute -bottom-2 -right-2 rounded-2xl border-4 border-white bg-[#1344FF] p-2.5 text-white shadow-lg transition-transform hover:scale-105"
+                  aria-label="프로필 수정"
+                >
+                  <Settings className="h-5 w-5" />
+                </button>
+              </>
+            ) : null}
           </div>
-          {!isOtherUser && (
-            <button 
-              onClick={onEditProfile}
-              className="absolute bottom-0 right-0 bg-[#1344FF] text-white p-2.5 rounded-full hover:bg-[#0d34cc] transition-all shadow-lg hover:scale-110"
-              title="프로필 수정"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-          )}
-        </div>
 
-        {/* 프로필 정보 */}
-        <div className="flex-1 min-w-0 w-full text-center md:text-left">
-          <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-4 mb-2">
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 min-w-0">
-              <h1 className="min-w-0 max-w-full break-all text-2xl sm:text-4xl font-black text-[#1a1a1a] tracking-tight">{dummyUser.nickName}</h1>
-            </div>
+          <div className="min-w-0 flex-1 text-center md:text-left">
+            <div className="flex flex-col items-center gap-3 md:flex-row md:items-center">
+              <h1 className="max-w-full break-all text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                {dummyUser.nickName}
+              </h1>
 
-            {/* 프로필 공개 범위 — 본인만 변경할 수 있다 */}
-            {!isOtherUser && onToggleVisibility && (
-              <button
-                onClick={() => onToggleVisibility(!isProfilePublic)}
-                disabled={isSavingVisibility}
-                title={
-                  isProfilePublic
-                    ? '다른 사용자가 내 프로필을 볼 수 있습니다. 클릭하면 비공개로 바뀝니다.'
-                    : '다른 사용자가 내 프로필을 볼 수 없습니다. 클릭하면 공개로 바뀝니다.'
-                }
-                className={`flex w-fit mx-auto md:mx-0 shrink-0 items-center gap-2 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  isProfilePublic
-                    ? 'bg-blue-50 text-[#1344FF] border-[#1344FF]/30 hover:bg-blue-100'
-                    : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                {isProfilePublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                {isProfilePublic ? '공개 프로필' : '비공개 프로필'}
-                <span
-                  className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
-                    isProfilePublic ? 'bg-[#1344FF]' : 'bg-gray-300'
+              {!isOtherUser && onToggleVisibility ? (
+                <button
+                  type="button"
+                  onClick={() => onToggleVisibility(!isProfilePublic)}
+                  disabled={isSavingVisibility}
+                  className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    isProfilePublic
+                      ? "border-blue-200 bg-blue-50 text-[#1344FF]"
+                      : "border-slate-200 bg-slate-100 text-slate-600"
                   }`}
                 >
-                  <span
-                    className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${
-                      isProfilePublic ? 'translate-x-3.5' : 'translate-x-0.5'
-                    }`}
-                  />
-                </span>
-              </button>
-            )}
+                  {isProfilePublic ? <Globe className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+                  {isProfilePublic ? "공개 프로필" : "비공개 프로필"}
+                  <span className={`relative h-4 w-7 rounded-full ${isProfilePublic ? "bg-[#1344FF]" : "bg-slate-300"}`}>
+                    <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${isProfilePublic ? "translate-x-3.5" : "translate-x-0.5"}`} />
+                  </span>
+                </button>
+              ) : null}
 
-            {isOtherUser && (
-              <div className="flex items-center justify-center md:justify-start gap-2">
-                <button 
-                  onClick={onAddFriend}
-                  className="flex items-center gap-2 whitespace-nowrap px-4 py-2 bg-[#1344FF] text-white rounded-xl text-sm font-bold hover:bg-[#0d34cc] transition-all shadow-sm active:scale-95"
-                >
-                  <UserPlus className="w-4 h-4 shrink-0" />
-                  친구 추가
-                </button>
-                <button 
-                  onClick={onSendMessage}
-                  className="flex items-center gap-2 whitespace-nowrap px-4 py-2 bg-white text-[#1344FF] border border-[#1344FF] rounded-xl text-sm font-bold hover:bg-blue-50 transition-all shadow-sm active:scale-95"
-                >
-                  <MessageSquare className="w-4 h-4 shrink-0" />
-                  채팅하기
-                </button>
-              </div>
-            )}
-          </div>
-          
-          {/* 이메일·나이·성별은 본인 프로필에서만 보인다. 타인 프로필 응답에는 이 값들이 아예 없다 */}
-          {!isOtherUser && (
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-4 min-w-0">
-              <p className="min-w-0 max-w-full break-all text-sm sm:text-base text-[#666666] font-medium">{dummyUser.email}</p>
-              <span className="text-gray-300 hidden sm:inline">|</span>
-              <span className="shrink-0 whitespace-nowrap px-2 py-0.5 bg-gray-50 text-gray-500 text-xs font-semibold rounded border border-gray-100">
-                {genderLabel} · {age === null ? '연령미설정' : `${age}세`}
-              </span>
+              {isOtherUser ? (
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={onAddFriend} className="flex items-center gap-2 rounded-xl bg-[#1344FF] px-4 py-2 text-sm font-bold text-white hover:bg-[#0d34cc]">
+                    <UserPlus className="h-4 w-4" /> 친구 추가
+                  </button>
+                  <button type="button" onClick={onSendMessage} className="flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-bold text-[#1344FF] hover:bg-blue-50">
+                    <MessageSquare className="h-4 w-4" /> 메시지
+                  </button>
+                </div>
+              ) : null}
             </div>
-          )}
-          
-          {/* 취향 태그 */}
-          <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-            {(typeof dummyUser.preferredThemes === 'string' 
-              ? dummyUser.preferredThemes.split(',') 
-              : Array.isArray(dummyUser.preferredThemes)
-                ? dummyUser.preferredThemes
-                : ['선호 테마가 없습니다']
-            ).map((tag: any, idx: number) => {
-              const tagLabel = tag?.preferredThemeName || (typeof tag === 'string' ? tag.trim() : '');
-              if (!tagLabel || tagLabel === '선호 테마가 없습니다') return null;
-              return (
-                <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-lg">
-                  #{tagLabel}
+
+            {!isOtherUser ? (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm text-slate-500 md:justify-start">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <Mail className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="truncate">{dummyUser.email}</span>
                 </span>
+                <span className="hidden h-3 w-px bg-slate-300 sm:block" />
+                <span>{genderLabel} · {age === null ? "연령 미설정" : `${age}세`}</span>
+              </div>
+            ) : null}
+
+            <div className="mt-7 grid max-w-xl grid-cols-3 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 shadow-[0_10px_30px_-25px_rgba(15,23,42,0.5)]">
+              {stats.map(({ label, value, icon: Icon }, index) => (
+                <div key={label} className={`flex items-center justify-center gap-2 px-2 py-3.5 ${index > 0 ? "border-l border-slate-200" : ""}`}>
+                  <Icon className={`hidden h-4 w-4 sm:block ${index === 2 ? "text-[#1344FF]" : "text-slate-400"}`} />
+                  <div>
+                    <p className={`text-lg font-black leading-none ${index === 2 ? "text-[#1344FF]" : "text-slate-950"}`}>{value}</p>
+                    <p className="mt-1.5 whitespace-nowrap text-[11px] font-semibold text-slate-500 sm:text-xs">{label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <aside className="mt-7 rounded-[24px] border border-slate-200/80 bg-white/75 p-4 shadow-[0_18px_45px_-35px_rgba(15,23,42,0.45)] backdrop-blur-sm sm:mt-8 sm:p-5" aria-label="여행 취향">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1344FF] text-white shadow-md shadow-blue-100">
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className="text-sm font-extrabold text-slate-900">나의 여행 취향</h2>
+                <p className="mt-0.5 text-[11px] text-slate-400">선호 테마 {totalThemes}개</p>
+              </div>
+            </div>
+            {!isOtherUser ? (
+              <button type="button" onClick={onEditThemes} className="text-xs font-bold text-[#1344FF] hover:underline">
+                취향 수정
+              </button>
+            ) : null}
+          </div>
+
+          <div className="grid gap-2.5 lg:grid-cols-3">
+            {THEME_GROUPS.map(({ key, label, description, icon: Icon, color }) => {
+              const themes = themesByCategory.get(key) ?? [];
+              return (
+                <div key={key} className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-3">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${color}`}>
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <h3 className="shrink-0 text-xs font-extrabold text-slate-700">{label}</h3>
+                      <span className="text-[10px] text-slate-400">{description}</span>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1">
+                      {themes.length > 0 ? themes.map((theme) => (
+                        <span key={`${key}-${theme}`} className="text-xs font-semibold text-slate-600">
+                          {theme}
+                        </span>
+                      )) : (
+                        <span className="text-xs text-slate-400">아직 선택한 취향이 없어요</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
-          
-          {/* 통계 */}
-          <div className="flex flex-wrap gap-6 justify-center md:justify-start mt-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-[#1344FF]">{myPlansCount}</p>
-              <p className="text-sm text-[#666666]">나의 일정</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-[#1344FF]">{editablePlansCount}</p>
-              <p className="text-sm text-[#666666]">초대된 일정</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-[#1344FF]">{userStats.stats?.receivedLikes ?? 0}</p>
-              <p className="text-sm text-[#666666]">좋아요</p>
-            </div>
-          </div>
-        </div>
+        </aside>
       </div>
-    </div>
+    </header>
   );
 };
