@@ -114,12 +114,21 @@ const OAuthAdditionalInfo = () => {
         </p>
 
         {/* 안내 메시지 */}
-        <div className="mb-6 p-4 bg-blue-50/60 border border-blue-100 rounded-xl">
-          <p className="text-xs text-blue-700 font-medium leading-5">
-            💡 닉네임은 마이페이지에서 변경할 수 있습니다.
-            <br />
-            여행 선호 테마는 가입 후 마이페이지의 프로필 설정에서 등록할
-            수 있습니다.
+        <div className="mb-6 p-4 bg-blue-50/60 border border-blue-100 rounded-xl space-y-2">
+          <p className="flex items-start gap-2 text-xs text-blue-700 font-medium leading-5">
+            <span aria-hidden="true" className="shrink-0">
+              💡
+            </span>
+            <span>닉네임은 마이페이지에서 변경할 수 있습니다.</span>
+          </p>
+          <p className="flex items-start gap-2 text-xs text-blue-700 font-medium leading-5">
+            <span aria-hidden="true" className="shrink-0">
+              🧭
+            </span>
+            <span>
+              여행 선호 테마는 가입 후 마이페이지의 프로필 설정에서 등록할
+              수 있습니다.
+            </span>
           </p>
         </div>
 
