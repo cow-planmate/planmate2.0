@@ -379,7 +379,6 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
             >
               {renderAvatar(post, 'w-6 h-6 text-[11px]')}
               <span className={`font-bold ${post.authorDeleted ? 'text-[#9aa0ab] italic' : 'text-[#16181d]'}`}>{post.author}</span>
-              <LevelBadge level={post.level} />
             </div>
 
             {/* 여행 정보는 작성자 정보와 성격이 달라 구분선으로 끊는다 */}
@@ -403,7 +402,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
               <div className="bg-white rounded-2xl border border-[#ececf0] p-5 sm:p-6 mb-5">
                 <h2 className="text-base font-bold text-[#111318] mb-4">여행기</h2>
                 <div className="prose max-w-none text-[#3f4451] leading-[1.75] text-[15px]">
-                  <PostContentViewer content={contentBlocks} contentText={description} />
+                  <PostContentViewer content={contentBlocks} contentText={description} flush />
                 </div>
               </div>
             )}
