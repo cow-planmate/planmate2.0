@@ -338,7 +338,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
           줄 수를 아끼는 게 핵심이다: 여행 정보와 작성자를 각각 한 줄씩 쓰면 본문이 첫 화면 밖으로 밀린다.
           작성자 이름/날짜도 위아래로 쌓지 않고 한 줄에 이어 붙인다. */}
       <div className="bg-white border-b border-[#ececf0]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+        <div className="max-w-[1450px] mx-auto px-4 sm:px-6 py-3.5">
           {/* 목록 버튼 · 제목 · 수정/삭제를 한 줄에 둔다. 제목만 늘어나고(min-w-0) 양쪽 버튼은 안 줄어든다 */}
           <div className="flex items-start gap-2 mb-2">
             <button
@@ -379,7 +379,6 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
             >
               {renderAvatar(post, 'w-6 h-6 text-[11px]')}
               <span className={`font-bold ${post.authorDeleted ? 'text-[#9aa0ab] italic' : 'text-[#16181d]'}`}>{post.author}</span>
-              <LevelBadge level={post.level} />
             </div>
 
             {/* 여행 정보는 작성자 정보와 성격이 달라 구분선으로 끊는다 */}
@@ -395,15 +394,15 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
+      <div className="max-w-[1450px] mx-auto px-4 sm:px-6 mt-6 relative z-10">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-10">
+          <div className="min-w-0 space-y-4">
             {/* 여행기 본문 */}
             {hasContent && (
               <div className="bg-white rounded-2xl border border-[#ececf0] p-5 sm:p-6 mb-5">
                 <h2 className="text-base font-bold text-[#111318] mb-4">여행기</h2>
                 <div className="prose max-w-none text-[#3f4451] leading-[1.75] text-[15px]">
-                  <PostContentViewer content={contentBlocks} contentText={description} />
+                  <PostContentViewer content={contentBlocks} contentText={description} flush />
                 </div>
               </div>
             )}
@@ -800,8 +799,8 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
           </div>
 
           {/* 사이드바 — 예전처럼 오른쪽 칼럼에 sticky로 따라온다.
-              그리드가 한 줄로 접히는 lg 미만에서는 아래 고정 바가 대신한다 */}
-          <div className="hidden lg:block space-y-4">
+              그리드가 한 줄로 접히는 xl 미만에서는 아래 고정 바가 대신한다 */}
+          <div className="hidden xl:block space-y-4">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-24">
               {/* 가져가기는 몇 번이든 가능하다 — 누를 때마다 내 여행에 새 플랜이 생긴다 */}
               <button
@@ -896,7 +895,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       </div>
 
       {/* 모바일 고정 액션 바 — 이 화면의 목적은 "가져가기"다. 항상 엄지 근처에 둔다 */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-sm border-t border-[#ececf0] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="xl:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-sm border-t border-[#ececf0] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleReact('like')}
