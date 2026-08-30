@@ -277,7 +277,7 @@ export const fetchFeedPosts = async (
   page: number, size: number, filters: FeedFilterParams = {},
 ): Promise<PageData<CommunityPostSummary>> => {
   const params = new URLSearchParams({
-    category: 'feed', page: String(page), size: String(size),
+    page: String(page), size: String(size),
     sort: filters.sort ?? 'latest', order: filters.order ?? 'desc',
   });
   if (filters.region) params.set('region', filters.region);
@@ -285,7 +285,7 @@ export const fetchFeedPosts = async (
   if (filters.maxDays !== undefined) params.set('maxDays', String(filters.maxDays));
   if (filters.tag) params.set('tag', filters.tag);
   if (filters.q && filters.q.trim()) params.set('q', filters.q.trim());
-  return mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/posts?${params}`));
+  return mapPage(await request<PageData<CommunityPostSummary>>(`/api/feed/posts?${params}`));
 };
 
 /**
@@ -297,15 +297,18 @@ export const fetchUserPosts = async (
   userId: string, category: string, page = 0, size = 20,
 ): Promise<PageData<CommunityPostSummary>> => {
   const params = new URLSearchParams({ category, page: String(page), size: String(size) });
-  return mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/users/${userId}/posts?${params}`));
+  const path = category.toLowerCase() === 'feed'
+    ? `/api/feed/users/${userId}/posts?page=${page}&size=${size}`
+    : `/api/community/users/${userId}/posts?${params}`;
+  return mapPage(await request<PageData<CommunityPostSummary>>(path));
 };
 
 /** 다른 사용자가 쓴 댓글 (원문 제목·이동 정보 포함) */
 export const fetchUserComments = async (
-  userId: string, page = 0, size = 20,
+  userId: string, page = 0, size = 20, feed = false,
 ): Promise<PageData<CommunityComment>> =>
   mapPage(await request<PageData<CommunityComment>>(
-    `/api/community/users/${userId}/comments?page=${page}&size=${size}`));
+    `/${feed ? 'api/feed' : 'api/community'}/users/${userId}/comments?page=${page}&size=${size}`));
 
 /** 다른 사용자의 활동 통계 (레벨·글 수·댓글 수) */
 export const fetchUserStats = async (userId: string): Promise<MyStats> =>
@@ -316,10 +319,10 @@ export const fetchUserBadges = async (userId: string): Promise<UserBadges> =>
   request<UserBadges>(`/api/community/users/${userId}/badges`);
 
 export const fetchFeedRegionCounts = async (): Promise<RegionCount[]> =>
-  request<RegionCount[]>('/api/community/posts/regions?category=feed');
+  request<RegionCount[]>('/api/feed/posts/regions');
 
 export const forkPost = async (postId: number | string): Promise<ForkResult> =>
-  request<ForkResult>(`/api/community/posts/${postId}/fork`, { method: 'POST' });
+  request<ForkResult>(`/api/feed/posts/${postId}/fork`, { method: 'POST' });
 
 /** durationDays → "N박 M일" 표기 (1일 여행은 "1일") */
 export const formatDuration = (durationDays?: number): string => {
@@ -353,8 +356,17 @@ export const fetchHotPosts = async (category: string): Promise<CommunityPostSumm
   return posts.map(mapPost);
 };
 
-export const fetchPost = async (postId: number | string): Promise<CommunityPostDetail> =>
-  mapPost(await request<CommunityPostDetail>(`/api/community/posts/${postId}`));
+const postPath = (postId: number | string, feed: boolean) =>
+  `${feed ? '/api/feed/posts' : '/api/community/posts'}/${postId}`;
+
+const commentsPath = (feed: boolean) =>
+  feed ? '/api/feed/comments' : '/api/community/comments';
+
+export const fetchPost = async (
+  postId: number | string,
+  feed = false,
+): Promise<CommunityPostDetail> =>
+  mapPost(await request<CommunityPostDetail>(postPath(postId, feed)));
 
 /** 상세 하단 이전/다음 글 이동 — 끝에 닿으면 해당 항목이 null 이다 */
 export interface AdjacentPosts {
@@ -362,8 +374,11 @@ export interface AdjacentPosts {
   next: { id: number; title: string } | null;
 }
 
-export const fetchAdjacentPosts = async (postId: number | string): Promise<AdjacentPosts> =>
-  request<AdjacentPosts>(`/api/community/posts/${postId}/adjacent`);
+export const fetchAdjacentPosts = async (
+  postId: number | string,
+  feed = false,
+): Promise<AdjacentPosts> =>
+  request<AdjacentPosts>(`${postPath(postId, feed)}/adjacent`);
 
 export interface CreatePostPayload {
   category: string;
@@ -391,46 +406,71 @@ export interface CreatePostPayload {
   sourcePlanId?: string;
 }
 
-export const createPost = async (payload: CreatePostPayload): Promise<CommunityPostDetail> =>
-  mapPost(await request<CommunityPostDetail>('/api/community/posts', {
+export const createPost = async (
+  payload: CreatePostPayload,
+  feed = false,
+): Promise<CommunityPostDetail> =>
+  mapPost(await request<CommunityPostDetail>(feed ? '/api/feed/posts' : '/api/community/posts', {
     method: 'POST',
     body: JSON.stringify(payload),
   }));
 
-export const updatePost = async (postId: number, payload: Partial<CreatePostPayload>): Promise<CommunityPostDetail> =>
-  mapPost(await request<CommunityPostDetail>(`/api/community/posts/${postId}`, {
+export const updatePost = async (
+  postId: number,
+  payload: Partial<CreatePostPayload>,
+  feed = false,
+): Promise<CommunityPostDetail> =>
+  mapPost(await request<CommunityPostDetail>(postPath(postId, feed), {
     method: 'PATCH',
     body: JSON.stringify(payload),
   }));
 
-export const deletePost = async (postId: number): Promise<void> =>
-  request<void>(`/api/community/posts/${postId}`, { method: 'DELETE' });
+export const deletePost = async (postId: number, feed = false): Promise<void> =>
+  request<void>(postPath(postId, feed), { method: 'DELETE' });
 
 // ── 반응 ─────────────────────────────────────────────────────────────────
-export const reactToPost = async (postId: number, type: 'like' | 'dislike'): Promise<ReactionResult> =>
-  request<ReactionResult>(`/api/community/posts/${postId}/reaction`, {
+export const reactToPost = async (
+  postId: number,
+  type: 'like' | 'dislike',
+  feed = false,
+): Promise<ReactionResult> =>
+  request<ReactionResult>(`${postPath(postId, feed)}/reaction`, {
     method: 'PUT',
     body: JSON.stringify({ type }),
   });
 
 // ── 댓글 ─────────────────────────────────────────────────────────────────
-export const fetchComments = async (postId: number | string, page = 0, size = 50): Promise<PageData<CommunityComment>> =>
-  mapPage(await request<PageData<CommunityComment>>(`/api/community/posts/${postId}/comments?page=${page}&size=${size}`));
+export const fetchComments = async (
+  postId: number | string,
+  page = 0,
+  size = 50,
+  feed = false,
+): Promise<PageData<CommunityComment>> =>
+  mapPage(await request<PageData<CommunityComment>>(`${postPath(postId, feed)}/comments?page=${page}&size=${size}`));
 
-export const createComment = async (postId: number, content: string, parentId?: number): Promise<CommunityComment> =>
-  mapPost(await request<CommunityComment>(`/api/community/posts/${postId}/comments`, {
+export const createComment = async (
+  postId: number,
+  content: string,
+  parentId?: number,
+  feed = false,
+): Promise<CommunityComment> =>
+  mapPost(await request<CommunityComment>(`${postPath(postId, feed)}/comments`, {
     method: 'POST',
     body: JSON.stringify(parentId != null ? { content, parentId } : { content }),
   }));
 
-export const updateComment = async (commentId: number, content: string): Promise<CommunityComment> =>
-  mapPost(await request<CommunityComment>(`/api/community/comments/${commentId}`, {
+export const updateComment = async (
+  commentId: number,
+  content: string,
+  feed = false,
+): Promise<CommunityComment> =>
+  mapPost(await request<CommunityComment>(`${commentsPath(feed)}/${commentId}`, {
     method: 'PATCH',
     body: JSON.stringify({ content }),
   }));
 
-export const deleteComment = async (commentId: number): Promise<void> =>
-  request<void>(`/api/community/comments/${commentId}`, { method: 'DELETE' });
+export const deleteComment = async (commentId: number, feed = false): Promise<void> =>
+  request<void>(`${commentsPath(feed)}/${commentId}`, { method: 'DELETE' });
 
 // ── 메이트 / QnA ─────────────────────────────────────────────────────────
 export const joinMate = async (postId: number): Promise<MateParticipation> =>
@@ -460,13 +500,20 @@ const myActivityQuery = (page: number, size: number, category?: string) => {
 };
 
 export const fetchMyPosts = async (page = 0, size = 20, category?: string): Promise<PageData<CommunityPostSummary>> =>
-  mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/me/posts?${myActivityQuery(page, size, category)}`));
+  mapPage(await request<PageData<CommunityPostSummary>>(
+    category?.toLowerCase() === 'feed'
+      ? `/api/feed/me/posts?page=${page}&size=${size}`
+      : `/api/community/me/posts?${myActivityQuery(page, size, category)}`));
 
 export const fetchLikedPosts = async (page = 0, size = 20, category?: string): Promise<PageData<CommunityPostSummary>> =>
-  mapPage(await request<PageData<CommunityPostSummary>>(`/api/community/me/liked?${myActivityQuery(page, size, category)}`));
+  mapPage(await request<PageData<CommunityPostSummary>>(
+    category?.toLowerCase() === 'feed'
+      ? `/api/feed/me/liked?page=${page}&size=${size}`
+      : `/api/community/me/liked?${myActivityQuery(page, size, category)}`));
 
-export const fetchMyComments = async (page = 0, size = 20): Promise<PageData<CommunityComment>> =>
-  mapPage(await request<PageData<CommunityComment>>(`/api/community/me/comments?page=${page}&size=${size}`));
+export const fetchMyComments = async (page = 0, size = 20, feed = false): Promise<PageData<CommunityComment>> =>
+  mapPage(await request<PageData<CommunityComment>>(
+    `/${feed ? 'api/feed' : 'api/community'}/me/comments?page=${page}&size=${size}`));
 
 export const fetchMyStats = async (): Promise<MyStats> =>
   request<MyStats>('/api/community/me/stats');

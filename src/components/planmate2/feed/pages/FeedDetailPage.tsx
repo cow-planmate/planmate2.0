@@ -60,14 +60,14 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
   const { apiRequest } = useApiClient();
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  const { data: post, isLoading, isError } = usePost(postId);
-  const { data: commentsPage } = useComments(postId);
+  const { data: post, isLoading, isError } = usePost(postId, true);
+  const { data: commentsPage } = useComments(postId, 0, true);
   const { data: similarPosts } = useSimilarFeedPosts(post?.location || post?.region, postId);
-  const createComment = useCreateComment(postId);
-  const deleteComment = useDeleteComment(postId);
-  const reactMutation = useReactToPost(postId);
+  const createComment = useCreateComment(postId, true);
+  const deleteComment = useDeleteComment(postId, true);
+  const reactMutation = useReactToPost(postId, true);
   const forkMutation = useForkPost(postId);
-  const deletePostMutation = useDeletePost();
+  const deletePostMutation = useDeletePost(true);
 
   const myUserId = localStorage.getItem('userId');
   const isLoggedIn = !!localStorage.getItem('accessToken');

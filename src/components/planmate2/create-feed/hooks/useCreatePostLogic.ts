@@ -80,9 +80,9 @@ export const useCreatePostLogic = (
   const [includeMemo, setIncludeMemo] = useState(false);
 
   const isEditMode = editPostId != null;
-  const { data: existingPost } = usePost(isEditMode ? editPostId : undefined);
-  const createPost = useCreatePost();
-  const updatePost = useUpdatePost(Number(editPostId));
+  const { data: existingPost } = usePost(isEditMode ? editPostId : undefined, true);
+  const createPost = useCreatePost(true);
+  const updatePost = useUpdatePost(Number(editPostId), true);
 
   useEffect(() => {
     const fetchDestinations = async () => {
