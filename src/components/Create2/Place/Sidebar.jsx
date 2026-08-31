@@ -3,7 +3,7 @@ import { SidebarItem } from "./SidebarItem";
 import { useApiClient } from "../../../hooks/useApiClient";
 import usePlacesStore from "../../../store/Places";
 import usePlanStore from "../../../store/Plan";
-import { mapPlaceSummary } from "../../../utils/createUtils";
+import { mapPlaceSummary, mapTextSearchResult } from "../../../utils/createUtils";
 import { faCirclePlus, faUmbrellaBeach, faBed, faUtensils, faPenNib, faMagnifyingGlass, faLightbulb } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import LoadingRing from "../../../assets/imgs/ring-resize.svg?react";
@@ -16,9 +16,9 @@ export default function Sidebar({
   handleMobileAdd,
 }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const { get } = useApiClient();
+  const { get, post } = useApiClient();
   const store = usePlacesStore();
-  const { search, setAddNext, isLoading } = store;
+  const { search, setAddSearch, setAddNext, isLoading } = store;
   const { destinationId } = usePlanStore();
   const { customPlaces, createCustomPlace, removeCustomPlace } = useNicknameStore();
 
@@ -32,12 +32,14 @@ export default function Sidebar({
   const [selectedTab, setSelectedTab] = useState("tour");
   const [searchText, setSearchText] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [nextLoading, setNextLoading] = useState(false);
   const nextRequestInFlightRef = useRef(false);
 
   const [hasSearched, setHasSearched] = useState(false);
   const searchTimerRef = useRef(null);
   const lastSearchRef = useRef("");
+  const searchRequestIdRef = useRef(0);
 
   const tabSelectedClass = {
     tour: "bg-lime-700 text-white",
@@ -70,54 +72,64 @@ export default function Sidebar({
     setCustomPlaceName("");
   };
 
-  // 검색 탭: GET /api/plan/{id}/place/{query}에 대응하는 백엔드 엔드포인트가 없어 일단 주석 처리.
-  // useEffect(() => {
-  //   if (selectedTab !== "search") return;
-  //
-  //   const q = searchText.trim();
-  //
-  //   // 🔐 API 보호
-  //   if (!q || q.length < 2 || !planId) {
-  //     setHasSearched(false);
-  //     setAddSearch({ search: [], searchNext: [] });
-  //     return;
-  //   }
-  //
-  //   // debounce
-  //   if (searchTimerRef.current) {
-  //     clearTimeout(searchTimerRef.current);
-  //   }
-  //
-  //   searchTimerRef.current = setTimeout(async () => {
-  //     if (lastSearchRef.current === q) return;
-  //     lastSearchRef.current = q;
-  //
-  //     try {
-  //       setSearchLoading(true);
-  //
-  //       const res = await get(
-  //         `${BASE_URL}/api/plan/${planId}/place/${encodeURIComponent(q)}`
-  //       );
-  //
-  //       setAddSearch({
-  //         search: Array.isArray(res?.places) ? res.places : [],
-  //         searchNext: res.nextPageTokens,
-  //       });
-  //
-  //       setHasSearched(true); // ✅ 실제 검색 완료
-  //     } catch (err) {
-  //       console.error("검색 실패:", err);
-  //     } finally {
-  //       setSearchLoading(false);
-  //     }
-  //   }, 400);
-  //
-  //   return () => {
-  //     if (searchTimerRef.current) {
-  //       clearTimeout(searchTimerRef.current);
-  //     }
-  //   };
-  // }, [searchText, selectedTab, planId]);
+  // 입력이 잠시 멈추면 Google Places Text Search를 호출한다.
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    if (selectedTab !== "search") {
+      searchRequestIdRef.current += 1;
+      setSearchLoading(false);
+      return;
+    }
+
+    const q = searchText.trim();
+    if (q.length < 2) {
+      searchRequestIdRef.current += 1;
+      lastSearchRef.current = "";
+      setHasSearched(false);
+      setSearchError("");
+      setSearchLoading(false);
+      setAddSearch({ search: [], searchNext: null });
+      return;
+    }
+
+    if (lastSearchRef.current === q) return;
+
+    setHasSearched(false);
+    setSearchError("");
+    setAddSearch({ search: [], searchNext: null });
+    const requestId = ++searchRequestIdRef.current;
+
+    searchTimerRef.current = setTimeout(async () => {
+      lastSearchRef.current = q;
+
+      try {
+        setSearchLoading(true);
+        const params = new URLSearchParams({ query: q });
+        if (destinationId != null) {
+          params.set("destinationId", String(destinationId));
+        }
+        const res = await get(`${BASE_URL}/api/place/text-search?${params}`);
+        if (searchRequestIdRef.current !== requestId) return;
+
+        setAddSearch({
+          search: (res?.places ?? []).map(mapTextSearchResult),
+          searchNext: res?.nextPageToken ?? null,
+        });
+        setHasSearched(true);
+      } catch (err) {
+        if (searchRequestIdRef.current !== requestId) return;
+        console.error("검색 실패:", err);
+        lastSearchRef.current = "";
+        setSearchError(err.message || "장소 검색에 실패했습니다.");
+        setHasSearched(true);
+      } finally {
+        if (searchRequestIdRef.current === requestId) setSearchLoading(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(searchTimerRef.current);
+  }, [BASE_URL, destinationId, get, searchText, selectedTab, setAddSearch]);
 
   const handleNext = async () => {
     if (nextRequestInFlightRef.current) return;
@@ -128,6 +140,21 @@ export default function Sidebar({
     try {
       nextRequestInFlightRef.current = true;
       setNextLoading(true);
+      if (currentTab === "search") {
+        const query = lastSearchRef.current;
+        const res = await post(`${BASE_URL}/api/place/text-search/next`, {
+          query,
+          pageToken: nextPage,
+        });
+        // 다음 페이지를 기다리는 동안 검색어가 바뀌었으면 이전 결과를 섞지 않는다.
+        if (lastSearchRef.current !== query) return;
+        setAddNext(
+          "search",
+          (res?.places ?? []).map(mapTextSearchResult),
+          res?.nextPageToken ?? null,
+        );
+        return;
+      }
       const res = await get(
         `${BASE_URL}/api/place?destinationId=${destinationId}&category=${CATEGORY_PARAM[currentTab]}&page=${nextPage}&size=20`,
       );
@@ -150,8 +177,7 @@ export default function Sidebar({
       ${showSidebar ? "translate-x-0" : "translate-x-full md:translate-x-0"}`}
     >
       <div className="flex space-x-1 overflow-x-auto shrink-0 px-5 md:px-0">
-        {/* "search" 탭: 대응하는 백엔드 엔드포인트가 없어 일단 주석 처리 */}
-        {["tour", "lodging", "restaurant", "custom" /*, "search" */].map((tab) => (
+        {["tour", "lodging", "restaurant", "custom", "search"].map((tab) => (
           <button
             key={tab}
             className={`px-4 py-2 rounded-lg md:rounded-none md:rounded-t-lg text-sm md:text-base text-nowrap ${selectedTab === tab
@@ -165,22 +191,21 @@ export default function Sidebar({
         ))}
       </div>
       <div className="flex-1 min-h-0 flex flex-col md:border md:border-gray-300 rounded-lg rounded-tl-none divide-y divide-gray-300 md:min-h-0">
-        {/* 검색 탭 입력창: 대응하는 백엔드 엔드포인트가 없어 일단 주석 처리
         {selectedTab === "search" && (
           <div className="px-5 py-2 shrink-0">
             <div className="flex items-center space-x-2">
               <input
                 type="text"
                 placeholder="장소를 입력하세요 (2글자 이상)"
-                className="flex-1 border rounded-md px-3 py-2"
+                className="flex-1 border rounded-md px-3 py-2 min-w-0"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
+                aria-label="장소 검색"
               />
               {searchLoading && <LoadingRing className="w-6 h-6" />}
             </div>
           </div>
         )}
-        */}
         {selectedTab === "custom" && (
           <div className="px-5 py-2 shrink-0">
             <div className="flex items-center space-x-2">
@@ -272,10 +297,21 @@ export default function Sidebar({
                 </p>
               </div>
             )}
-          {/* 검색 탭 빈 결과 안내: 대응하는 백엔드 엔드포인트가 없어 일단 주석 처리
+          {selectedTab === "search" && searchError && !searchLoading && (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center break-keep mt-4">
+              <div className="text-5xl mb-5 opacity-90 drop-shadow-sm text-red-400">
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
+              </div>
+              <p className="text-gray-600 text-[15px] font-medium">
+                장소 검색에 실패했습니다.
+              </p>
+              <p className="text-gray-400 text-xs mt-3">{searchError}</p>
+            </div>
+          )}
           {selectedTab === "search" &&
             hasSearched &&
             !searchLoading &&
+            !searchError &&
             search.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 px-6 text-center break-keep mt-4">
                 <div className="text-5xl mb-5 opacity-90 drop-shadow-sm text-gray-400">
@@ -289,8 +325,7 @@ export default function Sidebar({
                 </p>
               </div>
             )}
-          */}
-          {selectedTab !== "custom" && !isLoading &&
+          {selectedTab !== "custom" && !isLoading && !searchLoading &&
             store[`${selectedTab}Next`] && (
               <div className="text-center py-3">
                 <button
