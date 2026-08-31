@@ -106,14 +106,16 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
   const [isProfilePrivate, setIsProfilePrivate] = useState(false);
 
   // Tabs State
-  const [travelTab, setTravelTab] = useState<"created" | "liked">("created");
+  const [travelTab, setTravelTab] = useState<
+    "created" | "liked" | "comments"
+  >("created");
   const [communityTab, setCommunityTab] = useState<
     "my_posts" | "liked_posts" | "comments"
   >("my_posts");
 
   // 여행기 — 탭별 페이지(0-based). 탭 전환 시 1페이지로 리셋한다
   const [travelPage, setTravelPage] = useState(0);
-  const changeTravelTab = (tab: "created" | "liked") => {
+  const changeTravelTab = (tab: "created" | "liked" | "comments") => {
     setTravelTab(tab);
     setTravelPage(0);
   };
@@ -185,11 +187,27 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     "feed",
     !isOtherUser,
   );
+  // 여행기 댓글은 커뮤니티 댓글과 별개 도메인이라 /api/feed/*/comments 로 따로 조회한다
+  const { data: myFeedCommentsPage } = useMyActivity(
+    "comments",
+    travelTab === "comments" ? travelPage : 0,
+    "feed",
+    !isOtherUser,
+  );
   // 비공개 프로필로 판명되면 여행기 목록도 더 이상 요청하지 않는다
   const { data: userFeedPostsPage } = useUserPosts(
-    isOtherUser && !isProfilePrivate ? userId : undefined,
+    isOtherUser && !isProfilePrivate && travelTab !== "comments"
+      ? userId
+      : undefined,
     "feed",
     travelPage,
+  );
+  const { data: userFeedCommentsPage } = useUserComments(
+    isOtherUser && !isProfilePrivate && travelTab === "comments"
+      ? userId
+      : undefined,
+    travelPage,
+    true,
   );
 
   const travelPostsPage = (
@@ -208,9 +226,17 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     [likedFeedPostsPage],
   );
 
-  // 다른 사용자 프로필은 작성글 탭만 노출하므로 항상 작성글 페이지를 기준으로 한다
+  const travelCommentsPage = (
+    isOtherUser ? userFeedCommentsPage : myFeedCommentsPage
+  ) as PageData<any> | undefined;
+
+  // 좋아요 탭은 본인 전용이라 다른 사용자 프로필에서는 작성글로 떨어진다
   const activeTravelPage = (
-    isOtherUser || travelTab === "created" ? travelPostsPage : likedFeedPostsPage
+    travelTab === "comments"
+      ? travelCommentsPage
+      : isOtherUser || travelTab === "created"
+        ? travelPostsPage
+        : likedFeedPostsPage
   ) as PageData<any> | undefined;
 
   // 내 여행기 삭제 — 목록 캐시는 useDeletePost가 무효화한다
@@ -1117,6 +1143,7 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
             myTravelPosts={myTravelPosts}
             myTravelPostsCount={travelPostsPage?.totalElements ?? myTravelPosts.length}
             likedTravelPosts={likedTravelPosts}
+            myTravelComments={travelCommentsPage?.items ?? []}
             isOtherUser={!!isOtherUser}
             page={travelPage}
             totalPages={activeTravelPage?.totalPages ?? 1}
