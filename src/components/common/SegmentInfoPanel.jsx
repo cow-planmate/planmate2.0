@@ -5,6 +5,7 @@ import {
   faBus,
   faPersonWalking,
   faRoute,
+  faTrainSubway,
   faChevronDown,
   faChevronLeft,
   faChevronRight,
@@ -68,37 +69,76 @@ const formatPayment = (payment) => {
   return `${payment.toLocaleString()}원`;
 };
 
+// 지금 출발한다고 보고 도착 예정 시각을 만든다 → "오후 1:11 도착"
+const formatArrival = (minutes) => {
+  if (minutes == null || Number.isNaN(minutes)) return null;
+  const at = new Date(Date.now() + minutes * 60000);
+  const hour = at.getHours();
+  return `${hour < 12 ? "오전" : "오후"} ${hour % 12 || 12}:${String(at.getMinutes()).padStart(2, "0")} 도착`;
+};
+
 // null인 항목을 제외하고 " · "로 연결. 전부 null이면 null
 const joinParts = (...parts) => {
   const filtered = parts.filter(Boolean);
   return filtered.length > 0 ? filtered.join(" · ") : null;
 };
 
-// 이동 수단 한 칸. onSelect가 있으면 눌러서 지도에 경로를 그릴 수 있는 버튼이 된다.
-const SegmentRow = ({ icon, label, value, isLoading, title, tone = "blue", onSelect, isActive }) => {
+// 소요 시간 표기. 숫자만 크게 두고 "시간"/"분" 단위는 작게 붙인다.
+const BigDuration = ({ minutes }) => {
+  const text = formatMinutes(minutes);
+  if (!text) return null;
+
+  return (
+    <span className="text-slate-900">
+      {text.split(/(\d+)/).filter(Boolean).map((part, i) =>
+        /^\d+$/.test(part) ? (
+          <span key={i} className="text-[22px] font-extrabold leading-none tracking-tight">{part}</span>
+        ) : (
+          <span key={i} className="text-[15px] font-bold leading-none">{part}</span>
+        )
+      )}
+    </span>
+  );
+};
+
+// 이동 수단 요약 한 줄. 소요 시간을 가장 크게 두고 요금·거리는 보조 문구로 붙인다.
+// onSelect가 있으면 눌러서 지도에 경로를 그릴 수 있는 버튼이 된다.
+const SegmentRow = ({ label, primary, secondary, isLoading, title, onSelect, isActive }) => {
+  if (isLoading) {
+    return (
+      <div className="px-4 py-3.5">
+        <span
+          className="block h-5 w-24 animate-pulse rounded bg-slate-100"
+          aria-label={`${label} 정보 불러오는 중`}
+        />
+      </div>
+    );
+  }
+
   const body = (
     <>
-      <span className={`flex h-7 w-7 flex-none items-center justify-center rounded-lg ${
-        isActive
-          ? "bg-main text-white"
-          : tone === "green" ? "bg-emerald-50 text-emerald-600" : tone === "gray" ? "bg-white text-slate-500" : "bg-blue-50 text-main"
-      }`}>
-        <FontAwesomeIcon icon={icon} className="text-xs" />
-      </span>
       <span className="sr-only">{label}</span>
-      {isLoading ? (
-        <span className="h-4 w-16 animate-pulse rounded bg-slate-200" aria-label={`${label} 정보 불러오는 중`} />
-      ) : (
-        <span className={`min-w-0 text-[13px] font-semibold leading-5 ${isActive ? "text-main" : "text-slate-700"}`}>
-          {value ?? "정보 없음"}
+      <span className="min-w-0 truncate">
+        {primary ? (
+          <span className="text-[17px] font-bold leading-6 tracking-tight text-slate-900">{primary}</span>
+        ) : (
+          <span className="text-[13px] font-medium text-slate-400">정보 없음</span>
+        )}
+        {primary && secondary && (
+          <span className="ml-1.5 text-[13px] font-medium text-slate-500">{secondary}</span>
+        )}
+      </span>
+      {onSelect && primary && (
+        <span className={`flex-none text-[11px] font-bold ${isActive ? "text-main" : "text-slate-400"}`}>
+          {isActive ? "지도 표시 중" : "지도에서 보기"}
         </span>
       )}
     </>
   );
 
-  const className = "flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5";
+  const className = "flex w-full min-w-0 items-center justify-between gap-3 px-4 py-3.5 text-left";
 
-  if (!onSelect || isLoading || value == null) {
+  if (!onSelect || primary == null) {
     return <div className={className} title={title}>{body}</div>;
   }
 
@@ -108,7 +148,7 @@ const SegmentRow = ({ icon, label, value, isLoading, title, tone = "blue", onSel
       onClick={onSelect}
       aria-pressed={!!isActive}
       title={title ?? `${label} 경로를 지도에서 보기`}
-      className={`${className} text-left transition ${isActive ? "bg-blue-50" : "hover:bg-blue-50/60"}`}
+      className={`${className} transition ${isActive ? "bg-blue-50/70" : "hover:bg-slate-50"}`}
     >
       {body}
     </button>
@@ -116,7 +156,7 @@ const SegmentRow = ({ icon, label, value, isLoading, title, tone = "blue", onSel
 };
 
 const NumberBadge = ({ number }) => (
-  <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-main text-xs font-bold text-white shadow-sm shadow-blue-200">
+  <span className="relative z-10 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-main text-[11px] font-bold text-white ring-4 ring-white">
     {number}
   </span>
 );
@@ -128,20 +168,25 @@ const stepColor = (step) => {
   return null; // 도보는 Tailwind bg-slate-300 사용
 };
 
-// 경로 하나의 비율 막대(도보=회색, 버스=초록, 지하철=노선색). 폭 ∝ sectionTime.
+// 경로 하나의 비율 막대. 폭 ∝ sectionTime, 칸 안에 해당 구간 소요 시간을 적는다.
+// 도보는 회색 트랙 위 회색 글씨, 버스/지하철은 노선색 캡슐 + 흰 글씨.
 const RouteBar = ({ steps }) => (
-  <div className="mb-3 flex h-2.5 overflow-hidden rounded-full bg-slate-100">
+  <div className="flex h-6 items-center gap-0.5 overflow-hidden rounded-full bg-slate-100 px-0.5">
     {steps.map((step, i) => {
       const isWalk = step.trafficType === 3;
-      const color = stepColor(step);
+      const minutes = Math.max(1, Math.round(step.sectionTime || 1));
+      const icon =
+        isWalk ? faPersonWalking : step.trafficType === 2 ? faBus : faTrainSubway;
       return (
         <div
           key={i}
-          style={{ flexGrow: step.sectionTime || 1, backgroundColor: color ?? undefined }}
-          className={`flex min-w-[8px] items-center justify-center gap-0.5 overflow-hidden ${
-            isWalk ? "bg-slate-300" : ""
+          style={{ flexGrow: step.sectionTime || 1, backgroundColor: isWalk ? undefined : stepColor(step) }}
+          className={`flex h-5 min-w-[20px] items-center justify-center gap-1 overflow-hidden rounded-full px-1.5 ${
+            isWalk ? "text-slate-500" : "text-white"
           }`}
         >
+          <FontAwesomeIcon icon={icon} className="flex-none text-[9px]" />
+          <span className="truncate text-[10px] font-bold leading-none">{minutes}분</span>
         </div>
       );
     })}
@@ -155,7 +200,7 @@ const PassStopsToggle = ({ passStops }) => {
   if (!passStops || passStops.length === 0) return null;
 
   return (
-    <div className="pl-4">
+    <div className="mt-1">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -177,67 +222,36 @@ const PassStopsToggle = ({ passStops }) => {
   );
 };
 
-// 경로 하나의 대중교통 상세 스텝 행(도보 제외).
-const RouteDetailRow = ({ step }) => {
-  let rowContent = null;
+// 경로 하나의 대중교통 스텝 행. 왼쪽에 노선, 오른쪽에 승차역과 부가 정보를 둔다.
+// 도보 구간은 위 막대에 소요 시간이 이미 나오므로 목록에서는 생략한다.
+const RouteStepRow = ({ step }) => {
+  if (step.trafficType !== 1 && step.trafficType !== 2) return null;
 
-  if (step.trafficType === 3) {
-    rowContent = (
-      <div className="flex items-center gap-2 text-xs text-slate-500">
-        <FontAwesomeIcon icon={faPersonWalking} className="text-slate-400" />
-        <span>
-          {step.startName && step.endName
-            ? `${step.startName}에서 ${step.endName}까지 도보`
-            : "도보 이동"}
-        </span>
-        {step.distance > 0 && <span className="font-semibold text-slate-400">{formatMeters(step.distance)}</span>}
-        {step.sectionTime > 0 && <span className="text-slate-400">약 {formatMinutes(step.sectionTime)}</span>}
-      </div>
-    );
-  } else if (step.trafficType === 2) {
-    rowContent = (
-      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
-        <span className="rounded-md bg-green-50 px-1.5 py-0.5 font-semibold text-green-700">
-          {BUS_TYPE_LABELS[step.busType] || "버스"}
-        </span>
-        {step.startName && <span>{step.startName}</span>}
-        {step.laneName && (
-          <span className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-bold">
-            {step.laneName}
-          </span>
-        )}
-        {step.intervalTime != null && (
-          <span className="text-slate-400">배차 {step.intervalTime}분</span>
-        )}
-      </div>
-    );
-  } else if (step.trafficType === 1) {
-    const color = SUBWAY_COLORS[step.subwayCode] || DEFAULT_SUBWAY_COLOR;
-    rowContent = (
-      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
-        <span
-          style={{ backgroundColor: color }}
-          className="rounded-md px-1.5 py-0.5 font-semibold text-white"
-        >
-          {step.laneName || "지하철"}
-        </span>
-        <span>
-          {step.startName}역 승차 ~ {step.endName}역 하차
-        </span>
-        {step.startExitNo && <span className="text-slate-400">{step.startExitNo}번 출구</span>}
-        {step.intervalTime != null && (
-          <span className="text-slate-400">배차 {step.intervalTime}분</span>
-        )}
-      </div>
-    );
-  }
-
-  if (!rowContent) return null;
+  const isBus = step.trafficType === 2;
+  const color = stepColor(step) ?? DEFAULT_SUBWAY_COLOR;
+  const lane = step.laneName || (isBus ? "버스" : "지하철");
+  const station = isBus ? step.startName : step.startName ? `${step.startName}역` : null;
+  const sub = joinParts(
+    isBus ? BUS_TYPE_LABELS[step.busType] ?? null : step.startExitNo ? `${step.startExitNo}번 출구` : null,
+    step.endName ? `${isBus ? step.endName : `${step.endName}역`} 방면` : null,
+    step.intervalTime != null ? `배차 ${step.intervalTime}분` : null
+  );
 
   return (
-    <div className="relative space-y-1 border-l-2 border-slate-100 py-1 pl-3 before:absolute before:-left-[5px] before:top-2 before:h-2 before:w-2 before:rounded-full before:bg-slate-300">
-      {rowContent}
-      <PassStopsToggle passStops={step.passStops} />
+    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-start gap-3 py-1.5">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <FontAwesomeIcon
+          icon={isBus ? faBus : faTrainSubway}
+          style={{ color }}
+          className="flex-none text-[11px]"
+        />
+        <span style={{ color }} className="truncate text-[13px] font-bold">{lane}</span>
+      </div>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-bold text-slate-900">{station ?? "-"}</div>
+        {sub && <div className="mt-0.5 truncate text-[11px] text-slate-400">{sub}</div>}
+        <PassStopsToggle passStops={step.passStops} />
+      </div>
     </div>
   );
 };
@@ -278,15 +292,15 @@ const RouteStepsToggle = ({ steps }) => {
 const RoadRoutes = ({ profile, routes, selectedIndex, isLoading, onSelectRoute }) => {
   if (isLoading) {
     return (
-      <div className="mt-3 border-t border-slate-100 pt-3">
-        <div className="h-20 animate-pulse rounded-2xl bg-slate-100" aria-label="경로 불러오는 중" />
+      <div className="pt-1">
+        <div className="h-20 animate-pulse rounded-xl bg-slate-100" aria-label="경로 불러오는 중" />
       </div>
     );
   }
 
   if (!routes || routes.length === 0) {
     return (
-      <div className="mt-3 border-t border-slate-100 pt-3 text-center text-xs text-slate-400">
+      <div className="py-4 text-center text-xs text-slate-400">
         경로를 불러오지 못했어요.
       </div>
     );
@@ -295,8 +309,8 @@ const RoadRoutes = ({ profile, routes, selectedIndex, isLoading, onSelectRoute }
   const label = profile === "foot" ? "도보" : "차량";
 
   return (
-    <div className="mt-3 border-t border-slate-100 pt-3">
-      <div className="mb-2 text-[11px] font-bold text-slate-400">{label} 경로 {routes.length}개</div>
+    <div className="pt-1">
+      <div className="mb-2 text-[11px] font-bold tracking-wide text-slate-400">{label} 경로 {routes.length}개</div>
 
       {routes.map((route, ri) => {
         const isSelected = selectedIndex === ri;
@@ -304,8 +318,8 @@ const RoadRoutes = ({ profile, routes, selectedIndex, isLoading, onSelectRoute }
         return (
           <div
             key={ri}
-            className={`mb-3 rounded-2xl border bg-white p-3.5 shadow-sm transition ${
-              isSelected ? "border-blue-300 ring-1 ring-blue-100" : "border-slate-200 hover:border-blue-200"
+            className={`mb-2 rounded-xl border bg-white p-3.5 transition ${
+              isSelected ? "border-main/40 bg-blue-50/40" : "border-slate-200/80 hover:border-slate-300"
             }`}
           >
             <div className="flex items-baseline justify-between">
@@ -317,7 +331,9 @@ const RoadRoutes = ({ profile, routes, selectedIndex, isLoading, onSelectRoute }
                   {formatMeters(route.distance)}
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-slate-400">
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                ri === 0 ? "bg-blue-50 text-main" : "text-slate-400"
+              }`}>
                 {ri === 0 ? "추천" : `대안 ${ri}`}
               </span>
             </div>
@@ -327,8 +343,10 @@ const RoadRoutes = ({ profile, routes, selectedIndex, isLoading, onSelectRoute }
             <button
               type="button"
               onClick={() => onSelectRoute(ri)}
-              className={`mt-3 w-full rounded-xl py-2 text-xs font-bold transition ${
-                isSelected ? "bg-slate-800 text-white" : "bg-blue-50 text-main hover:bg-blue-100"
+              className={`mt-3 w-full rounded-lg border py-2 text-xs font-bold transition ${
+                isSelected
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-main hover:text-main"
               }`}
             >
               {isSelected ? "지도에 표시 중" : "지도에 보기"}
@@ -360,20 +378,36 @@ const TransitRoutes = ({
     { key: 3, label: `버스+지하철 ${subwayBusCount ?? 0}` },
   ];
 
-  const filtered = selected === "전체" ? routes : routes.filter((r) => r.pathType === selected);
+  const filtered = (selected === "전체" ? routes : routes.filter((r) => r.pathType === selected))
+    .slice()
+    .sort((a, b) => (a.totalTime ?? Infinity) - (b.totalTime ?? Infinity));
+
+  // 네이버 지도처럼 대표 경로에 라벨을 붙인다. 같은 값이면 앞선 경로가 가져간다.
+  const transfersOf = (r) => (r.busTransitCount ?? 0) + (r.subwayTransitCount ?? 0);
+  const pickIndex = (score) =>
+    filtered.reduce((best, r, i) => (score(r) < score(filtered[best]) ? i : best), 0);
+  const fewestTransferIndex = filtered.length > 0 ? pickIndex(transfersOf) : -1;
+  const shortestWalkIndex = filtered.length > 0 ? pickIndex((r) => r.totalWalk ?? Infinity) : -1;
+
+  const labelOf = (i) => {
+    if (i === 0) return "최적"; // 정렬했으므로 첫 번째가 최단 시간
+    if (i === fewestTransferIndex) return "환승 적음";
+    if (i === shortestWalkIndex) return "도보 적음";
+    return null;
+  };
 
   return (
-    <div className="mt-3 border-t border-slate-100 pt-3">
-      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+    <div className="border-t border-slate-100 px-4 pt-3">
+      <div className="mb-1 flex gap-1.5 overflow-x-auto pb-1">
         {chips.map((chip) => (
           <button
             key={chip.key}
             type="button"
             onClick={() => setSelected(chip.key)}
-            className={`flex-none rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+            className={`flex-none rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
               selected === chip.key
-                ? "bg-main text-white shadow-sm"
-                : "border border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                ? "border-main bg-blue-50 text-main"
+                : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
             }`}
           >
             {chip.label}
@@ -382,46 +416,79 @@ const TransitRoutes = ({
       </div>
 
       {filtered.map((route, ri) => {
-        const transferCount =
-          (route.busTransitCount ?? 0) + (route.subwayTransitCount ?? 0);
+        const transferCount = transfersOf(route);
         const subtitle = joinParts(
           transferCount > 0 ? `환승 ${transferCount}회` : null,
-          route.totalWalk ? `도보 ${route.totalWalk}m` : null
+          route.totalWalk ? `도보 ${formatMeters(route.totalWalk)}` : null
         );
+        const label = labelOf(ri);
         const laneKey = `${segmentIndex}-${ri}`;
         const laneActive = activeTransitKey === laneKey;
 
         return (
-          <div key={ri} className="mb-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm transition hover:border-blue-200">
-            <div className="flex items-baseline justify-between">
-              <div><span className="text-xl font-extrabold tracking-tight text-slate-900">{route.totalTime}</span><span className="ml-0.5 text-sm font-bold text-slate-600">분</span></div>
-              <span className="text-xs font-medium text-slate-500">
-                {route.payment?.toLocaleString()}원
-              </span>
-            </div>
-            {subtitle && <div className="mb-3 mt-0.5 text-xs font-medium text-slate-400">{subtitle}</div>}
-
-            <RouteBar steps={route.steps} />
-
-            <div className="space-y-1.5">
-              {route.steps.map((step, si) => <RouteDetailRow key={si} step={step} />)}
-            </div>
-
-            {route.lastEndStation && (
-              <div className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500"><span className="h-2 w-2 rounded-full border-2 border-slate-400" />{route.lastEndStation} 하차</div>
+          <div
+            key={ri}
+            className={`-mx-4 border-t border-slate-100 px-4 py-4 transition first:border-t-0 ${
+              laneActive ? "bg-blue-50/60" : "hover:bg-slate-50/70"
+            }`}
+          >
+            {(label || subtitle) && (
+              <div className="mb-1 flex items-baseline justify-between gap-2">
+                {label && <span className="text-[13px] font-bold text-main">{label}</span>}
+                {subtitle && (
+                  <span className="ml-auto text-[11px] font-medium text-slate-400">{subtitle}</span>
+                )}
+              </div>
             )}
+
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <BigDuration minutes={route.totalTime} />
+              {formatArrival(route.totalTime) && (
+                <>
+                  <span className="text-slate-300">|</span>
+                  <span className="text-[13px] font-medium text-slate-500">
+                    {formatArrival(route.totalTime)}
+                  </span>
+                </>
+              )}
+              {formatPayment(route.payment) && (
+                <>
+                  <span className="text-slate-300">|</span>
+                  <span className="text-[13px] font-medium text-slate-500">
+                    {formatPayment(route.payment)}
+                  </span>
+                </>
+              )}
+            </div>
+
+            <div className="mt-3">
+              <RouteBar steps={route.steps} />
+            </div>
+
+            <div className="mt-3">
+              {route.steps.map((step, si) => <RouteStepRow key={si} step={step} />)}
+
+              {route.lastEndStation && (
+                <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-3 py-1.5">
+                  <div className="flex items-center gap-1.5 text-slate-400">
+                    <span className="h-2.5 w-2.5 flex-none rounded-full border-2 border-slate-300" />
+                    <span className="text-[13px] font-bold">하차</span>
+                  </div>
+                  <span className="truncate text-sm font-bold text-slate-900">
+                    {route.lastEndStation}
+                  </span>
+                </div>
+              )}
+            </div>
 
             {onShowTransitRoute && route.mapObj && (
               <button
                 type="button"
                 onClick={() => onShowTransitRoute(route.mapObj, laneKey, segmentIndex)}
-                className={`mt-3 w-full rounded-xl py-2 text-xs font-bold transition ${
-                  laneActive
-                    ? "bg-slate-800 text-white"
-                    : "bg-blue-50 text-main hover:bg-blue-100"
-                }`}
+                className="mt-2 flex items-center gap-1 text-xs font-bold text-slate-500 transition hover:text-main"
               >
-                {laneActive ? "지도에서 숨기기" : "지도에 보기"}
+                {laneActive ? "지도에서 숨기기" : "지도에서 보기"}
+                <FontAwesomeIcon icon={faChevronRight} className="text-[9px]" />
               </button>
             )}
           </div>
@@ -436,7 +503,10 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
   const [expanded, setExpanded] = useState(false);
 
   const available = transit?.available && transit.routes?.length;
-  const best = available ? transit.routes[0] : null;
+  // 목록이 소요 시간 순이므로 요약도 가장 빠른 경로로 맞춘다 (ODsay 응답 순서는 시간순이 아니다)
+  const best = available
+    ? transit.routes.reduce((a, b) => ((b.totalTime ?? Infinity) < (a.totalTime ?? Infinity) ? b : a))
+    : null;
   const transferCount = best
     ? (best.busTransitCount ?? 0) + (best.subwayTransitCount ?? 0)
     : 0;
@@ -444,15 +514,13 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
   return (
     <div>
       <SegmentRow
-        icon={faBus}
         label="대중교통"
-        tone="green"
         isLoading={isLoading}
         title={!available ? transit?.message ?? undefined : undefined}
-        value={
+        primary={available ? formatMinutes(best.totalTime) : null}
+        secondary={
           available
             ? joinParts(
-                formatMinutes(best.totalTime),
                 formatPayment(best.payment),
                 transferCount > 0 ? `환승 ${transferCount}회` : null
               )
@@ -464,7 +532,7 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="flex w-full items-center justify-center gap-1 border-t border-slate-100 bg-white/60 py-2 text-[11px] font-bold text-main transition hover:bg-blue-50"
+            className="flex w-full items-center justify-center gap-1 border-t border-slate-100 py-2.5 text-[11px] font-bold text-slate-500 transition hover:bg-slate-50 hover:text-main"
           >
             {expanded ? "접기" : `경로 ${transit.routes.length}개 보기`}
             <FontAwesomeIcon icon={expanded ? faChevronUp : faChevronDown} className="text-[10px]" />
@@ -597,20 +665,12 @@ export default function SegmentInfoPanel({
           : "absolute bottom-0 left-0 right-0 z-20 flex max-h-[70%] flex-col rounded-t-3xl bg-white/95 shadow-[0_-8px_30px_rgba(15,23,42,0.18)] backdrop-blur-md md:bottom-4 md:left-4 md:right-auto md:top-4 md:max-h-none md:w-[clamp(340px,36%,400px)] md:rounded-3xl md:ring-1 md:ring-black/5 md:shadow-[0_12px_40px_rgba(15,23,42,0.18)]"}
       >
         {panelVariant !== "edge" && <div className="mx-auto mt-2 h-1 w-10 flex-none rounded-full bg-slate-200 md:hidden" />}
-        <header className="flex flex-none items-center justify-between border-b border-slate-100 bg-white/90 px-5 py-4">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-main text-white shadow-sm shadow-blue-200">
-              <FontAwesomeIcon icon={faRoute} className="text-sm" />
+        <header className="flex flex-none items-center justify-between gap-3 border-b border-slate-100 bg-white/90 px-4 py-3.5">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <h2 className="text-[15px] font-bold tracking-tight text-slate-900">구간별 이동</h2>
+            <span className="flex-none text-xs font-medium text-slate-400">
+              {Math.max(0, sortedSchedule.length - 1)}구간
             </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900">구간별 이동</h2>
-                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-main">
-                  {Math.max(0, sortedSchedule.length - 1)}구간
-                </span>
-              </div>
-              <p className="truncate text-xs text-slate-400">이동 수단별 시간과 경로를 비교해 보세요</p>
-            </div>
           </div>
           <button
             type="button"
@@ -640,51 +700,55 @@ export default function SegmentInfoPanel({
               잠시 후 다시 시도해 주세요.
             </div>
           ) : (
-            <div className="px-5 py-5">
+            <div className="px-4 py-4">
               {sortedSchedule.map((item, i) => {
                 const next = sortedSchedule[i + 1];
                 const transit = segmentData.transit?.[i];
                 const activeMode = segmentModes[i] ?? "transit";
 
                 return (
-                  <div key={item.id} className="relative grid grid-cols-[28px_minmax(0,1fr)] gap-x-3">
+                  <div key={item.id} className="relative grid grid-cols-[24px_minmax(0,1fr)] gap-x-3">
                     <div className="relative flex justify-center">
                       {next && (
                         <span
                           aria-hidden="true"
-                          className="absolute bottom-0 top-7 w-px bg-blue-200"
+                          className="absolute bottom-0 top-0 w-px bg-slate-200"
                         />
                       )}
                       <NumberBadge number={i + 1} />
                     </div>
 
-                    <div className={next ? "pb-7" : "pb-1"}>
-                      <div className="flex h-7 min-w-0 items-center">
-                        <span className="truncate text-[15px] font-bold text-slate-900">
+                    <div className={next ? "pb-6" : "pb-1"}>
+                      <div className="flex h-6 min-w-0 items-center">
+                        <span className="truncate text-[15px] font-bold leading-6 tracking-tight text-slate-900">
                           {item.place.name}
                         </span>
                       </div>
 
                       {next && (
-                        <div className="mt-3">
-                          <button
-                            type="button"
-                            onClick={() => onFocusSegment?.(i)}
-                            aria-pressed={activeSegmentIndex === i}
-                            className={`mb-2.5 flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition ${
-                              activeSegmentIndex === i
-                                ? "bg-main text-white shadow-sm"
-                                : "bg-blue-50 text-main hover:bg-blue-100"
-                            }`}
-                          >
-                            <span>{i + 1} → {i + 2} 구간</span>
-                            <span>{activeSegmentIndex === i ? "선택됨" : "지도에서 보기"}</span>
-                          </button>
+                        <div className="mt-2.5">
+                          <div className="mb-1.5 flex items-center justify-between gap-2 pl-0.5">
+                            <span className="text-[11px] font-bold tracking-wide text-slate-400">
+                              {i + 1} → {i + 2} 구간
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => onFocusSegment?.(i)}
+                              aria-pressed={activeSegmentIndex === i}
+                              className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold transition ${
+                                activeSegmentIndex === i
+                                  ? "bg-blue-50 text-main"
+                                  : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                              }`}
+                            >
+                              {activeSegmentIndex === i ? "지도에 표시 중" : "지도에서 보기"}
+                            </button>
+                          </div>
                           <div
-                            className="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/80 shadow-sm"
+                            className="overflow-hidden rounded-xl border border-slate-200/80 bg-white"
                             aria-label={`${item.place.name}에서 ${next.place.name}까지 이동 정보`}
                           >
-                            <div className="grid grid-cols-3 border-b border-slate-200 bg-white" role="tablist" aria-label={`${i + 1}구간 이동 수단 선택`}>
+                            <div className="flex border-b border-slate-100 px-1" role="tablist" aria-label={`${i + 1}구간 이동 수단 선택`}>
                               {[
                                 { key: "transit", label: "대중교통", icon: faBus },
                                 { key: "driving", label: "자동차", icon: faCar },
@@ -698,32 +762,33 @@ export default function SegmentInfoPanel({
                                     role="tab"
                                     aria-selected={selected}
                                     onClick={() => setSegmentModes((current) => ({ ...current, [i]: mode.key }))}
-                                    className={`flex min-w-0 items-center justify-center gap-1.5 border-r border-slate-100 px-1 py-3 text-xs font-bold transition last:border-r-0 ${
-                                      selected ? "bg-main text-white" : "bg-white text-slate-500 hover:bg-slate-50"
+                                    className={`relative flex min-w-0 flex-1 items-center justify-center gap-1.5 px-1 py-2.5 text-[13px] transition ${
+                                      selected
+                                        ? "font-bold text-slate-900"
+                                        : "font-medium text-slate-400 hover:text-slate-600"
                                     }`}
                                   >
                                     <FontAwesomeIcon icon={mode.icon} className="text-[11px]" />
                                     <span className="truncate">{mode.label}</span>
+                                    {selected && (
+                                      <span aria-hidden="true" className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-main" />
+                                    )}
                                   </button>
                                 );
                               })}
                             </div>
                             {activeMode !== "transit" && <div>
                               <SegmentRow
-                                icon={activeMode === "driving" ? faCar : faPersonWalking}
                                 label={activeMode === "driving" ? "자동차" : "도보"}
-                                tone={activeMode === "driving" ? "blue" : "gray"}
                                 isLoading={isLoading}
                                 onSelect={onShowRoadRoute ? () => onShowRoadRoute(activeMode, i) : undefined}
                                 isActive={roadRoute?.key === `${i}-${activeMode}`}
-                                value={joinParts(
-                                  formatSeconds(segmentData[activeMode]?.durations?.[i]?.[i + 1]),
-                                  formatMeters(segmentData[activeMode]?.distances?.[i]?.[i + 1])
-                                )}
+                                primary={formatSeconds(segmentData[activeMode]?.durations?.[i]?.[i + 1])}
+                                secondary={formatMeters(segmentData[activeMode]?.distances?.[i]?.[i + 1])}
                               />
                             </div>}
                             {activeMode !== "transit" && roadRoute?.segmentIndex === i && roadRoute.profile === activeMode && (
-                              <div className="border-t border-slate-200/80 px-3.5 pb-3.5">
+                              <div className="border-t border-slate-100 px-4 pb-3.5 pt-3">
                                 <RoadRoutes
                                   profile={roadRoute.profile}
                                   routes={roadRoute.routes}

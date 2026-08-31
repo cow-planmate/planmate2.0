@@ -63,7 +63,7 @@ export default function PlanInfo({ planFrame, isOwner }) {
             <Share2 className="h-4 w-4" /><span className="hidden sm:inline">공유</span>
           </button>
           <button type="button" onClick={() => navigate("/mypage")} className="flex h-10 items-center gap-2 rounded-xl bg-[#1344FF] px-3 text-sm font-bold text-white transition hover:bg-[#0e35cc] md:px-4">
-            <Check className="h-4 w-4" /><span className="hidden sm:inline">여행 저장</span>
+            <Check className="h-4 w-4" /><span className="hidden sm:inline">확인</span>
           </button>
         </div></div>
       </header>
