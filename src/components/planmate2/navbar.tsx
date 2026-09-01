@@ -63,6 +63,15 @@ export default function Navbar({
   >({});
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
+  useEffect(() => {
+    if (sessionStorage.getItem("openPreferredThemeOnboarding") !== "true") {
+      return;
+    }
+
+    sessionStorage.removeItem("openPreferredThemeOnboarding");
+    setIsThemestartOpen(true);
+  }, []);
+
   // 알림(초대) 관련 상태
   const [isInvitationOpen, setIsInvitationOpen] = useState(false);
   interface Invitation {
