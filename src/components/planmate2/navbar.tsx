@@ -423,16 +423,6 @@ export default function Navbar({
                       </button>
                       <button
                         onClick={() => {
-                          onNavigate("social");
-                          setIsProfileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-[#1344FF] transition-colors"
-                      >
-                        <Users className="w-4 h-4" />
-                        소셜
-                      </button>
-                      <button
-                        onClick={() => {
                           handleLogout();
                           setIsProfileMenuOpen(false);
                         }}

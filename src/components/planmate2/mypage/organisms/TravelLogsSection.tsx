@@ -1,13 +1,15 @@
-import { BookOpen, Copy, Heart, MessageCircle, Pencil, PenTool, Trash2 } from 'lucide-react';
+import { BookOpen, ChevronRight, Copy, Heart, MessageCircle, MessageSquare, Pencil, PenTool, Trash2 } from 'lucide-react';
 import React from 'react';
 import { Pagination } from '../../community/atoms/Pagination';
 
 interface TravelLogsSectionProps {
-  travelTab: 'created' | 'liked';
-  setTravelTab: (tab: 'created' | 'liked') => void;
+  travelTab: 'created' | 'liked' | 'comments';
+  setTravelTab: (tab: 'created' | 'liked' | 'comments') => void;
   myTravelPosts: any[];
   myTravelPostsCount?: number;
   likedTravelPosts: any[];
+  /** 여행기에 단 댓글. 커뮤니티 댓글과 별개 도메인이라 이 섹션에서 다룬다 */
+  myTravelComments?: any[];
   /** 다른 사용자의 프로필 — 공개 목록인 작성한 여행기만 노출한다 */
   isOtherUser?: boolean;
   page: number;
@@ -32,6 +34,7 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
   myTravelPosts,
   myTravelPostsCount,
   likedTravelPosts,
+  myTravelComments = [],
   isOtherUser = false,
   page,
   totalPages,
@@ -40,7 +43,7 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
   onEditPost,
   onDeletePost,
 }) => {
-  const currentTab = isOtherUser ? 'created' : travelTab;
+  const currentTab = isOtherUser && travelTab === 'liked' ? 'created' : travelTab;
 
   return (
     <>
@@ -79,15 +82,31 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
               <span className="font-medium whitespace-nowrap">좋아요한 여행</span>
             </button>
           )}
+          <button
+            onClick={() => setTravelTab('comments')}
+            className={`flex-1 min-w-0 py-4 transition-all flex items-center justify-center gap-1 sm:gap-2 ${
+              currentTab === 'comments'
+                ? 'text-[#1344FF] border-b-2 border-[#1344FF] bg-blue-50/50'
+                : 'text-[#666666] hover:text-[#1344FF] hover:bg-gray-50'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4 shrink-0" />
+            <span className="font-medium whitespace-nowrap">{isOtherUser ? '남긴 댓글' : '내가 쓴 댓글'}</span>
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      <div className={currentTab === 'comments'
+        ? 'flex flex-col gap-3 mb-12'
+        : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12'}>
         {currentTab === 'created' && myTravelPosts.length === 0 && (
           <EmptyState message={isOtherUser ? '아직 작성한 여행기가 없습니다.' : '아직 작성한 여행기가 없습니다. 완성한 일정을 피드에 공유해 보세요!'} />
         )}
         {currentTab === 'liked' && likedTravelPosts.length === 0 && (
           <EmptyState message="아직 좋아요한 여행이 없습니다." />
+        )}
+        {currentTab === 'comments' && myTravelComments.length === 0 && (
+          <EmptyState message={isOtherUser ? '여행기에 남긴 댓글이 없습니다.' : '여행기에 남긴 댓글이 없습니다. 마음에 든 여행기에 한마디 남겨 보세요!'} />
         )}
 
         {currentTab === 'created' && myTravelPosts.map(post => (
@@ -191,6 +210,31 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
                   </span>
                 </div>
                 <span className="text-xs text-[#999999]">{post.likedAt}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+        {currentTab === 'comments' && myTravelComments.map(comment => (
+          <div
+            key={comment.id}
+            onClick={() => onNavigateDetail({ id: comment.postId, category: comment.postCategory ?? 'feed' })}
+            className="bg-white p-4 rounded-xl shadow-md hover:bg-gray-50 transition-all cursor-pointer"
+          >
+            <div className="flex items-start gap-3">
+              <div className="bg-blue-50 p-2 rounded-lg shrink-0">
+                <MessageSquare className="w-4 h-4 text-[#1344FF]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[#1a1a1a] text-sm font-medium mb-2 leading-relaxed italic break-keep">"{comment.content}"</p>
+                {/* 원문 제목이 길면 날짜와 서로 밀어내므로, 좁은 화면에서는 아래로 흘린다 */}
+                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                  <div className="flex items-center gap-2 group min-w-0">
+                    <span className="shrink-0 text-[11px] text-gray-400">원문:</span>
+                    <span className="text-[11px] text-gray-600 font-semibold group-hover:text-[#1344FF] truncate min-w-0">{comment.postTitle}</span>
+                    <ChevronRight className="w-3 h-3 shrink-0 text-gray-300 group-hover:text-[#1344FF]" />
+                  </div>
+                  <span className="shrink-0 whitespace-nowrap text-[11px] text-gray-400">{comment.createdAt}</span>
+                </div>
               </div>
             </div>
           </div>

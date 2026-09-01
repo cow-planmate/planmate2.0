@@ -75,7 +75,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
 
   const react = async (postId: number, type: 'like' | 'dislike') => {
     try {
-      await reactToPost(postId, type);
+      await reactToPost(postId, type, true);
       queryClient.invalidateQueries({ queryKey: ['community', 'posts'] });
     } catch (error) {
       alert(`반응 처리에 실패했습니다: ${(error as Error).message}`);

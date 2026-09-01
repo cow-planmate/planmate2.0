@@ -36,11 +36,12 @@ import {
 const KEYS = {
   posts: (category: string, page: number, sort: string, q: string) => ['community', 'posts', category, page, sort, q] as const,
   hot: (category: string) => ['community', 'hot', category] as const,
-  post: (postId: number | string) => ['community', 'post', String(postId)] as const,
-  comments: (postId: number | string) => ['community', 'comments', String(postId)] as const,
+  post: (postId: number | string, feed = false) => [feed ? 'feed' : 'community', 'post', String(postId)] as const,
+  comments: (postId: number | string, feed = false) => [feed ? 'feed' : 'community', 'comments', String(postId)] as const,
   me: (tab: string, page: number) => ['community', 'me', tab, page] as const,
   userPosts: (userId: string, category: string, page: number) => ['community', 'user', userId, 'posts', category, page] as const,
-  userComments: (userId: string, page: number) => ['community', 'user', userId, 'comments', page] as const,
+  userComments: (userId: string, page: number, feed = false) =>
+    [feed ? 'feed' : 'community', 'user', userId, 'comments', page] as const,
   userStats: (userId: string) => ['community', 'user', userId, 'stats'] as const,
   userBadges: (userId: string) => ['community', 'user', userId, 'badges'] as const,
 };
@@ -99,30 +100,31 @@ export const useHotPosts = (category: string) =>
     staleTime: 60_000,
   });
 
-export const usePost = (postId: number | string | undefined) =>
+export const usePost = (postId: number | string | undefined, feed = false) =>
   useQuery({
-    queryKey: KEYS.post(postId ?? ''),
-    queryFn: () => fetchPost(postId!),
+    queryKey: KEYS.post(postId ?? '', feed),
+    queryFn: () => fetchPost(postId!, feed),
     enabled: postId !== undefined && postId !== null && postId !== '',
   });
 
-export const useAdjacentPosts = (postId: number | string | undefined) =>
+export const useAdjacentPosts = (postId: number | string | undefined, feed = false) =>
   useQuery({
-    queryKey: [...KEYS.post(postId ?? ''), 'adjacent'],
-    queryFn: () => fetchAdjacentPosts(postId!),
+    queryKey: [...KEYS.post(postId ?? '', feed), 'adjacent'],
+    queryFn: () => fetchAdjacentPosts(postId!, feed),
     enabled: postId !== undefined && postId !== null && postId !== '',
   });
 
-export const useComments = (postId: number | string | undefined, page = 0) =>
+export const useComments = (postId: number | string | undefined, page = 0, feed = false) =>
   useQuery({
-    queryKey: [...KEYS.comments(postId ?? ''), page],
-    queryFn: () => fetchComments(postId!, page),
+    queryKey: [...KEYS.comments(postId ?? '', feed), page],
+    queryFn: () => fetchComments(postId!, page, 50, feed),
     enabled: postId !== undefined && postId !== null && postId !== '',
   });
 
 /**
  * 내 커뮤니티 활동 목록.
- * @param category 게시판 필터 (마이페이지 여행기 = 'feed', 미지정 시 전체) — posts/liked에만 적용
+ * @param category 게시판 필터 (마이페이지 여행기 = 'feed', 미지정 시 전체).
+ *                 'feed'는 별개 도메인이라 comments 도 피드 엔드포인트로 간다.
  * @param enabled  다른 사용자 프로필을 볼 때처럼 내 활동이 필요 없으면 false
  */
 export const useMyActivity = (
@@ -133,7 +135,7 @@ export const useMyActivity = (
     queryFn: () => {
       if (tab === 'posts') return fetchMyPosts(page, 20, category);
       if (tab === 'liked') return fetchLikedPosts(page, 20, category);
-      return fetchMyComments(page);
+      return fetchMyComments(page, 20, category?.toLowerCase() === 'feed');
     },
     enabled,
   });
@@ -147,10 +149,10 @@ export const useUserPosts = (userId: string | undefined, category: string, page 
     enabled: !!userId,
   });
 
-export const useUserComments = (userId: string | undefined, page = 0) =>
+export const useUserComments = (userId: string | undefined, page = 0, feed = false) =>
   useQuery({
-    queryKey: KEYS.userComments(userId ?? '', page),
-    queryFn: () => fetchUserComments(userId!, page),
+    queryKey: KEYS.userComments(userId ?? '', page, feed),
+    queryFn: () => fetchUserComments(userId!, page, 20, feed),
     enabled: !!userId,
   });
 
@@ -184,17 +186,18 @@ const useInvalidate = () => {
   return {
     lists: () => queryClient.invalidateQueries({ queryKey: ['community', 'posts'] })
         .then(() => queryClient.invalidateQueries({ queryKey: ['community', 'hot'] })),
-    post: (postId: number | string) => queryClient.invalidateQueries({ queryKey: KEYS.post(postId) }),
-    comments: (postId: number | string) => queryClient.invalidateQueries({ queryKey: KEYS.comments(postId) }),
+    // 피드와 커뮤니티는 키 네임스페이스가 다르다 — 무효화도 같은 flag 로 맞춰야 한다.
+    post: (postId: number | string, feed = false) => queryClient.invalidateQueries({ queryKey: KEYS.post(postId, feed) }),
+    comments: (postId: number | string, feed = false) => queryClient.invalidateQueries({ queryKey: KEYS.comments(postId, feed) }),
     me: () => queryClient.invalidateQueries({ queryKey: ['community', 'me'] }),
   };
 };
 
-export const useCreatePost = () => {
+export const useCreatePost = (feed = false) => {
   const invalidate = useInvalidate();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreatePostPayload) => createPost(payload),
+    mutationFn: (payload: CreatePostPayload) => createPost(payload, feed),
     onSuccess: () => {
       invalidate.lists();
       invalidate.me();
@@ -207,57 +210,57 @@ export const useForkPost = (postId: number | string) => {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: () => forkPost(postId),
-    onSuccess: () => { invalidate.post(postId); invalidate.lists(); },
+    onSuccess: () => { invalidate.post(postId, true); invalidate.lists(); },
   });
 };
 
-export const useUpdatePost = (postId: number) => {
+export const useUpdatePost = (postId: number, feed = false) => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (payload: Partial<CreatePostPayload>) => updatePost(postId, payload),
-    onSuccess: () => { invalidate.post(postId); invalidate.lists(); },
+    mutationFn: (payload: Partial<CreatePostPayload>) => updatePost(postId, payload, feed),
+    onSuccess: () => { invalidate.post(postId, feed); invalidate.lists(); },
   });
 };
 
-export const useDeletePost = () => {
+export const useDeletePost = (feed = false) => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (postId: number) => deletePost(postId),
+    mutationFn: (postId: number) => deletePost(postId, feed),
     onSuccess: () => { invalidate.lists(); invalidate.me(); },
   });
 };
 
-export const useReactToPost = (postId: number | string) => {
+export const useReactToPost = (postId: number | string, feed = false) => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (type: 'like' | 'dislike') => reactToPost(Number(postId), type),
-    onSuccess: () => { invalidate.post(postId); invalidate.lists(); },
+    mutationFn: (type: 'like' | 'dislike') => reactToPost(Number(postId), type, feed),
+    onSuccess: () => { invalidate.post(postId, feed); invalidate.lists(); },
   });
 };
 
-export const useCreateComment = (postId: number | string) => {
+export const useCreateComment = (postId: number | string, feed = false) => {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: ({ content, parentId }: { content: string; parentId?: number }) =>
-      createComment(Number(postId), content, parentId),
-    onSuccess: () => { invalidate.comments(postId); invalidate.post(postId); invalidate.lists(); },
+      createComment(Number(postId), content, parentId, feed),
+    onSuccess: () => { invalidate.comments(postId, feed); invalidate.post(postId, feed); invalidate.lists(); },
   });
 };
 
-export const useUpdateComment = (postId: number | string) => {
+export const useUpdateComment = (postId: number | string, feed = false) => {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: ({ commentId, content }: { commentId: number; content: string }) =>
-      updateComment(commentId, content),
-    onSuccess: () => { invalidate.comments(postId); },
+      updateComment(commentId, content, feed),
+    onSuccess: () => { invalidate.comments(postId, feed); },
   });
 };
 
-export const useDeleteComment = (postId: number | string) => {
+export const useDeleteComment = (postId: number | string, feed = false) => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (commentId: number) => deleteComment(commentId),
-    onSuccess: () => { invalidate.comments(postId); invalidate.post(postId); invalidate.lists(); },
+    mutationFn: (commentId: number) => deleteComment(commentId, feed),
+    onSuccess: () => { invalidate.comments(postId, feed); invalidate.post(postId, feed); invalidate.lists(); },
   });
 };
 

@@ -73,6 +73,28 @@ export function mapPlaceSummary(dto) {
   };
 }
 
+// GET /api/place/text-search(PlaceTextSearchResultDto) 응답을 일정 편집 화면의
+// 공통 place 객체로 변환한다. 검색으로 추가한 블록은 SEARCH 카테고리로 저장된다.
+export function mapTextSearchResult(dto) {
+  const latitude = dto.latitude ?? null;
+  const longitude = dto.longitude ?? null;
+  const hasCoordinates = latitude != null && longitude != null;
+
+  return {
+    placeId: dto.placeId,
+    name: dto.name,
+    formatted_address: dto.address,
+    photoUrl: dto.thumbnailUrl,
+    iconUrl: "./src/assets/imgs/default.png",
+    categoryId: BLOCK_CATEGORY_TO_ID.SEARCH,
+    xLocation: longitude,
+    yLocation: latitude,
+    url: hasCoordinates
+      ? `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}&query_place_id=${encodeURIComponent(dto.placeId)}`
+      : "",
+  };
+}
+
 export const formatTime = (slotIndex) => {
   const { START_HOUR } = useTimetableStore.getState();
 
