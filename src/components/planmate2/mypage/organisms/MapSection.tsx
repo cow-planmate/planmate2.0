@@ -3,27 +3,29 @@ import React from 'react';
 import { CustomOverlayMap, Map } from 'react-kakao-maps-sdk';
 
 interface MapSectionProps {
+  compact?: boolean;
   allPlansCount: number;
   groupedPlansByRegion: any;
 }
 
 export const MapSection: React.FC<MapSectionProps> = ({
+  compact = false,
   allPlansCount,
   groupedPlansByRegion,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 h-[500px] flex flex-col">
+    <div className={`flex flex-col rounded-[28px] bg-slate-950 p-4 text-white ${compact ? "h-[330px]" : "h-[500px] sm:p-6"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
         <div className="flex items-center gap-2 min-w-0">
-          <MapPin className="w-6 h-6 shrink-0 text-[#1344FF]" />
-          <h3 className="text-lg sm:text-xl font-bold text-[#1a1a1a] whitespace-nowrap">나의 여행 발자취</h3>
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-blue-300"><MapPin className="h-5 w-5" /></span>
+          <div><p className="text-[10px] font-black tracking-[0.12em] text-blue-300">FOOTPRINT</p><h3 className="text-lg font-black tracking-[-0.03em] text-white whitespace-nowrap">여행 발자취</h3></div>
         </div>
-        <div className="bg-blue-50 px-3 py-1 rounded-full shrink-0">
-          <span className="text-sm font-bold text-[#1344FF] whitespace-nowrap">총 {allPlansCount}곳 방문</span>
+        <div className="shrink-0 rounded-full bg-white/10 px-3 py-1">
+          <span className="whitespace-nowrap text-sm font-bold text-white">총 {allPlansCount}곳</span>
         </div>
       </div>
       
-      <div className="flex-1 rounded-xl overflow-hidden border border-gray-200 relative">
+      <div className="relative flex-1 overflow-hidden rounded-[20px] ring-1 ring-white/10">
         <Map
           center={{ lat: 36.5, lng: 127.8 }}
           style={{ width: "100%", height: "100%" }}

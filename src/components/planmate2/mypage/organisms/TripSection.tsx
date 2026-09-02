@@ -79,11 +79,11 @@ export const TripSection: React.FC<TripSectionProps> = ({
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-8">
+    <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 min-w-0">
-          <CalendarDays className="w-6 h-6 shrink-0 text-[#1344FF]" />
-          <h3 className="text-xl font-bold text-[#1a1a1a] whitespace-nowrap">여행 상세 일정</h3>
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eef3ff] text-[#1344FF]"><CalendarDays className="h-5 w-5" /></span>
+          <div><p className="text-[10px] font-black tracking-[0.12em] text-[#1344FF]">ITINERARY</p><h3 className="mt-0.5 text-xl font-black tracking-[-0.03em] text-slate-950 whitespace-nowrap">여행 타임라인</h3></div>
         </div>
 
         {/* 삭제 모드에서는 버튼이 3개로 늘어 모바일 폭을 넘긴다 — 줄바꿈을 허용한다 */}
@@ -131,15 +131,15 @@ export const TripSection: React.FC<TripSectionProps> = ({
       </div>
 
       {/* 여행이 쌓이면 세로로 계속 길어지므로 시점별 탭으로 나눈다 */}
-      <div className="flex items-center gap-1 border-b border-gray-100 mb-6 -mx-1 overflow-x-auto">
+      <div className="mb-7 flex w-fit items-center gap-1 rounded-xl bg-slate-100 p-1 overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`relative px-4 py-3 text-sm font-bold whitespace-nowrap transition-colors ${
+            className={`relative rounded-lg px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all ${
               activeTab === tab.key
-                ? "text-[#1344FF]"
-                : "text-gray-400 hover:text-gray-600"
+                ? "bg-white text-slate-950 shadow-sm"
+                : "text-slate-400 hover:text-slate-600"
             }`}
           >
             {tab.label}
@@ -148,9 +148,6 @@ export const TripSection: React.FC<TripSectionProps> = ({
             >
               {tab.count}
             </span>
-            {activeTab === tab.key && (
-              <span className="absolute left-2 right-2 -bottom-px h-0.5 bg-[#1344FF] rounded-full" />
-            )}
           </button>
         ))}
       </div>
@@ -162,13 +159,13 @@ export const TripSection: React.FC<TripSectionProps> = ({
               <CalendarDays className="w-5 h-5 text-gray-400" />
               예정된 여행
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="relative grid grid-cols-1 gap-3 before:absolute before:bottom-6 before:left-[22px] before:top-6 before:w-px before:bg-slate-200">
               {scheduledPlans.map((trip) => (
                 <div
                   key={trip.id}
                   onClick={() => !isDeleteMode && onNavigateTrip(trip.id)}
                   // 진행 중인 여행은 테두리를 진하게 줘서 예정된 여행과 한눈에 구분되게 한다
-                  className={`bg-white rounded-xl p-5 border-2 relative overflow-hidden group transition-all shadow-sm ${isOngoing(trip) ? "border-[#1344FF]/30 hover:border-[#1344FF]/50" : trip.theme === "blue" ? "border-blue-50 hover:border-blue-200" : "border-orange-50 hover:border-orange-200"} ${isDeleteMode ? "cursor-default ring-2 ring-offset-2 " + (selectedPlanIds.includes(trip.id) ? "ring-[#1344FF]" : "ring-transparent") : "cursor-pointer hover:shadow-md hover:-translate-y-1"}`}
+                  className={`relative ml-11 overflow-visible rounded-2xl border border-slate-200 bg-[#fafbfc] p-5 transition-all before:absolute before:-left-[34px] before:top-7 before:h-3 before:w-3 before:rounded-full before:bg-[#1344FF] before:ring-4 before:ring-white ${isDeleteMode ? "cursor-default ring-2 ring-[#1344FF]" : "cursor-pointer hover:border-blue-200 hover:bg-white hover:shadow-[0_12px_30px_-22px_rgba(19,68,255,0.45)]"}`}
                 >
                   {isDeleteMode && (
                     <div

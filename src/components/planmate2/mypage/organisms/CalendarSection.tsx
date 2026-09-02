@@ -2,6 +2,7 @@ import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-rea
 import React from 'react';
 
 interface CalendarSectionProps {
+  compact?: boolean;
   currentYear: number;
   currentMonth: number;
   onPrevMonth: () => void;
@@ -14,6 +15,7 @@ interface CalendarSectionProps {
 }
 
 export const CalendarSection: React.FC<CalendarSectionProps> = ({
+  compact = false,
   currentYear,
   currentMonth,
   onPrevMonth,
@@ -25,11 +27,11 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   onEventClick,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 h-[500px] flex flex-col">
+    <div className={`flex flex-col rounded-[28px] bg-white p-4 ring-1 ring-slate-200/70 ${compact ? "h-[390px] sm:p-4" : "h-[500px] sm:p-6"}`}>
       <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-2">
-          <CalendarDays className="w-6 h-6 shrink-0 text-[#1344FF]" />
-          <h3 className="text-xl font-bold text-[#1a1a1a] whitespace-nowrap">나의 캘린더</h3>
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eef3ff] text-[#1344FF]"><CalendarDays className="h-5 w-5" /></span>
+          <div><p className="text-[10px] font-black tracking-[0.12em] text-[#1344FF]">CALENDAR</p><h3 className="text-lg font-black tracking-[-0.03em] text-slate-950 whitespace-nowrap">여행 캘린더</h3></div>
         </div>
 
         {/* 연/월 셀렉트 + 이동 버튼이 모바일 폭을 넘기면 줄바꿈시킨다 */}

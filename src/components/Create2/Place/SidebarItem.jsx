@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { MapPin } from "lucide-react";
+import { Info, MapPin } from "lucide-react";
 import MapIcon from "../../../assets/imgs/googlemaps.svg?react"; // 경로 확인 필요
 
 export const SidebarItem = ({
@@ -10,6 +10,7 @@ export const SidebarItem = ({
   isMobile,
   onMobileAdd,
   onDelete,
+  onShowDetail,
 }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `sidebar-${sourceCategory}-${place.placeId}`,
@@ -63,6 +64,21 @@ export const SidebarItem = ({
         </div>
       </div>
       <div className="space-x-2 flex items-center">
+        {onShowDetail && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowDetail();
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="w-8 h-8 flex items-center justify-center hover:bg-blue-50 text-gray-500 hover:text-main rounded-lg border border-gray-300"
+            aria-label={`${place.name} 상세 정보 보기`}
+            title="상세 정보"
+          >
+            <Info className="h-4.5 w-4.5" />
+          </button>
+        )}
         {place.url && (
           <button
             onClick={(e) => {
