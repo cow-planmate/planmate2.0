@@ -10,6 +10,8 @@ import LoadingRing from "../../../assets/imgs/ring-resize.svg?react";
 import useNicknameStore from "../../../store/Nickname";
 import PlaceDetailModal from "./PlaceDetailModal";
 
+const SEARCH_TIMEOUT_MS = 12000;
+
 export default function Sidebar({
   planId,
   isMobile,
@@ -17,7 +19,7 @@ export default function Sidebar({
   handleMobileAdd,
 }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const { get, post } = useApiClient();
+  const { get, post, apiRequest } = useApiClient();
   const store = usePlacesStore();
   const { search, setAddSearch, setAddNext, isLoading } = store;
   const { destinationId } = usePlanStore();
@@ -39,6 +41,7 @@ export default function Sidebar({
   const nextRequestInFlightRef = useRef(false);
 
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchTrigger, setSearchTrigger] = useState(0);
   const searchTimerRef = useRef(null);
   const lastSearchRef = useRef("");
   const searchRequestIdRef = useRef(0);
@@ -101,9 +104,11 @@ export default function Sidebar({
     setSearchError("");
     setAddSearch({ search: [], searchNext: null });
     const requestId = ++searchRequestIdRef.current;
+    const controller = new AbortController();
 
     searchTimerRef.current = setTimeout(async () => {
       lastSearchRef.current = q;
+      const timeoutId = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
 
       try {
         setSearchLoading(true);
@@ -111,7 +116,10 @@ export default function Sidebar({
         if (destinationId != null) {
           params.set("destinationId", String(destinationId));
         }
-        const res = await get(`${BASE_URL}/api/place/text-search?${params}`);
+        const res = await apiRequest(`${BASE_URL}/api/place/text-search?${params}`, {
+          method: "GET",
+          signal: controller.signal,
+        });
         if (searchRequestIdRef.current !== requestId) return;
 
         setAddSearch({
@@ -123,15 +131,29 @@ export default function Sidebar({
         if (searchRequestIdRef.current !== requestId) return;
         console.error("검색 실패:", err);
         lastSearchRef.current = "";
-        setSearchError(err.message || "장소 검색에 실패했습니다.");
+        setSearchError(
+          err?.name === "AbortError"
+            ? "검색 응답이 늦어지고 있어 요청을 중단했습니다. 잠시 후 다시 시도해 주세요."
+            : err.message || "장소 검색에 실패했습니다.",
+        );
         setHasSearched(true);
       } finally {
+        clearTimeout(timeoutId);
         if (searchRequestIdRef.current === requestId) setSearchLoading(false);
       }
     }, 400);
 
-    return () => clearTimeout(searchTimerRef.current);
-  }, [BASE_URL, destinationId, get, searchText, selectedTab, setAddSearch]);
+    return () => {
+      clearTimeout(searchTimerRef.current);
+      controller.abort();
+    };
+  }, [BASE_URL, destinationId, apiRequest, searchText, searchTrigger, selectedTab, setAddSearch]);
+
+  const handleSearch = () => {
+    if (searchText.trim().length < 2 || searchLoading) return;
+    lastSearchRef.current = "";
+    setSearchTrigger((value) => value + 1);
+  };
 
   const handleNext = async () => {
     if (nextRequestInFlightRef.current) return;
@@ -202,10 +224,23 @@ export default function Sidebar({
                 className="flex-1 border rounded-md px-3 py-2 min-w-0"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearch();
+                }}
                 aria-label="장소 검색"
               />
-              {searchLoading && <LoadingRing className="w-6 h-6" />}
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={searchText.trim().length < 2 || searchLoading}
+                className="h-10 min-w-16 rounded-md bg-gray-700 px-4 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {searchLoading ? <LoadingRing className="mx-auto h-5 w-5" /> : "검색"}
+              </button>
             </div>
+            <p className="mt-1.5 text-xs text-gray-400">
+              두 글자 이상 입력 시 자동으로 검색됩니다.
+            </p>
           </div>
         )}
         {selectedTab === "custom" && (

@@ -267,11 +267,6 @@ export default function MyPage({
   const [myPlans, setMyPlans] = useState<Plan[]>([]);
   const [editablePlans, setEditablePlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  // 타인 프로필은 일정 목록 대신 개수만 내려온다
-  const [otherUserPlanCounts, setOtherUserPlanCounts] = useState<{
-    myPlanCount: number;
-    editablePlanCount: number;
-  } | null>(null);
   // 내 프로필 공개 설정 (본인 프로필에서만 사용)
   const [isProfilePublic, setIsProfilePublic] = useState(true);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
@@ -775,15 +770,6 @@ export default function MyPage({
           setUserProfile(profileData as UserProfile);
           setProfileImage(profileData.profileImageUrl ?? null);
           syncMyProfileImage(profileData.profileImageUrl ?? null);
-          setOtherUserPlanCounts(
-            isOtherUser
-              ? {
-                  myPlanCount: profileData.myPlanCount ?? 0,
-                  editablePlanCount: profileData.editablePlanCount ?? 0,
-                }
-              : null,
-          );
-
           const [ownedPlans, sharedPlans] = await Promise.all([
             Promise.all(
               (profileData.myPlans || []).map((plan: Plan) =>
@@ -954,11 +940,6 @@ export default function MyPage({
     past: pastPlans,
   } = groupPlansByStatus(allPlans);
 
-  const SCHEDULED_TRIPS = [...ongoingPlans, ...upcomingPlans];
-  const PAST_TRIPS = pastPlans;
-
-  const totalLikes = 0;
-
   // 지도용 데이터 가공 (지역별 그룹화)
   const groupedPlansByRegion = [...myPlans, ...editablePlans].reduce(
     (acc: any, plan: any) => {
@@ -1066,18 +1047,9 @@ export default function MyPage({
     pendingImageFile || (profileImage && !pendingImageRemoved),
   );
 
-  const userStats = {
-    stats: {
-      postCount: stats?.postCount ?? 0,
-      commentCount: stats?.commentCount ?? 0,
-      receivedLikes: stats?.receivedLikes ?? 0,
-    },
-  };
-
   const profileHeader = (
     <ProfileHeader
       dummyUser={dummyUser}
-      userStats={userStats}
       onEditProfile={() => {
         setNewNickname(userProfile?.nickname || "");
         setNewBirthdate(userProfile?.birthdate || "");
@@ -1089,8 +1061,6 @@ export default function MyPage({
       onEditThemes={() => setIsThemeStartOpen(true)}
       onAddFriend={handleFriendAdd}
       onSendMessage={handleSendMessage}
-      myPlansCount={otherUserPlanCounts?.myPlanCount ?? myPlans.length}
-      editablePlansCount={otherUserPlanCounts?.editablePlanCount ?? editablePlans.length}
       isOtherUser={isOtherUser}
       isProfilePublic={isProfilePublic}
       isSavingVisibility={isSavingVisibility}
@@ -1099,19 +1069,7 @@ export default function MyPage({
   );
 
   const tripContent = (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          ["다가오는 여행", SCHEDULED_TRIPS.length, "text-[#1344FF]"],
-          ["지난 여행", PAST_TRIPS.length, "text-slate-950"],
-          ["여행한 지역", Object.keys(groupedPlansByRegion).length, "text-emerald-600"],
-        ].map(([label, value, color]) => (
-          <div key={String(label)} className="rounded-[22px] bg-white p-4 ring-1 ring-slate-200/70 sm:p-5">
-            <p className="text-[11px] font-bold text-slate-400 sm:text-xs">{label}</p>
-            <p className={`mt-3 text-2xl font-black tracking-[-0.04em] sm:text-3xl ${color}`}>{value}</p>
-          </div>
-        ))}
-      </div>
+    <div>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
         <div className="min-w-0 rounded-[28px] bg-white p-4 ring-1 ring-slate-200/70 sm:p-7">
           <TripSection
@@ -1163,18 +1121,6 @@ export default function MyPage({
 
   const communityContent = (
     <div>
-      <div className="mb-6 grid grid-cols-3 gap-3">
-        {[
-          ["여행기", travelPostsPage?.totalElements ?? myTravelPosts.length],
-          ["커뮤니티 글", (communityPostsPage as any)?.totalElements ?? 0],
-          ["받은 좋아요", userStats.stats.receivedLikes],
-        ].map(([label, value], index) => (
-          <div key={String(label)} className={`rounded-[22px] p-4 sm:p-5 ${index === 0 ? "bg-[#1344FF] text-white" : "bg-white text-slate-950 ring-1 ring-slate-200/70"}`}>
-            <p className={`text-[11px] font-bold sm:text-xs ${index === 0 ? "text-white/65" : "text-slate-400"}`}>{label}</p>
-            <p className="mt-3 text-2xl font-black tracking-[-0.04em] sm:text-3xl">{value}</p>
-          </div>
-        ))}
-      </div>
       <div className="rounded-[28px] bg-white px-4 pb-5 pt-1 ring-1 ring-slate-200/70 sm:px-7 sm:pb-7">
       <TravelLogsSection
         travelTab={travelTab}

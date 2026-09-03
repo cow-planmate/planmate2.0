@@ -143,7 +143,7 @@ export default function PlanmateV2() {
     else if (view === 'create') navigate('/create-post');
     else if (view === 'feed') {
       if (data?.region && data.region !== '전체') navigate(`/feed/${data.region}`);
-      else navigate('/');
+      else navigate('/feed');
     }
     else if (view === 'community-create') {
       const type = data?.boardType || boardType;

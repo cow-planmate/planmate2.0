@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Complete2 from "../pages/Complete2";
 import Create2 from "../pages/Create2";
 import Home from "../pages/Home";
@@ -23,7 +23,7 @@ const Router = () => {
       <ToastContainer />
       <Routes>
         {/* PlanmateV2 shell routes (new architecture) */}
-        <Route path="/" element={<PlanmateV2 />} />
+        <Route path="/" element={<Navigate to="/plan-maker" replace />} />
         <Route path="feed" element={<PlanmateV2 />} />
         <Route path="feed/:region" element={<PlanmateV2 />} />
         <Route path="community" element={<PlanmateV2 />} />

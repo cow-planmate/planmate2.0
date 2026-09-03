@@ -2,17 +2,14 @@ import {
   BedDouble,
   Camera,
   Globe,
-  Heart,
   Landmark,
   Lock,
   Mail,
   MessageSquare,
-  Route,
   Settings,
   Sparkles,
   User,
   UserPlus,
-  Users,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
@@ -20,13 +17,10 @@ import React, { useMemo } from "react";
 
 interface ProfileHeaderProps {
   dummyUser: any;
-  userStats: any;
   onEditProfile?: () => void;
   onEditThemes?: () => void;
   onAddFriend?: () => void;
   onSendMessage?: () => void;
-  myPlansCount: number;
-  editablePlansCount: number;
   isOtherUser?: boolean;
   isProfilePublic?: boolean;
   isSavingVisibility?: boolean;
@@ -78,13 +72,10 @@ const normalizeThemes = (themes: any): Array<{ preferredThemeName: string; categ
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   dummyUser,
-  userStats,
   onEditProfile,
   onEditThemes,
   onAddFriend,
   onSendMessage,
-  myPlansCount,
-  editablePlansCount,
   isOtherUser = false,
   isProfilePublic = true,
   isSavingVisibility = false,
@@ -107,12 +98,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     (count, themes) => count + themes.length,
     0,
   );
-
-  const stats = [
-    { label: "나의 일정", value: myPlansCount, icon: Route },
-    { label: "초대된 일정", value: editablePlansCount, icon: Users },
-    { label: "받은 좋아요", value: userStats.stats?.receivedLikes ?? 0, icon: Heart },
-  ];
 
   return (
     <section className="grid gap-5 bg-transparent md:grid-cols-[minmax(280px,0.82fr)_minmax(0,1.65fr)]" aria-label="프로필 정보">
@@ -159,18 +144,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
-      <div className="space-y-5">
-        <div className="grid grid-cols-3 gap-3">
-          {stats.map(({ label, value, icon: StatIcon }) => (
-            <div key={label} className="rounded-[22px] bg-white p-4 ring-1 ring-slate-200/70 sm:p-5">
-              <StatIcon className="h-4 w-4 text-slate-400" />
-              <p className="mt-5 text-2xl font-black tracking-[-0.04em] text-slate-950">{value}</p>
-              <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-xs">{label}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="rounded-[28px] bg-white p-5 ring-1 ring-slate-200/70 sm:p-7" aria-label="여행 취향">
+      <div>
+        <div className="h-full rounded-[28px] bg-white p-5 ring-1 ring-slate-200/70 sm:p-7" aria-label="여행 취향">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="flex items-center gap-2 text-xs font-black text-[#1344FF]"><Sparkles className="h-4 w-4" />TRAVEL TASTE</p>

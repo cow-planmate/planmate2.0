@@ -76,6 +76,9 @@ export const useApiClient = () => {
       try {
         response = await fetch(url, config);
       } catch (networkError) {
+        if (networkError?.name === "AbortError") {
+          throw networkError;
+        }
         // 🔥 서버 다운 / 네트워크 단절
         setServerDown();
         throw networkError;
