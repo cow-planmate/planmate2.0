@@ -1,10 +1,10 @@
 import {
   BedDouble,
   Camera,
-  Globe,
+  // Globe, // 공개/비공개 토글 복구 시 함께 되살린다
   Heart,
   Landmark,
-  Lock,
+  // Lock,
   Mail,
   MessageSquare,
   Route,
@@ -185,6 +185,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 {dummyUser.nickName}
               </h1>
 
+              {/* 공개/비공개 토글 — 추후 다시 넣을 예정이라 UI만 잠시 숨긴다 (핸들러·상태는 유지)
               {!isOtherUser && onToggleVisibility ? (
                 <button
                   type="button"
@@ -203,6 +204,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   </span>
                 </button>
               ) : null}
+              */}
 
               {isOtherUser ? (
                 <div className="flex items-center gap-2">
