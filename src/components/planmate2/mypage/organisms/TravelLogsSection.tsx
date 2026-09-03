@@ -22,7 +22,7 @@ interface TravelLogsSectionProps {
 }
 
 const EmptyState: React.FC<{ message: string }> = ({ message }) => (
-  <div className="col-span-full bg-white rounded-xl shadow-md py-16 text-center text-[#999999]">
+  <div className="col-span-full rounded-2xl bg-slate-50 py-16 text-center text-slate-400">
     <BookOpen className="w-8 h-8 mx-auto mb-3 text-gray-300" />
     <p className="text-sm">{message}</p>
   </div>
@@ -47,17 +47,17 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
 
   return (
     <>
-      <div className="my-10 border-t border-gray-200"></div>
+      <div className="h-8" />
 
       <div className="flex items-center gap-2 mb-6">
-        <BookOpen className="w-6 h-6 text-[#1344FF]" />
-        <h3 className="text-xl font-bold text-[#1a1a1a]">{isOtherUser ? '여행기' : '나의 여행기'}</h3>
-        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{myTravelPostsCount ?? myTravelPosts.length}</span>
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eef3ff] text-[#1344FF]"><BookOpen className="h-5 w-5" /></span>
+        <div><p className="text-[10px] font-black tracking-[0.12em] text-[#1344FF]">TRAVEL LOG</p><h3 className="text-xl font-black tracking-[-0.03em] text-slate-950">{isOtherUser ? '여행기' : '나의 여행기'}</h3></div>
+        <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">{myTravelPostsCount ?? myTravelPosts.length}</span>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md mb-6 overflow-hidden">
+      <div className="mb-6 overflow-hidden rounded-xl bg-slate-100 p-1">
         {/* 탭 라벨은 좁은 화면에서 칸 폭에 눌려 두 줄로 쪼개지지 않게 한 줄로 고정한다 */}
-        <div className="flex border-b border-[#e5e7eb]">
+        <div className="flex">
           <button
             onClick={() => setTravelTab('created')}
             className={`flex-1 min-w-0 py-4 transition-all flex items-center justify-center gap-1 sm:gap-2 ${
@@ -113,7 +113,7 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
           <div
             key={post.id}
             onClick={() => onNavigateDetail(post)}
-            className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
+            className="group cursor-pointer overflow-hidden rounded-[20px] border border-slate-200 bg-white transition-all hover:-translate-y-0.5 hover:border-blue-200"
           >
             <div className="relative h-48 overflow-hidden">
               <img
@@ -178,7 +178,7 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
           <div
             key={post.id}
             onClick={() => onNavigateDetail(post)}
-            className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
+            className="group cursor-pointer overflow-hidden rounded-[20px] border border-slate-200 bg-white transition-all hover:-translate-y-0.5 hover:border-blue-200"
           >
             <div className="relative h-48 overflow-hidden">
               <img
@@ -218,7 +218,7 @@ export const TravelLogsSection: React.FC<TravelLogsSectionProps> = ({
           <div
             key={comment.id}
             onClick={() => onNavigateDetail({ id: comment.postId, category: comment.postCategory ?? 'feed' })}
-            className="bg-white p-4 rounded-xl shadow-md hover:bg-gray-50 transition-all cursor-pointer"
+            className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:border-blue-200 hover:bg-slate-50"
           >
             <div className="flex items-start gap-3">
               <div className="bg-blue-50 p-2 rounded-lg shrink-0">

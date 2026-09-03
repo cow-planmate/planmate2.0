@@ -28,6 +28,8 @@ import FeedbackModal from "../common/Feedback";
 // @ts-ignore
 import { ErrorToast, SuccessToast } from "../common/Toast";
 
+type MyPageMenuSection = "profile" | "trips" | "community";
+
 interface NavbarProps {
   currentView: string;
   onNavigate: (
@@ -43,6 +45,14 @@ export default function Navbar({
 }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isMobileMyPageOpen, setIsMobileMyPageOpen] = useState(false);
+
+  const handleMyPageSectionSelect = (section: MyPageMenuSection) => {
+    setIsProfileMenuOpen(false);
+    setIsMobileMyPageOpen(false);
+    setIsMobileMenuOpen(false);
+    onNavigate("mypage", { section });
+  };
 
   // 인증 관련 상태
   const { get, post, isAuthenticated, logout } = useApiClient();
@@ -62,6 +72,15 @@ export default function Navbar({
     Record<string, any[]>
   >({});
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem("openPreferredThemeOnboarding") !== "true") {
+      return;
+    }
+
+    sessionStorage.removeItem("openPreferredThemeOnboarding");
+    setIsThemestartOpen(true);
+  }, []);
 
   // 알림(초대) 관련 상태
   const [isInvitationOpen, setIsInvitationOpen] = useState(false);
@@ -242,7 +261,7 @@ export default function Navbar({
                 {/* Profile Button */}
                 <button
                   onClick={() => {
-                    setIsProfileMenuOpen(!isProfileMenuOpen);
+                    setIsProfileMenuOpen((open) => !open);
                     setIsInvitationOpen(false); // 💡 UX 개선: 프로필 열 때 알림창 닫기
                   }}
                   className={`flex items-center gap-2 p-1 pr-3 rounded-full transition-all ${
@@ -401,27 +420,41 @@ export default function Navbar({
                       className="fixed inset-0 z-10"
                       onClick={() => setIsProfileMenuOpen(false)}
                     ></div>
-                    <div className="absolute top-14 right-0 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-20 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                      <button
-                        onClick={() => {
-                          onNavigate("mypage");
-                          setIsProfileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-[#1344FF] transition-colors"
-                      >
-                        <User className="w-4 h-4" />
+                    <div
+                      className="absolute top-14 right-0 w-[290px] rounded-[20px] border border-slate-200 bg-white p-2.5 shadow-[0_18px_45px_-18px_rgba(15,23,42,0.3)] z-20 animate-in fade-in slide-in-from-top-2"
+                    >
+                      <div className="flex items-center gap-2 px-3 pb-2 pt-1.5 text-[13px] font-extrabold text-slate-900">
+                        <User className="h-4 w-4 text-[#1344FF]" />
                         마이페이지
-                      </button>
+                      </div>
+                      <div className="border-l border-slate-200 pl-2 ml-5 mb-2">
+                        {[
+                          ["profile", "프로필"],
+                          ["trips", "여행 일정 및 캘린더"],
+                          ["community", "커뮤니티 활동"],
+                        ].map(([section, label]) => (
+                          <button
+                            key={section}
+                            type="button"
+                            onClick={() => handleMyPageSectionSelect(section as MyPageMenuSection)}
+                            className="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#1344FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1344FF]"
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="border-t border-slate-100 pt-1.5">
                       <button
                         onClick={() => {
                           handleLogout();
                           setIsProfileMenuOpen(false);
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+                        className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
                       >
                         <LogOut className="w-4 h-4" />
                         로그아웃
                       </button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -522,10 +555,7 @@ export default function Navbar({
             {isAuthenticated() ? (
               <>
                 <button
-                  onClick={() => {
-                    onNavigate("mypage");
-                    setIsMobileMenuOpen(false);
-                  }}
+                  onClick={() => setIsMobileMyPageOpen((open) => !open)}
                   className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${
                     currentView === "mypage"
                       ? "bg-[#1344FF] text-white"
@@ -543,6 +573,24 @@ export default function Navbar({
                   )}
                   마이페이지
                 </button>
+                {isMobileMyPageOpen ? (
+                  <div className="ml-5 border-l border-slate-200 pl-3">
+                    {[
+                      ["profile", "프로필"],
+                      ["trips", "여행 일정 및 캘린더"],
+                      ["community", "커뮤니티 활동"],
+                    ].map(([section, label]) => (
+                      <button
+                        key={section}
+                        type="button"
+                        onClick={() => handleMyPageSectionSelect(section as MyPageMenuSection)}
+                        className="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-[#1344FF]"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 <button
                   onClick={() => {
                     onNavigate("social");

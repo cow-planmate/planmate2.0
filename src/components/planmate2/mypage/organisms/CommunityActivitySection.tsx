@@ -37,12 +37,12 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
   return (
     <>
       <div className="flex items-center gap-2 mb-6">
-        <Users2 className="w-6 h-6 text-[#1344FF]" />
-        <h3 className="text-xl font-bold text-[#1a1a1a]">커뮤니티 활동</h3>
-        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{myCommunityPostsCount ?? myCommunityPosts.length}</span>
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-50 text-violet-600"><Users2 className="h-5 w-5" /></span>
+        <div><p className="text-[10px] font-black tracking-[0.12em] text-violet-600">COMMUNITY</p><h3 className="text-xl font-black tracking-[-0.03em] text-slate-950">커뮤니티 활동</h3></div>
+        <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">{myCommunityPostsCount ?? myCommunityPosts.length}</span>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-12">
+      <div className="mb-8">
         {/* 탭 3개가 모바일 폭을 넘어서면 라벨이 두 줄로 쪼개진다 — 여백을 줄이고 넘치면 가로 스크롤 */}
         <div className="flex gap-1 sm:gap-4 mb-6 p-1 bg-gray-100 rounded-lg w-full sm:w-fit overflow-x-auto no-scrollbar">
           <button
@@ -84,7 +84,7 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
             <div
               key={post.id}
               onClick={() => onNavigateDetail(post)}
-              className="group p-4 rounded-xl border border-[#e5e7eb] hover:border-[#1344FF] hover:bg-blue-50/30 transition-all cursor-pointer"
+              className="group cursor-pointer border-b border-slate-100 px-1 py-5 transition-all hover:pl-3"
             >
               <div className="flex justify-between items-start gap-2 mb-2">
                 <span className="text-xs font-bold text-[#1344FF] uppercase tracking-wider truncate">{post.category}</span>
@@ -112,7 +112,7 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
             <div
               key={post.id}
               onClick={() => onNavigateDetail(post)}
-              className="group p-4 rounded-xl border border-[#e5e7eb] hover:border-[#1344FF] hover:bg-blue-50/30 transition-all cursor-pointer"
+              className="group cursor-pointer border-b border-slate-100 px-1 py-5 transition-all hover:pl-3"
             >
               <div className="flex justify-between items-start gap-2 mb-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -135,7 +135,7 @@ export const CommunityActivitySection: React.FC<CommunityActivitySectionProps> =
             <div
               key={comment.id}
               onClick={() => onNavigateDetail({ id: comment.postId, category: comment.postCategory })}
-              className="p-4 rounded-xl border border-[#e5e7eb] hover:bg-gray-50 transition-all cursor-pointer"
+              className="cursor-pointer border-b border-slate-100 px-1 py-5 transition-all hover:pl-3"
             >
               <div className="flex items-start gap-3">
                 <div className="bg-blue-50 p-2 rounded-lg shrink-0">

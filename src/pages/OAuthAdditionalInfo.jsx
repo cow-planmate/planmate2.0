@@ -93,6 +93,7 @@ const OAuthAdditionalInfo = () => {
 
       const redirectPath = sessionStorage.getItem("redirectAfterLogin") || "/";
       sessionStorage.removeItem("redirectAfterLogin");
+      sessionStorage.setItem("openPreferredThemeOnboarding", "true");
 
       navigate(redirectPath, { replace: true });
     } catch (err) {
@@ -120,15 +121,6 @@ const OAuthAdditionalInfo = () => {
               💡
             </span>
             <span>닉네임은 마이페이지에서 변경할 수 있습니다.</span>
-          </p>
-          <p className="flex items-start gap-2 text-xs text-blue-700 font-medium leading-5">
-            <span aria-hidden="true" className="shrink-0">
-              🧭
-            </span>
-            <span>
-              여행 선호 테마는 가입 후 마이페이지의 프로필 설정에서 등록할
-              수 있습니다.
-            </span>
           </p>
         </div>
 

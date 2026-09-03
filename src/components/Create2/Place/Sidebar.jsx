@@ -8,6 +8,7 @@ import { faCirclePlus, faUmbrellaBeach, faBed, faUtensils, faPenNib, faMagnifyin
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import LoadingRing from "../../../assets/imgs/ring-resize.svg?react";
 import useNicknameStore from "../../../store/Nickname";
+import PlaceDetailModal from "./PlaceDetailModal";
 
 export default function Sidebar({
   planId,
@@ -34,6 +35,7 @@ export default function Sidebar({
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [nextLoading, setNextLoading] = useState(false);
+  const [detailPlace, setDetailPlace] = useState(null);
   const nextRequestInFlightRef = useRef(false);
 
   const [hasSearched, setHasSearched] = useState(false);
@@ -237,6 +239,11 @@ export default function Sidebar({
               sourceCategory={selectedTab}
               isMobile={isMobile}
               onMobileAdd={() => handleMobileAdd(place)}
+              onShowDetail={
+                ["tour", "lodging", "restaurant"].includes(selectedTab) && place.placeId
+                  ? () => setDetailPlace(place)
+                  : undefined
+              }
               onDelete={
                 selectedTab === "custom"
                   ? () => removeCustomPlace(planId, place.placeId)
@@ -325,7 +332,7 @@ export default function Sidebar({
                 </p>
               </div>
             )}
-          {selectedTab !== "custom" && !isLoading && !searchLoading &&
+          {!["custom", "search"].includes(selectedTab) && !isLoading && !searchLoading &&
             store[`${selectedTab}Next`] && (
               <div className="text-center py-3">
                 <button
@@ -345,6 +352,13 @@ export default function Sidebar({
         </div>
         <div className="h-12 block md:hidden" />
       </div>
+      {detailPlace && (
+        <PlaceDetailModal
+          contentId={detailPlace.placeId}
+          fallbackPlace={detailPlace}
+          onClose={() => setDetailPlace(null)}
+        />
+      )}
     </div>
   );
 }

@@ -59,7 +59,6 @@ export default function MapComponent({
   const [activeRoadRoute, setActiveRoadRoute] = useState(null);
   const [isSegmentInfoOpen, setIsSegmentInfoOpen] = useState(defaultSegmentInfoOpen);
   const [activeSegmentIndex, setActiveSegmentIndex] = useState(null);
-  const [activePlaceIndex, setActivePlaceIndex] = useState(null);
 
   const handleSegmentInfoOpenChange = (nextOpen) => {
     if (nextOpen && onSegmentInfoRequest) {
@@ -89,7 +88,6 @@ export default function MapComponent({
     // 대중교통 폴리라인과는 동시에 표시하지 않는다
     setTransitLanes([]);
     setActiveTransitKey(null);
-    setActivePlaceIndex(null);
     setActiveSegmentIndex(segmentIndex);
 
     const cached = roadRouteCacheRef.current[key];
@@ -202,7 +200,6 @@ export default function MapComponent({
       setActiveRoadRoute(null);
       setActiveTransitKey(key);
       setActiveSegmentIndex(Number.parseInt(key.split("-")[0], 10));
-      setActivePlaceIndex(null);
     } catch {
       // 폴리라인 조회 실패 시 조용히 무시(기존 지도 상태 유지)
     }
@@ -241,7 +238,6 @@ export default function MapComponent({
 
   const resetMapFocus = () => {
     setActiveSegmentIndex(null);
-    setActivePlaceIndex(null);
     setTransitLanes([]);
     setActiveTransitKey(null);
     setActiveRoadRoute(null);
@@ -249,7 +245,6 @@ export default function MapComponent({
 
   const focusSegment = (index) => {
     setActiveSegmentIndex((current) => current === index ? null : index);
-    setActivePlaceIndex(null);
   };
 
   // useEffect를 사용하여 map 인스턴스가 생성된 후 한 번만 실행되도록 설정
@@ -381,7 +376,7 @@ export default function MapComponent({
             <Route className="h-3.5 w-3.5 text-main" />
             전체 동선 · {positions.length}곳
           </div>
-          {(activeSegmentIndex != null || activePlaceIndex != null || activeTransitKey || activeRoadRoute) && (
+          {(activeSegmentIndex != null || activeTransitKey || activeRoadRoute) && (
             <button
               type="button"
               onClick={resetMapFocus}
@@ -455,47 +450,22 @@ export default function MapComponent({
               lat: item.place.yLocation ?? item.place.ylocation,
               lng: item.place.xLocation ?? item.place.xlocation,
             };
-            const isActive = activePlaceIndex === index;
             const isRelated = activeSegmentIndex === index || activeSegmentIndex === index - 1;
             const isDimmed = activeSegmentIndex != null && !isRelated;
 
             return (
-              <CustomOverlayMap key={item.id} position={position} yAnchor={1.12} zIndex={isActive ? 12 : 10}>
+              <CustomOverlayMap key={item.id} position={position} yAnchor={1.12} zIndex={10} clickable={false}>
                 <div className="relative flex flex-col items-center">
-                  {isActive && (
-                    <div className="mb-2 w-[190px] rounded-2xl bg-white p-3 shadow-[0_8px_28px_rgba(15,23,42,0.22)] ring-1 ring-slate-200">
-                      <p className="truncate text-sm font-extrabold text-slate-900">{item.place.name}</p>
-                      {item.place.url && (
-                        <a href={item.place.url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-bold text-main hover:underline">
-                          장소 정보 보기
-                        </a>
-                      )}
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActivePlaceIndex(isActive ? null : index);
-                      setActiveSegmentIndex(null);
-                    }}
-                    aria-label={`${index + 1}번 ${item.place.name}${isActive ? " 정보 닫기" : " 정보 보기"}`}
-                    className={`flex h-8 max-w-[190px] items-center gap-1.5 rounded-full border px-1.5 pr-3 shadow-[0_3px_10px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 ${
-                      isActive
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : isDimmed
-                          ? "border-slate-200 bg-white/90 text-slate-500 opacity-60"
-                          : "border-slate-200 bg-white/95 text-slate-800"
-                    }`}
-                  >
+                  <div className={`pointer-events-none flex h-8 max-w-[190px] items-center gap-1.5 rounded-full border px-1.5 pr-3 shadow-[0_3px_10px_rgba(15,23,42,0.22)] ${isDimmed ? "border-slate-200 bg-white/90 text-slate-500 opacity-60" : "border-slate-200 bg-white/95 text-slate-800"}`}>
                     <span className={`flex h-5 w-5 flex-none items-center justify-center rounded-full text-[10px] font-extrabold text-white ${
-                      isActive ? "bg-white/20" : isDimmed ? "bg-slate-400" : "bg-main"
+                      isDimmed ? "bg-slate-400" : "bg-main"
                     }`}>
                       {index + 1}
                     </span>
                     <span className="min-w-0 truncate whitespace-nowrap text-xs font-bold">
                       {item.place.name}
                     </span>
-                  </button>
+                  </div>
                 </div>
               </CustomOverlayMap>
             );

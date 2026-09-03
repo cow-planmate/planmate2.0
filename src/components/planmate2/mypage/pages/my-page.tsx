@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Lock, MapPinned, NotebookPen } from "lucide-react";
+import { CalendarRange, Lock, NotebookPen, UserRound } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApiClient } from "../../../../hooks/useApiClient";
@@ -35,6 +35,10 @@ import { CommunityActivitySection } from "../organisms/CommunityActivitySection"
 import { MapSection } from "../organisms/MapSection";
 import { MyPageSectionDeck, type MyPageSection } from "../organisms/MyPageSectionDeck";
 import { MyPageModals } from "../organisms/MyPageModals";
+import {
+  MyPageContentPage,
+  type MyPageMenuSection,
+} from "../organisms/MyPageContentPage";
 import { ProfileHeader } from "../organisms/ProfileHeader";
 import { TravelLogsSection } from "../organisms/TravelLogsSection";
 import { TripSection } from "../organisms/TripSection";
@@ -66,6 +70,7 @@ import {
 interface MyPageProps {
   onNavigate: (view: any, data?: any) => void;
   userId?: string;
+  initialSection?: MyPageMenuSection;
 }
 
 const enrichPlan = async (
@@ -93,7 +98,11 @@ const enrichPlan = async (
   }
 };
 
-export default function MyPage({ onNavigate, userId }: MyPageProps) {
+export default function MyPage({
+  onNavigate,
+  userId,
+  initialSection = "profile",
+}: MyPageProps) {
   useKakaoLoader();
   const navigate = useNavigate();
 
@@ -1065,142 +1074,202 @@ export default function MyPage({ onNavigate, userId }: MyPageProps) {
     },
   };
 
-  const myPageSections: MyPageSection[] = [
-    ...(!isOtherUser
-      ? [
-          {
-            id: "trips",
-            eyebrow: "TRIP PLAN",
-            title: "여행 상세 일정",
-            description: "다가오는 여행부터 지난 일정까지, 나의 모든 여행 계획을 한곳에서 관리해요.",
-            icon: CalendarDays,
-            content: (
-              <TripSection
-                isDeleteMode={isDeleteMode}
-                selectedPlanIds={selectedPlanIds}
-                toggleSelectAll={toggleSelectAll}
-                allPlans={allPlans}
-                handleBulkDelete={handleBulkDelete}
-                setIsDeleteMode={setIsDeleteMode}
-                ongoingPlans={ongoingPlans}
-                upcomingPlans={upcomingPlans}
-                pastPlans={pastPlans}
-                togglePlanSelection={togglePlanSelection}
-                handleDeletePlan={handleDeletePlan}
-                onRenamePlan={(plan) => {
-                  setActionPlan(plan);
-                  setIsTitleModalOpen(true);
-                }}
-                onSharePlan={(plan) => {
-                  setActionPlan(plan);
-                  setIsShareModalOpen(true);
-                }}
-                onNavigateTrip={(id: string) => navigate(`/complete?id=${id}`)}
-                onNavigateToPlanMaker={() => onNavigate("plan-maker")}
-                showChecklists
-              />
-            ),
-          },
-          {
-            id: "footprints",
-            eyebrow: "MY JOURNEY",
-            title: "캘린더와 여행 발자취",
-            description: "여행한 날과 장소를 달력과 지도 위에서 한눈에 되돌아봐요.",
-            icon: MapPinned,
-            content: (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
-                <CalendarSection
-                  currentYear={currentYear}
-                  currentMonth={currentMonth}
-                  onSetDate={setDate}
-                  onPrevMonth={handlePrevMonth}
-                  onNextMonth={handleNextMonth}
-                  onToday={() => setDate(new Date())}
-                  gridCells={gridCells}
-                  getEventsForDate={getEventsForDate}
-                  onEventClick={(event) => {
-                    setSelectedCalendarEvent(event);
-                    setActiveModal("eventDetail");
-                  }}
-                />
-                <MapSection allPlansCount={allPlans.length} groupedPlansByRegion={groupedPlansByRegion} />
-              </div>
-            ),
-          },
-        ]
-      : []),
+  const profileHeader = (
+    <ProfileHeader
+      dummyUser={dummyUser}
+      userStats={userStats}
+      onEditProfile={() => {
+        setNewNickname(userProfile?.nickname || "");
+        setNewBirthdate(userProfile?.birthdate || "");
+        setNewGender(userProfile?.gender || "");
+        setNewPassword("");
+        setConfirmPassword("");
+        setActiveModal("profile");
+      }}
+      onEditThemes={() => setIsThemeStartOpen(true)}
+      onAddFriend={handleFriendAdd}
+      onSendMessage={handleSendMessage}
+      myPlansCount={otherUserPlanCounts?.myPlanCount ?? myPlans.length}
+      editablePlansCount={otherUserPlanCounts?.editablePlanCount ?? editablePlans.length}
+      isOtherUser={isOtherUser}
+      isProfilePublic={isProfilePublic}
+      isSavingVisibility={isSavingVisibility}
+      onToggleVisibility={handleToggleProfileVisibility}
+    />
+  );
+
+  const tripContent = (
+    <div className="space-y-6 sm:space-y-8">
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          ["다가오는 여행", SCHEDULED_TRIPS.length, "text-[#1344FF]"],
+          ["지난 여행", PAST_TRIPS.length, "text-slate-950"],
+          ["여행한 지역", Object.keys(groupedPlansByRegion).length, "text-emerald-600"],
+        ].map(([label, value, color]) => (
+          <div key={String(label)} className="rounded-[22px] bg-white p-4 ring-1 ring-slate-200/70 sm:p-5">
+            <p className="text-[11px] font-bold text-slate-400 sm:text-xs">{label}</p>
+            <p className={`mt-3 text-2xl font-black tracking-[-0.04em] sm:text-3xl ${color}`}>{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
+        <div className="min-w-0 rounded-[28px] bg-white p-4 ring-1 ring-slate-200/70 sm:p-7">
+          <TripSection
+            isDeleteMode={isDeleteMode}
+            selectedPlanIds={selectedPlanIds}
+            toggleSelectAll={toggleSelectAll}
+            allPlans={allPlans}
+            handleBulkDelete={handleBulkDelete}
+            setIsDeleteMode={setIsDeleteMode}
+            ongoingPlans={ongoingPlans}
+            upcomingPlans={upcomingPlans}
+            pastPlans={pastPlans}
+            togglePlanSelection={togglePlanSelection}
+            handleDeletePlan={handleDeletePlan}
+            onRenamePlan={(plan) => {
+              setActionPlan(plan);
+              setIsTitleModalOpen(true);
+            }}
+            onSharePlan={(plan) => {
+              setActionPlan(plan);
+              setIsShareModalOpen(true);
+            }}
+            onNavigateTrip={(id: string) => navigate(`/complete?id=${id}`)}
+            onNavigateToPlanMaker={() => onNavigate("plan-maker")}
+            showChecklists
+          />
+        </div>
+        <aside className="grid gap-5 md:grid-cols-2 xl:sticky xl:top-[94px] xl:grid-cols-1" aria-label="여행 캘린더와 지도">
+          <CalendarSection
+            compact
+            currentYear={currentYear}
+            currentMonth={currentMonth}
+            onSetDate={setDate}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
+            onToday={() => setDate(new Date())}
+            gridCells={gridCells}
+            getEventsForDate={getEventsForDate}
+            onEventClick={(event) => {
+              setSelectedCalendarEvent(event);
+              setActiveModal("eventDetail");
+            }}
+          />
+          <MapSection compact allPlansCount={allPlans.length} groupedPlansByRegion={groupedPlansByRegion} />
+        </aside>
+      </div>
+    </div>
+  );
+
+  const communityContent = (
+    <div>
+      <div className="mb-6 grid grid-cols-3 gap-3">
+        {[
+          ["여행기", travelPostsPage?.totalElements ?? myTravelPosts.length],
+          ["커뮤니티 글", (communityPostsPage as any)?.totalElements ?? 0],
+          ["받은 좋아요", userStats.stats.receivedLikes],
+        ].map(([label, value], index) => (
+          <div key={String(label)} className={`rounded-[22px] p-4 sm:p-5 ${index === 0 ? "bg-[#1344FF] text-white" : "bg-white text-slate-950 ring-1 ring-slate-200/70"}`}>
+            <p className={`text-[11px] font-bold sm:text-xs ${index === 0 ? "text-white/65" : "text-slate-400"}`}>{label}</p>
+            <p className="mt-3 text-2xl font-black tracking-[-0.04em] sm:text-3xl">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-[28px] bg-white px-4 pb-5 pt-1 ring-1 ring-slate-200/70 sm:px-7 sm:pb-7">
+      <TravelLogsSection
+        travelTab={travelTab}
+        setTravelTab={changeTravelTab}
+        myTravelPosts={myTravelPosts}
+        myTravelPostsCount={travelPostsPage?.totalElements ?? myTravelPosts.length}
+        likedTravelPosts={likedTravelPosts}
+        myTravelComments={travelCommentsPage?.items ?? []}
+        isOtherUser={!!isOtherUser}
+        page={travelPage}
+        totalPages={activeTravelPage?.totalPages ?? 1}
+        onPageChange={setTravelPage}
+        onNavigateDetail={(post) => onNavigate("detail", { post })}
+        onEditPost={(post) => onNavigate("feed-edit", { post })}
+        onDeletePost={handleDeleteTravelPost}
+      />
+      <CommunityActivitySection
+        communityTab={communityTab === "my_posts" ? "written" : communityTab === "liked_posts" ? "liked" : "comments"}
+        setCommunityTab={(tab) => changeCommunityTab(tab === "written" ? "my_posts" : tab === "liked" ? "liked_posts" : "comments")}
+        myCommunityPosts={(communityPostsPage as any)?.items ?? []}
+        myCommunityPostsCount={(communityPostsPage as any)?.totalElements}
+        likedCommunityPosts={(likedCommunityPostsPage as any)?.items ?? []}
+        myComments={(communityCommentsPage as any)?.items ?? []}
+        isOtherUser={!!isOtherUser}
+        page={communityPage}
+        totalPages={activeCommunityPage?.totalPages ?? 1}
+        onPageChange={setCommunityPage}
+        onNavigateDetail={(post) => onNavigate("detail", { post })}
+      />
+      </div>
+    </div>
+  );
+
+  const otherUserSections: MyPageSection[] = [
     {
       id: "stories",
       eyebrow: "MY STORIES",
-      title: isOtherUser ? "여행기와 커뮤니티 활동" : "나의 여행기와 커뮤니티 활동",
-      description: "여행에서 남긴 이야기와 커뮤니티에서 나눈 기록을 차분히 모아봤어요.",
+      title: "여행기와 커뮤니티 활동",
+      description: "여행에서 남긴 이야기와 커뮤니티에서 나눈 기록을 모아봤어요.",
       icon: NotebookPen,
-      content: (
-        <div>
-          <TravelLogsSection
-            travelTab={travelTab}
-            setTravelTab={changeTravelTab}
-            myTravelPosts={myTravelPosts}
-            myTravelPostsCount={travelPostsPage?.totalElements ?? myTravelPosts.length}
-            likedTravelPosts={likedTravelPosts}
-            myTravelComments={travelCommentsPage?.items ?? []}
-            isOtherUser={!!isOtherUser}
-            page={travelPage}
-            totalPages={activeTravelPage?.totalPages ?? 1}
-            onPageChange={setTravelPage}
-            onNavigateDetail={(post) => onNavigate("detail", { post })}
-            onEditPost={(post) => onNavigate("feed-edit", { post })}
-            onDeletePost={handleDeleteTravelPost}
-          />
-          <CommunityActivitySection
-            communityTab={communityTab === "my_posts" ? "written" : communityTab === "liked_posts" ? "liked" : "comments"}
-            setCommunityTab={(tab) => changeCommunityTab(tab === "written" ? "my_posts" : tab === "liked" ? "liked_posts" : "comments")}
-            myCommunityPosts={(communityPostsPage as any)?.items ?? []}
-            myCommunityPostsCount={(communityPostsPage as any)?.totalElements}
-            likedCommunityPosts={(likedCommunityPostsPage as any)?.items ?? []}
-            myComments={(communityCommentsPage as any)?.items ?? []}
-            isOtherUser={!!isOtherUser}
-            page={communityPage}
-            totalPages={activeCommunityPage?.totalPages ?? 1}
-            onPageChange={setCommunityPage}
-            onNavigateDetail={(post) => onNavigate("detail", { post })}
-          />
-        </div>
-      ),
+      content: communityContent,
     },
   ];
 
-  return (
-    <div className="min-h-screen bg-[#f3f6fa] pb-12 pt-5 sm:pt-8">
-      <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
-        <div className="overflow-hidden rounded-[28px] border border-slate-200/90 bg-white shadow-[0_24px_70px_-46px_rgba(15,23,42,0.45)] sm:rounded-[36px]">
-        <ProfileHeader
-          dummyUser={dummyUser}
-          userStats={userStats}
-          onEditProfile={() => {
-            setNewNickname(userProfile?.nickname || "");
-            setNewBirthdate(userProfile?.birthdate || "");
-            setNewGender(userProfile?.gender || "");
-            setNewPassword("");
-            setConfirmPassword("");
-            setActiveModal("profile");
-          }}
-          onEditThemes={() => setIsThemeStartOpen(true)}
-          onAddFriend={handleFriendAdd}
-          onSendMessage={handleSendMessage}
-          myPlansCount={otherUserPlanCounts?.myPlanCount ?? myPlans.length}
-          editablePlansCount={
-            otherUserPlanCounts?.editablePlanCount ?? editablePlans.length
-          }
-          isOtherUser={isOtherUser}
-          isProfilePublic={isProfilePublic}
-          isSavingVisibility={isSavingVisibility}
-          onToggleVisibility={handleToggleProfileVisibility}
-        />
+  const sectionMeta = {
+    profile: {
+      eyebrow: "MY PROFILE",
+      title: "프로필",
+      description: "나를 소개하는 정보와 여행 취향을 편안하게 관리해요.",
+      icon: UserRound,
+      content: (
+        profileHeader
+      ),
+    },
+    trips: {
+      eyebrow: "MY TRAVEL",
+      title: "여행 일정 및 캘린더",
+      description: "상세 일정부터 캘린더와 지도 위의 여행 발자취까지 한곳에서 확인해요.",
+      icon: CalendarRange,
+      content: tripContent,
+    },
+    community: {
+      eyebrow: "MY STORIES",
+      title: "커뮤니티 활동",
+      description: "내가 남긴 여행기와 게시글, 댓글과 좋아요 기록을 모아봐요.",
+      icon: NotebookPen,
+      content: communityContent,
+    },
+  } satisfies Record<MyPageMenuSection, { eyebrow: string; title: string; description: string; icon: typeof UserRound; content: React.ReactNode }>;
 
-        <MyPageSectionDeck sections={myPageSections} />
+  const activeSectionMeta = sectionMeta[initialSection];
+
+  return (
+    <div>
+      {isOtherUser ? (
+        <div className="min-h-screen bg-[#f3f6fa] pb-12 pt-5 sm:pt-8">
+          <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
+            <div className="overflow-hidden rounded-[28px] border border-slate-200/90 bg-white shadow-[0_24px_70px_-46px_rgba(15,23,42,0.45)] sm:rounded-[36px]">
+              {profileHeader}
+              <MyPageSectionDeck sections={otherUserSections} />
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <MyPageContentPage
+          activeSection={initialSection}
+          onSectionChange={(section) => onNavigate("mypage", { section })}
+          title={activeSectionMeta.title}
+          description={activeSectionMeta.description}
+          eyebrow={activeSectionMeta.eyebrow}
+          icon={activeSectionMeta.icon}
+        >
+          {activeSectionMeta.content}
+        </MyPageContentPage>
+      )}
 
       <MyPageModals
         activeModal={activeModal}

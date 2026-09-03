@@ -17,6 +17,7 @@ export default function PlanmateV2() {
   const location = useLocation();
   const navigate = useNavigate();
   const { category, id, region, userId } = useParams();
+  const myPageSection = new URLSearchParams(location.search).get('section');
 
   // URL에서 초기 뷰를 결정하는 함수
   const getInitialView = () => {
@@ -129,7 +130,7 @@ export default function PlanmateV2() {
     if (view === 'mypage') {
       setPendingUserId(data?.userId ? String(data.userId) : null);
       if (data?.userId) navigate(`/mypage/${data.userId}`);
-      else navigate('/mypage');
+      else navigate(`/mypage?section=${data?.section || 'profile'}`);
     }
     else if (view === 'social') {
       navigate('/social');
@@ -246,6 +247,11 @@ export default function PlanmateV2() {
             key={activeProfileUserId ?? 'me'}
             onNavigate={handleViewChange}
             userId={activeProfileUserId}
+            initialSection={
+              myPageSection === 'trips' || myPageSection === 'community'
+                ? myPageSection
+                : 'profile'
+            }
           />
         )}
         {currentView === 'social' && (
