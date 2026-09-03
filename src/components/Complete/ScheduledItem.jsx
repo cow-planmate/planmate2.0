@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { BedDouble, Camera, Coffee, MapPin, MessageSquareText, Sparkles } from "lucide-react";
+import { BedDouble, Landmark, MapPin, Sparkles, Utensils } from "lucide-react";
 import DetailPopup from "../Create2/Timetable/DetailPopup";
 
 const CATEGORIES = {
-  0: { label: "관광", Icon: Camera, chip: "bg-blue-50 text-[#1344FF]" },
-  1: { label: "숙소", Icon: BedDouble, chip: "bg-orange-50 text-orange-600" },
-  2: { label: "식당", Icon: Coffee, chip: "bg-emerald-50 text-emerald-600" },
+  0: { label: "관광", Icon: Landmark, chip: "bg-blue-50 text-[#1344FF]" },
+  1: { label: "숙소", Icon: BedDouble, chip: "bg-violet-50 text-violet-600" },
+  2: { label: "식당", Icon: Utensils, chip: "bg-orange-50 text-orange-600" },
   3: { label: "직접 추가", Icon: Sparkles, chip: "bg-violet-50 text-violet-600" },
   4: { label: "기타", Icon: MapPin, chip: "bg-gray-100 text-gray-600" },
 };
@@ -62,13 +62,18 @@ export const ScheduledItem = ({ item, START_HOUR, index, isLast }) => {
                 <h3 className="truncate text-[15px] font-black text-[#111318] sm:text-base">{place.name}</h3>
               </div>
               {place.formatted_address ? <p className="line-clamp-2 text-xs leading-5 text-[#666666]">{place.formatted_address}</p> : null}
-              {item.memo ? (
-                <div className="mt-3 flex min-w-0 items-start gap-2 text-[#596174]">
-                  <MessageSquareText className="mt-[3px] h-3.5 w-3.5 shrink-0 text-[#1344FF]/80" aria-hidden="true" />
-                  <p className="line-clamp-2 text-xs leading-5">{item.memo}</p>
-                </div>
-              ) : null}
             </div>
+            {item.memo ? (
+              <div className="mt-auto border-t border-[#eceef2] pt-3">
+                <div className="flex min-w-0 items-stretch gap-2.5">
+                  <span className="w-0.5 shrink-0 rounded-full bg-[#1344FF]" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="mb-0.5 text-[10px] font-extrabold tracking-[0.08em] text-[#1344FF]">MEMO</p>
+                    <p className="line-clamp-2 text-xs leading-[1.55] text-[#596174]">{item.memo}</p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </button>

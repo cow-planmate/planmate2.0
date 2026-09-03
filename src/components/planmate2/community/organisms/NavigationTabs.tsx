@@ -6,7 +6,7 @@ interface NavigationTabsProps {
 export const NavigationTabs = ({ currentType, onNavigate }: NavigationTabsProps) => {
   const tabs = [
     { id: 'free', label: '자유게시판' },
-    { id: 'qna', label: 'Q&A' },
+    { id: 'qna', label: '질문게시판' },
     { id: 'recommend', label: '장소 추천' },
   ];
 

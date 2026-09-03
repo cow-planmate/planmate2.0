@@ -77,7 +77,7 @@ export default function Login({
     } catch (err) {
       // 에러는 useApiClient에서 자동으로 설정되며 백엔드 에러 메시지 직접 노출
       console.error("로그인 실패:", err);
-      ErrorToast(String(err).replace("Error: ", ""));
+      ErrorToast(err instanceof Error ? err.message : "로그인에 실패했습니다.");
     }
   };
 

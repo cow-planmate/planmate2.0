@@ -14,18 +14,18 @@ export const MapSection: React.FC<MapSectionProps> = ({
   groupedPlansByRegion,
 }) => {
   return (
-    <div className={`flex flex-col rounded-[28px] bg-slate-950 p-4 text-white ${compact ? "h-[330px]" : "h-[500px] sm:p-6"}`}>
+    <div className={`flex flex-col rounded-[28px] bg-white p-4 text-slate-950 ring-1 ring-slate-200/70 ${compact ? "h-[330px]" : "h-[500px] sm:p-6"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-blue-300"><MapPin className="h-5 w-5" /></span>
-          <div><p className="text-[10px] font-black tracking-[0.12em] text-blue-300">FOOTPRINT</p><h3 className="text-lg font-black tracking-[-0.03em] text-white whitespace-nowrap">여행 발자취</h3></div>
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eef3ff] text-[#1344FF]"><MapPin className="h-5 w-5" /></span>
+          <div><p className="text-[10px] font-black tracking-[0.12em] text-[#1344FF]">FOOTPRINT</p><h3 className="text-lg font-black tracking-[-0.03em] text-slate-950 whitespace-nowrap">여행 발자취</h3></div>
         </div>
-        <div className="shrink-0 rounded-full bg-white/10 px-3 py-1">
-          <span className="whitespace-nowrap text-sm font-bold text-white">총 {allPlansCount}곳</span>
+        <div className="shrink-0 rounded-full bg-slate-100 px-3 py-1">
+          <span className="whitespace-nowrap text-sm font-bold text-slate-700">총 {allPlansCount}곳</span>
         </div>
       </div>
       
-      <div className="relative flex-1 overflow-hidden rounded-[20px] ring-1 ring-white/10">
+      <div className="relative flex-1 overflow-hidden rounded-[20px] ring-1 ring-slate-200">
         <Map
           center={{ lat: 36.5, lng: 127.8 }}
           style={{ width: "100%", height: "100%" }}

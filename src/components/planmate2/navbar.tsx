@@ -218,7 +218,7 @@ export default function Navbar({
           {/* 로고 */}
           <div
             className="flex items-center cursor-pointer group"
-            onClick={() => onNavigate("feed")}
+            onClick={() => onNavigate("plan-maker")}
           >
             <Logo className="h-6 w-auto" />
           </div>
@@ -253,7 +253,7 @@ export default function Navbar({
                   : "text-[#343740] after:bg-transparent hover:text-[#1344FF]"
               }`}
             >
-              일정 만들기
+              일정생성
             </button>
 
             {isAuthenticated() ? (

@@ -154,18 +154,18 @@ export const TripSection: React.FC<TripSectionProps> = ({
 
       <div className="space-y-8">
         {activeTab === "upcoming" && scheduledPlans.length > 0 && (
-          <div className="space-y-4">
-            <h4 className="text-lg font-bold text-[#1a1a1a] flex items-center gap-2">
+          <div className="rounded-xl bg-[#f8f9fa] p-4 sm:p-6">
+            <h4 className="mb-4 flex items-center gap-2 text-lg font-bold text-[#1a1a1a]">
               <CalendarDays className="w-5 h-5 text-gray-400" />
               예정된 여행
             </h4>
-            <div className="relative grid grid-cols-1 gap-3 before:absolute before:bottom-6 before:left-[22px] before:top-6 before:w-px before:bg-slate-200">
+            <div className="grid grid-cols-1 gap-4">
               {scheduledPlans.map((trip) => (
                 <div
                   key={trip.id}
                   onClick={() => !isDeleteMode && onNavigateTrip(trip.id)}
                   // 진행 중인 여행은 테두리를 진하게 줘서 예정된 여행과 한눈에 구분되게 한다
-                  className={`relative ml-11 overflow-visible rounded-2xl border border-slate-200 bg-[#fafbfc] p-5 transition-all before:absolute before:-left-[34px] before:top-7 before:h-3 before:w-3 before:rounded-full before:bg-[#1344FF] before:ring-4 before:ring-white ${isDeleteMode ? "cursor-default ring-2 ring-[#1344FF]" : "cursor-pointer hover:border-blue-200 hover:bg-white hover:shadow-[0_12px_30px_-22px_rgba(19,68,255,0.45)]"}`}
+                  className={`relative overflow-hidden rounded-xl border border-gray-100 bg-white p-5 transition-colors ${isDeleteMode ? "cursor-default ring-2 ring-[#1344FF]" : "cursor-pointer hover:border-[#1344FF]/25"}`}
                 >
                   {isDeleteMode && (
                     <div
@@ -173,7 +173,7 @@ export const TripSection: React.FC<TripSectionProps> = ({
                         e.stopPropagation();
                         togglePlanSelection(trip.id);
                       }}
-                      className="absolute top-3 left-3 z-20 cursor-pointer"
+                      className="absolute right-5 top-5 z-20 cursor-pointer"
                     >
                       <div
                         className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${selectedPlanIds.includes(trip.id) ? "bg-[#1344FF] border-[#1344FF] text-white" : "bg-white border-gray-300"}`}

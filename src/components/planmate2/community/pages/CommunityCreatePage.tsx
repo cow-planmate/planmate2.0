@@ -40,7 +40,7 @@ export const CommunityCreatePage = ({ type, onBack, onSubmit, editPostId }: Comm
     if (isEditMode) return '게시글 수정';
     switch (type) {
       case 'free': return '자유게시판 글쓰기';
-      case 'qna': return 'Q&A 질문하기';
+      case 'qna': return '질문게시판 질문하기';
       case 'recommend': return '장소 추천 글쓰기';
       default: return '글쓰기';
     }

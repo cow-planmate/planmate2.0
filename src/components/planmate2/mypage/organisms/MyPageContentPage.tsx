@@ -69,19 +69,19 @@ export function MyPageContentPage({
           </nav>
         </aside>
 
-        <main className="min-w-0 px-4 pb-16 pt-7 sm:px-7 sm:pt-10 lg:px-10 xl:px-14">
+        <main className="min-w-0 px-4 pb-16 pt-6 sm:px-7 sm:pt-8 lg:px-10 xl:px-14">
           <div className="mx-auto max-w-[1120px]">
-            <header className="mb-7 sm:mb-10">
+            <header className="mb-7 sm:mb-8">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[#1344FF] shadow-[0_5px_18px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/70">
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <p className="text-[11px] font-black tracking-[0.16em] text-[#1344FF]">{eyebrow}</p>
               </div>
-              <h1 className="mt-4 break-keep text-[32px] font-black tracking-[-0.055em] text-slate-950 sm:text-[42px]">{title}</h1>
-              <p className="mt-2 max-w-2xl break-keep text-sm leading-6 text-slate-500 sm:text-[15px]">{description}</p>
+              <h1 className="mt-3 break-keep text-[32px] font-black leading-tight tracking-[-0.055em] text-slate-950 sm:text-[42px]">{title}</h1>
+              <p className="mt-1.5 max-w-2xl break-keep text-sm leading-5 text-slate-500 sm:text-[15px]">{description}</p>
 
-              <nav className="mt-6 flex gap-2 overflow-x-auto pb-1 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="마이페이지 메뉴">
+              <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="마이페이지 메뉴">
                 {SECTION_LINKS.map(({ id, label }) => (
                   <button
                     key={id}
