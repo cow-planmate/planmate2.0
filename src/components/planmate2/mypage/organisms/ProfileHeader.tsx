@@ -1,10 +1,10 @@
 import {
   BedDouble,
   Camera,
-  Globe,
+  // Globe, // 공개/비공개 토글 복구 시 함께 되살린다
   Heart,
   Landmark,
-  Lock,
+  // Lock,
   Mail,
   MessageSquare,
   Route,
@@ -152,7 +152,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             ) : (
               <div className="flex gap-2">
                 <button type="button" onClick={onEditProfile} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1344FF] px-3 py-3 text-sm font-bold text-white shadow-[0_8px_20px_-12px_rgba(19,68,255,0.7)]"><Settings className="h-4 w-4" />프로필 수정</button>
+              {/* 공개/비공개 토글 — 추후 다시 넣을 예정이라 UI만 잠시 숨긴다 (상태·핸들러는 유지)
                 {onToggleVisibility ? <button type="button" onClick={() => onToggleVisibility(!isProfilePublic)} disabled={isSavingVisibility} className="flex items-center gap-2 rounded-xl bg-white px-3 text-xs font-bold text-slate-600 ring-1 ring-slate-200 disabled:opacity-50">{isProfilePublic ? <Globe className="h-4 w-4 text-[#1344FF]" /> : <Lock className="h-4 w-4" />}{isProfilePublic ? "공개" : "비공개"}</button> : null}
+              */}
               </div>
             )}
           </div>
