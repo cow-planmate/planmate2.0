@@ -2,6 +2,10 @@ import usePlanStore from "../store/Plan";
 import useTimetableStore from "../store/Timetables";
 import usePlacesStore from "../store/Places";
 
+const googlePlaceImageUrl = (placeId) => placeId
+  ? `${(import.meta.env.VITE_API_URL || "").replace(/\/$/, "")}/api/image/place/${encodeURIComponent(placeId)}`
+  : null;
+
 // blockCategory(백엔드 enum 문자열) <-> categoryId(프론트 내부 정수 표현) 매핑.
 // 정수 순서는 scheduleUtils.jsx의 getCategoryByIconUrl과 동일하게 맞춤(0=관광지,1=숙소,2=식당,3=직접추가,4=검색).
 export const BLOCK_CATEGORY_TO_ID = {
@@ -84,7 +88,7 @@ export function mapTextSearchResult(dto) {
     placeId: dto.placeId,
     name: dto.name,
     formatted_address: dto.address,
-    photoUrl: dto.thumbnailUrl,
+    photoUrl: googlePlaceImageUrl(dto.placeId),
     iconUrl: "./src/assets/imgs/default.png",
     categoryId: BLOCK_CATEGORY_TO_ID.SEARCH,
     xLocation: longitude,
@@ -217,7 +221,9 @@ export function convertBlock(block) {
     categoryId: getBlockCategoryId(block),
     name: block.placeName,
     formatted_address: block.placeAddress,
-    photoUrl: block.placeThumbnailUrl,
+    photoUrl: getBlockCategoryId(block) === BLOCK_CATEGORY_TO_ID.SEARCH
+      ? googlePlaceImageUrl(block.placeId)
+      : block.placeThumbnailUrl,
     iconUrl: "./src/assets/imgs/default.png",
     xLocation: block.longitude ?? block.xLocation ?? block.xlocation,
     yLocation: block.latitude ?? block.yLocation ?? block.ylocation,
