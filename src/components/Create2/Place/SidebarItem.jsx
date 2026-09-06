@@ -18,7 +18,9 @@ export const SidebarItem = ({
     disabled: isMobile,
   });
 
-  const imageUrl = place.photoUrl?.replace(/^http:\/\//i, "https://");
+  const imageUrl = place.photoUrl?.includes("/api/image/place/")
+    ? place.photoUrl
+    : place.photoUrl?.replace(/^http:\/\//i, "https://");
   const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {

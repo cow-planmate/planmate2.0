@@ -7,7 +7,9 @@ import { MapPin } from 'lucide-react';
 const DetailPopup = ({ isOpen, onClose, item, onUpdateMemo, readOnly = false }) => {
   const [memo, setMemo] = useState(item?.memo || "");
   const [imageFailed, setImageFailed] = useState(false);
-  const imageUrl = item?.place?.photoUrl?.replace(/^http:\/\//i, "https://");
+  const imageUrl = item?.place?.photoUrl?.includes("/api/image/place/")
+    ? item?.place?.photoUrl
+    : item?.place?.photoUrl?.replace(/^http:\/\//i, "https://");
 
   useEffect(() => {
     if (isOpen) {
