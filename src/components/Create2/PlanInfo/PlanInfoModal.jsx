@@ -1,6 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
-import { Pencil } from "lucide-react";
 import { createPortal } from "react-dom";
 import usePlanStore from "../../../store/Plan";
 import { useEffect, useState } from "react";
@@ -81,14 +80,11 @@ export default function PlanInfoModal({setIsInfoOpen}) {
         <button
           type="button"
           onClick={openPlanNameEditor}
-          className={`${infoButton} flex items-center justify-between gap-4 text-left`}
+          className={`${infoButton} text-left`}
         >
           <span className="min-w-0 space-y-1.5">
             <span className="block font-semibold text-gray-500">일정 제목</span>
             <span className="block truncate font-semibold text-gray-900">{planName || "제목 없음"}</span>
-          </span>
-          <span className="inline-flex flex-none items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 shadow-sm">
-            <Pencil className="h-3.5 w-3.5" /> 수정
           </span>
         </button>
         <button
