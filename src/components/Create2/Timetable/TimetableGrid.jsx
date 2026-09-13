@@ -18,7 +18,10 @@ const TimetableGrid = React.forwardRef(({ items, preview, onResizeEnd, showTimet
   };
 
   return (
-    <div className={`flex-1 md:w-[36%] md:flex-initial flex flex-col md:border md:border-gray-300 rounded-lg transition-all duration-300 ${showTimetable ? 'opacity-100 z-10' : 'opacity-0 absolute inset-0 -z-10'}`}>
+    <div
+      className={`flex-1 md:w-[36%] md:flex-initial flex flex-col md:border md:border-gray-300 rounded-lg transition-all duration-300 ${showTimetable ? 'opacity-100 z-10' : 'opacity-0 absolute inset-0 -z-10'}`}
+      data-tutorial="timetable"
+    >
       <Weather
         timetables={timetables}
         selectedDay={selectedDay}
@@ -28,7 +31,11 @@ const TimetableGrid = React.forwardRef(({ items, preview, onResizeEnd, showTimet
         <div className="md:hidden block py-1">
           <div className="h-10"></div>
         </div>
-        <div ref={combinedRef} className="flex-1 relative">
+        <div
+          ref={combinedRef}
+          className="flex-1 relative"
+          data-tutorial="timetable-dropzone"
+        >
           {/* Grid Lines */}
           {Array.from({ length: TOTAL_SLOTS }).map((_, i) => (
             <div key={i} className="flex items-center box-border" style={{ height: SLOT_HEIGHT }}>

@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CustomOverlayMap, Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
-import { LocateFixed, RotateCcw, Route } from "lucide-react";
+import { LocateFixed, MapPinned, RotateCcw, Route } from "lucide-react";
 import useKakaoLoader from "../../hooks/useKakaoLoader";
 import { useApiClient } from "../../hooks/useApiClient";
 import SegmentInfoPanel, { SUBWAY_COLORS, BUS_COLOR } from "./SegmentInfoPanel";
@@ -41,7 +41,7 @@ const splitPathByWaypoints = (path, waypoints) => {
 
 export default function MapComponent({
   schedule,
-  defaultSegmentInfoOpen = true,
+  defaultSegmentInfoOpen = false,
   onSegmentInfoRequest,
   segmentPanelVariant = "floating",
 }) {
@@ -247,35 +247,35 @@ export default function MapComponent({
     setActiveSegmentIndex((current) => current === index ? null : index);
   };
 
-  // useEffect를 사용하여 map 인스턴스가 생성된 후 한 번만 실행되도록 설정
-  useEffect(() => {
-    if (!map || positions.length === 0) return; // map 인스턴스가 아직 생성되지 않았다면 아무것도 하지 않음
+  const fitMapToTrip = useCallback(() => {
+    if (!map || positions.length === 0 || !window.kakao?.maps) return;
 
-    // LatLngBounds 객체에 모든 마커의 좌표를 추가합니다.
     const bounds = new window.kakao.maps.LatLngBounds();
     positions.forEach((pos) => {
       bounds.extend(new window.kakao.maps.LatLng(pos.lat, pos.lng));
     });
 
-    // 패널 상태가 바뀌면 실제로 보이는 지도 영역 안에 마커를 맞춥니다.
-    const fitMapToPositions = () => {
-      map.relayout();
-      const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-      const leftPadding = isSegmentInfoOpen && isDesktop ? 400 : 48;
-      const bottomPadding = isSegmentInfoOpen && !isDesktop ? 280 : 48;
-      map.setBounds(bounds, 48, 48, bottomPadding, leftPadding);
-    };
+    map.relayout();
+    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+    const leftPadding = isSegmentInfoOpen && isDesktop ? 400 : 48;
+    const bottomPadding = isSegmentInfoOpen && !isDesktop ? 280 : 48;
+    map.setBounds(bounds, 48, 48, bottomPadding, leftPadding);
+  }, [isSegmentInfoOpen, map, positions]);
+
+  // 지도와 구간 패널의 크기가 정해진 뒤 모든 여행 장소가 보이도록 맞춥니다.
+  useEffect(() => {
+    if (!map || positions.length === 0) return;
 
     const frameId = window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(fitMapToPositions);
+      window.requestAnimationFrame(fitMapToTrip);
     });
-    const fitTimer = window.setTimeout(fitMapToPositions, 180);
+    const fitTimer = window.setTimeout(fitMapToTrip, 180);
 
     return () => {
       window.cancelAnimationFrame(frameId);
       window.clearTimeout(fitTimer);
     };
-  }, [map, positions, isSegmentInfoOpen]);
+  }, [fitMapToTrip, map, positions.length]);
 
   // 도로를 따라가는 실제 경로를 백엔드(OSRM 길찾기)에서 받아온다.
   // 실패 시 routePath는 빈 배열로 남아 직선(positions)으로 대체된다.
@@ -350,6 +350,11 @@ export default function MapComponent({
     );
   };
 
+  const handleMoveToTrip = () => {
+    resetMapFocus();
+    fitMapToTrip();
+  };
+
   return (
     sortedSchedule && sortedSchedule.length > 0 ? (
       <div className="relative w-full h-full">
@@ -387,18 +392,28 @@ export default function MapComponent({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={handleMoveToCurrentLocation}
-          disabled={isLocating}
-          className="absolute bottom-4 right-4 z-10 flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          <LocateFixed className="h-4 w-4 text-main" />
-          {isLocating ? "현재 위치 찾는 중..." : "현재 위치"}
-        </button>
+        <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleMoveToTrip}
+            className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200 transition hover:bg-white hover:text-main"
+          >
+            <MapPinned className="h-4 w-4 text-main" />
+            여행 장소
+          </button>
+          <button
+            type="button"
+            onClick={handleMoveToCurrentLocation}
+            disabled={isLocating}
+            className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <LocateFixed className="h-4 w-4 text-main" />
+            {isLocating ? "찾는 중..." : "현재 위치"}
+          </button>
+        </div>
 
         {locationError && (
-          <div className="absolute bottom-20 right-4 z-10 max-w-[240px] rounded-2xl bg-white/95 px-3 py-2 text-sm font-medium text-rose-500 shadow-lg ring-1 ring-rose-100">
+          <div className="absolute bottom-16 right-4 z-10 max-w-[260px] rounded-2xl bg-white/95 px-3 py-2 text-sm font-medium text-rose-500 shadow-lg ring-1 ring-rose-100">
             {locationError}
           </div>
         )}

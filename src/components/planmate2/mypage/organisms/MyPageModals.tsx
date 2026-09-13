@@ -120,7 +120,7 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
       <PasswordChangeModal
         isOpen={activeModal === 'changePassword' && !isSocialLogin}
         onClose={() => setActiveModal(null)}
-        onBack={() => setActiveModal('profile')}
+        onBack={() => setActiveModal(null)}
         currentPassword={currentPassword}
         setCurrentPassword={setCurrentPassword}
         newPassword={newPassword}

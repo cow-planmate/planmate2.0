@@ -1,4 +1,3 @@
-
 const AirplaneLoading = () => {
   return (
     <div className="flex flex-col items-center justify-center h-full md:h-[calc(100vh-69px)] w-full relative overflow-hidden bg-sky-50">
@@ -17,9 +16,7 @@ const AirplaneLoading = () => {
             90% { opacity: 0.8; }
             100% { transform: translateX(-100vw); opacity: 0; }
           }
-          .animate-fly {
-            animation: fly 4s ease-in-out infinite;
-          }
+          .animate-fly { animation: fly 4s ease-in-out infinite; }
           .cloud {
             position: absolute;
             background: white;
@@ -32,47 +29,30 @@ const AirplaneLoading = () => {
             background: white;
             border-radius: 50%;
           }
-          .cloud-1 {
-            width: 120px; height: 40px; top: 20%; left: -20%; animation-duration: 8s; animation-delay: 0s;
-          }
+          .cloud-1 { width: 120px; height: 40px; top: 20%; left: -20%; animation-duration: 8s; animation-delay: 0s; }
           .cloud-1::before { width: 50px; height: 50px; top: -20px; left: 15px; }
           .cloud-1::after { width: 70px; height: 70px; top: -35px; right: 15px; }
-          
-          .cloud-2 {
-            width: 80px; height: 25px; top: 60%; left: -20%; animation-duration: 12s; animation-delay: 4s; opacity: 0.6;
-          }
+          .cloud-2 { width: 80px; height: 25px; top: 60%; left: -20%; animation-duration: 12s; animation-delay: 4s; opacity: 0.6; }
           .cloud-2::before { width: 35px; height: 35px; top: -15px; left: 10px; }
           .cloud-2::after { width: 45px; height: 45px; top: -20px; right: 10px; }
-
-          .cloud-3 {
-            width: 150px; height: 45px; top: 80%; left: -20%; animation-duration: 10s; animation-delay: 2s;
-          }
+          .cloud-3 { width: 150px; height: 45px; top: 80%; left: -20%; animation-duration: 10s; animation-delay: 2s; }
           .cloud-3::before { width: 60px; height: 60px; top: -30px; left: 20px; }
           .cloud-3::after { width: 80px; height: 80px; top: -45px; right: 20px; }
-
-          /* Foreground Clouds */
-          .cloud-4 {
-            width: 200px; height: 60px; top: 35%; left: -30%; animation-duration: 6s; animation-delay: 1s; opacity: 0.95; filter: blur(2px);
-          }
+          .cloud-4 { width: 200px; height: 60px; top: 35%; left: -30%; animation-duration: 6s; animation-delay: 1s; opacity: 0.95; filter: blur(2px); }
           .cloud-4::before { width: 80px; height: 80px; top: -40px; left: 30px; }
           .cloud-4::after { width: 100px; height: 100px; top: -50px; right: 30px; }
-
-          .cloud-5 {
-            width: 250px; height: 75px; top: 65%; left: -40%; animation-duration: 5s; animation-delay: 3s; filter: blur(4px); opacity: 0.9;
-          }
+          .cloud-5 { width: 250px; height: 75px; top: 65%; left: -40%; animation-duration: 5s; animation-delay: 3s; filter: blur(4px); opacity: 0.9; }
           .cloud-5::before { width: 100px; height: 100px; top: -50px; left: 40px; }
           .cloud-5::after { width: 120px; height: 120px; top: -60px; right: 40px; }
         `}
       </style>
 
-      {/* Background Clouds */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="cloud cloud-1"></div>
         <div className="cloud cloud-2"></div>
         <div className="cloud cloud-3"></div>
       </div>
 
-      {/* Airplane and Text */}
       <div className="flex flex-col items-center">
         <div className="z-10 relative animate-fly -rotate-12">
           <svg
@@ -93,7 +73,6 @@ const AirplaneLoading = () => {
         </div>
       </div>
 
-      {/* Foreground Clouds (Passes over the airplane) */}
       <div className="absolute inset-0 z-20 pointer-events-none">
         <div className="cloud cloud-4"></div>
         <div className="cloud cloud-5"></div>

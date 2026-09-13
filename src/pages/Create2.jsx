@@ -32,6 +32,8 @@ import Navbar from "../components/planmate2/navbar";
 import DaySelector from "../components/Create2/DaySelector/DaySelector";
 import Main from "../components/Create2/Main/Main";
 import PlanInfo from "../components/Create2/PlanInfo/PlanInfo";
+import CreateTutorial from "../components/Create2/Tutorial/CreateTutorial";
+import ChatBot from "../components/Create/ChatBot";
 import useNicknameStore from "../store/Nickname";
 import useItemsStore from "../store/Schedules";
 import {
@@ -472,6 +474,8 @@ function App() {
         planId={checklistPlanId}
         enabled={Boolean(checklistPlanId && isAuthenticated())}
       />
+      <CreateTutorial />
+      <ChatBot planId={id} />
       <div
         className="
           min-[1464px]:w-[1400px] min-[1464px]:px-0

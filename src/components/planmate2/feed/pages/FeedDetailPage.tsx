@@ -12,6 +12,7 @@ import { ForkDateModal } from '../organisms/ForkDateModal';
 import { ForkResultModal } from '../organisms/ForkResultModal';
 import { buildKakaoMapUrl } from '../../common/kakaoMapLink';
 import { UserAvatar } from '../../common/UserAvatar';
+import PageLoading from '../../../common/PageLoading';
 import { buildCreatePlanRequest, canForkItinerary } from '../utils/itineraryToPlan';
 
 interface PostDetailProps {
@@ -261,7 +262,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
     CAFE: { label: '카페', icon: <Coffee className="w-3.5 h-3.5 text-amber-500" />, chip: 'bg-amber-50 text-amber-700', color: '#D97706', pin: <Coffee className="w-4 h-4 text-white" /> },
     ACCOMMODATION: { label: '숙소', icon: <BedDouble className="w-3.5 h-3.5 text-purple-500" />, chip: 'bg-purple-50 text-purple-700', color: '#9333EA', pin: <BedDouble className="w-4 h-4 text-white" /> },
     SHOPPING: { label: '쇼핑', icon: <ShoppingBag className="w-3.5 h-3.5 text-pink-500" />, chip: 'bg-pink-50 text-pink-700', color: '#DB2777', pin: <ShoppingBag className="w-4 h-4 text-white" /> },
-    ATTRACTION: { label: '관광', icon: <Landmark className="w-3.5 h-3.5 text-[#1344FF]" />, chip: 'bg-blue-50 text-[#1344FF]', color: '#1344FF', pin: <Landmark className="w-4 h-4 text-white" /> },
+    ATTRACTION: { label: '관광지', icon: <Landmark className="w-3.5 h-3.5 text-[#1344FF]" />, chip: 'bg-blue-50 text-[#1344FF]', color: '#1344FF', pin: <Landmark className="w-4 h-4 text-white" /> },
   };
   const categoryMeta = (category?: string | null) =>
     CATEGORY_META[(category ?? '').toUpperCase()]
@@ -287,11 +288,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
   }, [map, visibleItems]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center">
-        <p className="text-[#666666]">여행기를 불러오는 중...</p>
-      </div>
-    );
+    return <PageLoading message="여행기를 불러오는 중이에요" />;
   }
 
   if (isError || !post) {

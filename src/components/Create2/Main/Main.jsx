@@ -49,6 +49,17 @@ export default function Main() {
   }, []);
 
   useEffect(() => {
+    const handleTutorialView = (event) => {
+      if (event.detail === 'timetable' || event.detail === 'recommend') {
+        setActiveTab(event.detail);
+      }
+    };
+
+    window.addEventListener('planmate:tutorial-view', handleTutorialView);
+    return () => window.removeEventListener('planmate:tutorial-view', handleTutorialView);
+  }, []);
+
+  useEffect(() => {
     console.log(items)
   }, [items])
 
@@ -75,6 +86,11 @@ export default function Main() {
     onDragStart(event) {
       setPreview(null);
       setActiveId(event.active.id);
+      window.dispatchEvent(
+        new CustomEvent('planmate:tutorial-interaction', {
+          detail: { type: 'drag', active: true },
+        }),
+      );
     },
     onDragMove(event) {
       const { active, over } = event;
@@ -106,6 +122,11 @@ export default function Main() {
     onDragEnd(event) {
       setPreview(null);
       setActiveId(null);
+      window.dispatchEvent(
+        new CustomEvent('planmate:tutorial-interaction', {
+          detail: { type: 'drag', active: false },
+        }),
+      );
 
       const { active, over } = event;
       if (!over || over.id !== 'timetable-area') return;
@@ -154,6 +175,11 @@ export default function Main() {
     onDragCancel() {
       setPreview(null);
       setActiveId(null);
+      window.dispatchEvent(
+        new CustomEvent('planmate:tutorial-interaction', {
+          detail: { type: 'drag', active: false },
+        }),
+      );
     }
   });
 
@@ -238,6 +264,7 @@ export default function Main() {
   return (
     <div
       className="flex flex-1 flex-col h-full overflow-hidden select-none"
+      data-tutorial="schedule-workspace"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -263,7 +290,10 @@ export default function Main() {
 
       {/* Mobile Bottom Tab */}
       {isMobile && (
-        <nav className="fixed left-0 right-0 bottom-0 z-40 bg-white border-t h-16 flex">
+        <nav
+          className="fixed left-0 right-0 bottom-0 z-40 bg-white border-t h-16 flex"
+          data-tutorial="mobile-navigation"
+        >
           <button onClick={() => setActiveTab('timetable')} className={`flex-1 flex flex-col items-center justify-center ${activeTab === 'timetable' ? 'text-main' : 'text-gray-400'}`}>
             <span className="text-xl"><FontAwesomeIcon icon={faCalendar} /></span><span className="text-xs font-medium">시간표</span>
           </button>

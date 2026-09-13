@@ -200,7 +200,10 @@ export default function Sidebar({
       className={`flex-1 w-full flex flex-col min-h-0 overflow-hidden transition-transform duration-300 absolute inset-0 md:relative md:transform-none z-20 
       ${showSidebar ? "translate-x-0" : "translate-x-full md:translate-x-0"}`}
     >
-      <div className="flex space-x-1 overflow-x-auto shrink-0 px-5 md:px-0">
+      <div
+        className="flex space-x-1 overflow-x-auto shrink-0 px-5 md:px-0"
+        data-tutorial="place-tabs"
+      >
         {["tour", "lodging", "restaurant", "custom", "search"].map((tab) => (
           <button
             key={tab}
@@ -214,7 +217,10 @@ export default function Sidebar({
           </button>
         ))}
       </div>
-      <div className="flex-1 min-h-0 flex flex-col md:border md:border-gray-300 rounded-lg rounded-tl-none divide-y divide-gray-300 md:min-h-0">
+      <div
+        className="flex-1 min-h-0 flex flex-col md:border md:border-gray-300 rounded-lg rounded-tl-none divide-y divide-gray-300 md:min-h-0"
+        data-tutorial="place-results"
+      >
         {selectedTab === "search" && (
           <div className="px-5 py-2 shrink-0">
             <div className="flex items-center space-x-2">

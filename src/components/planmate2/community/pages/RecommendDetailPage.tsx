@@ -7,6 +7,7 @@ import { RecommendSidebar } from '../molecules/RecommendSidebar';
 import { CommentSection } from '../organisms/CommentSection';
 import { PostContentViewer } from '../organisms/PostContentViewer';
 import { RecommendPlacesSection } from '../organisms/RecommendPlacesSection';
+import PageLoading from '../../../common/PageLoading';
 
 interface RecommendDetailPageProps {
   post?: any;          // 목록에서 넘어온 경우의 초기 데이터 (없어도 postId로 조회)
@@ -46,7 +47,7 @@ export const RecommendDetailPage = ({ post: initialPost, postId, onBack, onNavig
   };
 
   if (isLoading && !post) {
-    return <div className="max-w-4xl mx-auto px-4 py-16 text-center text-gray-400">게시글을 불러오는 중...</div>;
+    return <PageLoading message="게시글을 불러오는 중이에요" />;
   }
   if ((error && !post) || !post) {
     return (

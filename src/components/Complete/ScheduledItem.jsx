@@ -3,7 +3,7 @@ import { BedDouble, Landmark, MapPin, Sparkles, Utensils } from "lucide-react";
 import DetailPopup from "../Create2/Timetable/DetailPopup";
 
 const CATEGORIES = {
-  0: { label: "관광", Icon: Landmark, chip: "bg-blue-50 text-[#1344FF]" },
+  0: { label: "관광지", Icon: Landmark, chip: "bg-blue-50 text-[#1344FF]" },
   1: { label: "숙소", Icon: BedDouble, chip: "bg-violet-50 text-violet-600" },
   2: { label: "식당", Icon: Utensils, chip: "bg-orange-50 text-orange-600" },
   3: { label: "직접 추가", Icon: Sparkles, chip: "bg-violet-50 text-violet-600" },

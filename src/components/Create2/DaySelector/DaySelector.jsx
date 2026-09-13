@@ -17,7 +17,7 @@ export default function DaySelector() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <div className="flex md:flex-col">
+    <div className="flex md:flex-col" data-tutorial="day-selector">
       {/* 날짜 버튼 영역 */}
       <div
         className="
@@ -31,6 +31,7 @@ export default function DaySelector() {
         {timetables.map((timetable, index) => (
           <button
             key={timetable.timeTableId}
+            data-tutorial="day-button"
             className={`px-3 md:px-4 md:py-4 rounded-lg flex md:flex-col space-x-1 md:space-x-0 items-center shrink-0 ${selectedDay === index
               ? "bg-main text-white"
               : "bg-white text-gray-700 border border-gray-300"
@@ -53,6 +54,8 @@ export default function DaySelector() {
       {/* 캘린더 버튼 */}
       <button
         onClick={() => setIsModalOpen(true)}
+        data-tutorial="day-settings-button"
+        aria-label="일정 날짜와 시간 설정"
         className="
           mr-5 md:mr-0
           ml-3 md:ml-0

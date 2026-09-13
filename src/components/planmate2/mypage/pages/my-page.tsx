@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useApiClient } from "../../../../hooks/useApiClient";
 import useKakaoLoader from "../../../../hooks/useKakaoLoader";
 import useNicknameStore from "../../../../store/Nickname";
+import PageLoading from "../../../common/PageLoading";
 import { DEFAULT_MAP_CENTER, getRegionCoords } from "../../feed/utils/region";
 import { useCalendar } from "../hooks/useCalendar";
 import {
@@ -71,6 +72,7 @@ interface MyPageProps {
   onNavigate: (view: any, data?: any) => void;
   userId?: string;
   initialSection?: MyPageMenuSection;
+  reloadKey?: number;
 }
 
 const enrichPlan = async (
@@ -102,6 +104,7 @@ export default function MyPage({
   onNavigate,
   userId,
   initialSection = "profile",
+  reloadKey = 0,
 }: MyPageProps) {
   useKakaoLoader();
   const navigate = useNavigate();
@@ -267,6 +270,7 @@ export default function MyPage({
   const [myPlans, setMyPlans] = useState<Plan[]>([]);
   const [editablePlans, setEditablePlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sectionRefreshing, setSectionRefreshing] = useState(false);
   // 내 프로필 공개 설정 (본인 프로필에서만 사용)
   const [isProfilePublic, setIsProfilePublic] = useState(true);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
@@ -343,6 +347,7 @@ export default function MyPage({
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   // 프로필 사진은 '변경사항 저장하기'를 눌러야 서버에 반영된다.
   // 그전까지는 고른 파일과 삭제 여부만 들고 있다가 저장 시점에 한 번에 처리한다.
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
@@ -381,6 +386,15 @@ export default function MyPage({
       setNicknameMessage("");
     }
   }, [newNickname, userProfile?.nickname]);
+
+  // 프로필 수정값은 별도 모달 대신 페이지 안에서 바로 편집한다.
+  // 서버 프로필이 새로 들어왔을 때만 폼의 기준값을 동기화한다.
+  useEffect(() => {
+    if (!userProfile) return;
+    setNewNickname(userProfile.nickname || "");
+    setNewBirthdate(userProfile.birthdate || "");
+    setNewGender(userProfile.gender || "");
+  }, [userProfile]);
 
   const BASE_URL = (import.meta as any).env.VITE_API_URL;
   const setStoreNickname = useNicknameStore(
@@ -490,6 +504,7 @@ export default function MyPage({
   const handleProfileSubmit = async () => {
     const hasImageChange = Boolean(pendingImageFile) || pendingImageRemoved;
     try {
+      setIsSavingProfile(true);
       const updates = [];
 
       // 닉네임 변경
@@ -549,6 +564,7 @@ export default function MyPage({
       ErrorToast(err.response?.data?.message || "프로필 변경에 실패했습니다.");
     } finally {
       setIsUploadingImage(false);
+      setIsSavingProfile(false);
     }
   };
 
@@ -747,6 +763,10 @@ export default function MyPage({
           setLoading(true);
           setIsProfilePrivate(false);
 
+          if (reloadKey > 0) {
+            await queryClient.refetchQueries({ queryKey: ["community"] });
+          }
+
           // 타인 프로필은 공개 범위가 제한된 응답(이메일·일정 목록 없음)을 준다.
           // 비공개 프로필이면 403(USER_002)이 오고, 아래 catch에서 전용 화면으로 전환한다.
           let profileData: any;
@@ -809,11 +829,12 @@ export default function MyPage({
           }
         } finally {
           setLoading(false);
+          setSectionRefreshing(false);
         }
       }
     };
     fetchUserProfile();
-  }, [userId, isOtherUser, isAuthenticated, get]);
+  }, [userId, isOtherUser, isAuthenticated, get, queryClient, reloadKey]);
 
   // 서버가 준 공개 설정을 토글 초기값으로 반영 (본인 프로필 응답에만 들어있다)
   useEffect(() => {
@@ -989,12 +1010,8 @@ export default function MyPage({
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1344FF]"></div>
-      </div>
-    );
+  if (loading && !userProfile) {
+    return <PageLoading message="마이페이지를 불러오는 중이에요" />;
   }
 
   // 비공개 프로필 — 닉네임을 포함한 어떤 정보도 서버가 주지 않으므로 안내만 노출한다
@@ -1049,22 +1066,32 @@ export default function MyPage({
 
   const profileHeader = (
     <ProfileHeader
-      dummyUser={dummyUser}
-      onEditProfile={() => {
-        setNewNickname(userProfile?.nickname || "");
-        setNewBirthdate(userProfile?.birthdate || "");
-        setNewGender(userProfile?.gender || "");
-        setNewPassword("");
-        setConfirmPassword("");
-        setActiveModal("profile");
-      }}
+      dummyUser={{ ...dummyUser, profileLogo: isOtherUser ? dummyUser.profileLogo : profileEditImage }}
       onEditThemes={() => setIsThemeStartOpen(true)}
       onAddFriend={handleFriendAdd}
       onSendMessage={handleSendMessage}
       isOtherUser={isOtherUser}
-      isProfilePublic={isProfilePublic}
-      isSavingVisibility={isSavingVisibility}
-      onToggleVisibility={handleToggleProfileVisibility}
+      newNickname={newNickname}
+      setNewNickname={setNewNickname}
+      nicknameValid={nicknameValid}
+      nicknameMessage={nicknameMessage}
+      onCheckNickname={handleCheckNickname}
+      isNicknameVerified={isNicknameVerified}
+      newBirthdate={newBirthdate}
+      setNewBirthdate={setNewBirthdate}
+      newGender={newGender}
+      setNewGender={setNewGender}
+      onImageChange={handleImageChange}
+      isSaving={isSavingProfile}
+      onSave={handleProfileSubmit}
+      onOpenPasswordChange={() => {
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setActiveModal("changePassword");
+      }}
+      onOpenDeleteAccount={() => setActiveModal("deleteAccount")}
+      isSocialLogin={Boolean(userProfile?.isSocialLogin)}
     />
   );
 
@@ -1207,13 +1234,24 @@ export default function MyPage({
       ) : (
         <MyPageContentPage
           activeSection={initialSection}
-          onSectionChange={(section) => onNavigate("mypage", { section })}
+          onSectionChange={(section) => {
+            const reload = section === initialSection;
+            if (reload) setSectionRefreshing(true);
+            onNavigate("mypage", { section, reload });
+          }}
           title={activeSectionMeta.title}
           description={activeSectionMeta.description}
           eyebrow={activeSectionMeta.eyebrow}
           icon={activeSectionMeta.icon}
         >
-          {activeSectionMeta.content}
+          {sectionRefreshing ? (
+            <PageLoading
+              message="새로 불러오는 중"
+              className="!min-h-[420px] !bg-transparent"
+            />
+          ) : (
+            activeSectionMeta.content
+          )}
         </MyPageContentPage>
       )}
 

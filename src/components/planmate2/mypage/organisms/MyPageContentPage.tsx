@@ -43,7 +43,7 @@ export function MyPageContentPage({
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-950 text-white">
               <LayoutGrid className="h-4 w-4" />
             </span>
-            내 여행 관리
+            마이페이지
           </div>
           <nav className="mt-8 space-y-1" aria-label="마이페이지 메뉴">
             {SECTION_LINKS.map(({ id, label, icon: LinkIcon }) => {

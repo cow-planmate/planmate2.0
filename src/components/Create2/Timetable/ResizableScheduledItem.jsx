@@ -60,7 +60,14 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
     }
   }, [item.duration, item.start, isResizing, SLOT_HEIGHT]);
 
-  const onResizeStart = () => setIsResizing(true);
+  const onResizeStart = () => {
+    setIsResizing(true);
+    window.dispatchEvent(
+      new CustomEvent("planmate:tutorial-interaction", {
+        detail: { type: "resize", active: true },
+      }),
+    );
+  };
 
   const onResize = (e, { size, handle }) => {
     if (handle === "n") {
@@ -76,6 +83,11 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
 
   const onResizeStop = (e, { size, handle }) => {
     setIsResizing(false);
+    window.dispatchEvent(
+      new CustomEvent("planmate:tutorial-interaction", {
+        detail: { type: "resize", active: false },
+      }),
+    );
     const slotsChanged = Math.round(
       (size.height - item.duration * SLOT_HEIGHT) / SLOT_HEIGHT,
     );

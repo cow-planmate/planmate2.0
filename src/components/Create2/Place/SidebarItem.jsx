@@ -30,6 +30,7 @@ export const SidebarItem = ({
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      data-tutorial-place-card
       className={`px-5 py-3 md:py-5 bg-white hover:shadow-md flex items-center cursor-grab active:cursor-grabbing select-none
         ${isDragging ? "opacity-40 ring-2 ring-blue-400" : ""}`}
     >
@@ -107,6 +108,8 @@ export const SidebarItem = ({
         )}
         {isMobile && (
           <button
+            type="button"
+            data-tutorial="mobile-add-button"
             onClick={(e) => {
               e.stopPropagation();
               onMobileAdd();

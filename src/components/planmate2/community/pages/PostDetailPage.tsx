@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { CommentSection } from '../organisms/CommentSection';
 import { PostListTable } from '../organisms/PostListTable';
 import { PostContentViewer } from '../organisms/PostContentViewer';
+import PageLoading from '../../../common/PageLoading';
 
 interface PostDetailPageProps {
   postId: number | string;
@@ -46,7 +47,7 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
   };
 
   if (isLoading) {
-    return <div className="min-h-[calc(100vh-70px)] bg-[#f4f5f7] px-4 py-16 text-center text-gray-400">게시글을 불러오는 중...</div>;
+    return <PageLoading message="게시글을 불러오는 중이에요" />;
   }
   if (error || !post) {
     return (

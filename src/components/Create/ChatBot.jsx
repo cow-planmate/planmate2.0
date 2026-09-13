@@ -1,218 +1,474 @@
+import {
+  AlertCircle,
+  Bot,
+  CalendarDays,
+  Check,
+  ChevronRight,
+  Clock3,
+  LoaderCircle,
+  MapPin,
+  MessageCircle,
+  RotateCcw,
+  Send,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApiClient } from "../../hooks/useApiClient";
+import usePlanStore from "../../store/Plan";
 
-const ChatBot = () => {
-  const [isOpen, setIsOpen] = useState(false);
+const WELCOME_MESSAGE = {
+  id: "welcome",
+  role: "assistant",
+  text: "일정을 어떻게 바꿔볼까요? 장소 추천부터 일정 순서 조정까지 편하게 말해 주세요.",
+};
+
+const QUICK_PROMPTS = [
+  "첫째 날 동선을 더 짧게 정리해 줘",
+  "근처 맛집을 몇 곳 추천해 줘",
+  "비 오는 날 가기 좋은 장소를 알려 줘",
+];
+
+const CATEGORY_LABELS = {
+  ATTRACTION: "관광지",
+  ACCOMMODATION: "숙소",
+  RESTAURANT: "식당",
+  FREE: "직접 추가",
+  SEARCH: "검색 장소",
+};
+
+const newMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+const getErrorMessage = (error, mode) => {
+  if (error?.code === "CHATBOT_003" || error?.status === 409) {
+    return "반영 세션이 만료됐어요. 페이지를 새로고침한 뒤 다시 시도해 주세요.";
+  }
+  if (error?.status === 403) return "이 일정을 편집할 권한이 있는 멤버만 AI 도우미를 사용할 수 있어요.";
+  if (error?.status === 404) return "AI 도우미 API가 아직 연결되지 않았어요. 잠시 후 다시 시도해 주세요.";
+  if (mode === "apply") {
+    return "제안을 반영하지 못했어요. 일부 변경이 보인다면 새로고침해 최신 일정을 확인해 주세요.";
+  }
+  return "AI가 잠시 응답하지 못했어요. 잠시 후 다시 시도해 주세요.";
+};
+
+const getPlanName = (plan) =>
+  plan?.planFrame?.planName ?? plan?.planFrame?.name ?? "일정 변경 제안";
+
+const formatBlockTime = (block) => {
+  const start = block?.blockStartTime?.slice?.(0, 5);
+  const end = block?.blockEndTime?.slice?.(0, 5);
+  return start && end ? `${start}–${end}` : start ?? "시간 미정";
+};
+
+const SuggestedPlaces = ({ places }) => {
+  if (!places.length) return null;
+
+  return (
+    <section className="mx-4 mb-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm" aria-label="AI 추천 장소">
+      <div className="mb-2.5 flex items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+          <MapPin className="h-3.5 w-3.5" />
+        </span>
+        <div>
+          <h3 className="text-xs font-extrabold text-slate-900">추천 장소</h3>
+          <p className="text-[10px] font-medium text-slate-400">이어서 조건을 바꿔 물어볼 수 있어요</p>
+        </div>
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {places.map((place) => (
+          <article
+            key={`${place.contentId}-${place.title}`}
+            className="w-[178px] flex-none overflow-hidden rounded-xl border border-slate-200 bg-white"
+          >
+            {place.thumbnailUrl ? (
+              <img src={place.thumbnailUrl} alt="" className="h-20 w-full object-cover" />
+            ) : (
+              <div className="flex h-20 items-center justify-center bg-slate-100 text-slate-300">
+                <MapPin className="h-6 w-6" />
+              </div>
+            )}
+            <div className="p-2.5">
+              <span className="text-[10px] font-bold text-[#1344FF]">
+                {CATEGORY_LABELS[place.category] ?? place.category ?? "여행 장소"}
+              </span>
+              <h4 className="mt-0.5 truncate text-xs font-extrabold text-slate-900">{place.title}</h4>
+              <p className="mt-1 line-clamp-1 text-[10px] font-medium text-slate-400">
+                {place.addr1 || "주소 정보 없음"}
+              </p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const PlanPreview = ({ plan, isApplying, onApply, onDiscard }) => {
+  if (!plan) return null;
+
+  const timetables = Array.isArray(plan.timetables) ? plan.timetables : [];
+  const blocks = Array.isArray(plan.placeBlocks) ? plan.placeBlocks : [];
+
+  return (
+    <section className="mx-4 mb-3 overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-[0_8px_24px_rgba(19,68,255,0.08)]" aria-label="AI 일정 변경 미리보기">
+      <div className="flex items-start justify-between gap-3 bg-blue-50/80 px-4 py-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[#1344FF]">
+            <Sparkles className="h-3.5 w-3.5" />
+            변경 미리보기
+          </div>
+          <h3 className="mt-1 truncate text-sm font-black text-slate-950">{getPlanName(plan)}</h3>
+        </div>
+        <span className="flex-none rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-500 ring-1 ring-blue-100">
+          아직 미반영
+        </span>
+      </div>
+
+      <div className="px-4 py-3">
+        <div className="flex items-center gap-4 text-xs font-bold text-slate-600">
+          <span className="flex items-center gap-1.5">
+            <CalendarDays className="h-3.5 w-3.5 text-[#1344FF]" /> {timetables.length}일
+          </span>
+          <span className="flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-[#1344FF]" /> {blocks.length}개 장소
+          </span>
+        </div>
+
+        {blocks.length > 0 && (
+          <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3">
+            {blocks.slice(0, 3).map((block, index) => (
+              <div key={block.blockId ?? `${block.date}-${block.blockStartTime}-${index}`} className="flex min-w-0 items-center gap-2 text-[11px]">
+                <span className="w-16 flex-none font-bold tabular-nums text-slate-400">{formatBlockTime(block)}</span>
+                <span className="truncate font-bold text-slate-700">{block.placeName}</span>
+              </div>
+            ))}
+            {blocks.length > 3 && (
+              <p className="pl-[72px] text-[10px] font-semibold text-slate-400">외 {blocks.length - 3}개 장소</p>
+            )}
+          </div>
+        )}
+
+        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-[10px] font-medium leading-4 text-slate-500">
+          내용을 더 바꾸고 싶다면 아래 입력창에서 이어서 요청하세요.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-[auto_1fr] gap-2 border-t border-slate-100 p-3">
+        <button
+          type="button"
+          onClick={onDiscard}
+          disabled={isApplying}
+          className="rounded-xl px-3 py-2.5 text-xs font-extrabold text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
+        >
+          제안 취소
+        </button>
+        <button
+          type="button"
+          onClick={onApply}
+          disabled={isApplying}
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-[#1344FF] px-4 py-2.5 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(19,68,255,0.22)] transition hover:bg-[#0d34cc] disabled:cursor-wait disabled:opacity-70"
+        >
+          {isApplying ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+          {isApplying ? "반영 중..." : "이 일정에 반영"}
+        </button>
+      </div>
+    </section>
+  );
+};
+
+const ChatBot = ({ planId: explicitPlanId }) => {
   const [searchParams] = useSearchParams();
-  const id = searchParams.get("id");
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: id 
-        ? "안녕하세요! 여행 계획에 대해 궁금한 것이 있으시면 언제든 물어보세요! 🤖\n\n현재 계획을 수정할 수 있습니다. 예: '계획 이름을 바꿔줘', '출발지를 서울로 바꿔줘' 등" 
-        : "안녕하세요! 여행 계획에 대해 궁금한 것이 있으시면 언제든 물어보세요! 🤖",
-      isBot: true,
-      timestamp: new Date(),
-    },
-  ]);
+  const storePlanId = usePlanStore((state) => state.planId);
+  const planId = explicitPlanId ?? searchParams.get("id") ?? storePlanId;
+  const canUseChatbot = Boolean(planId && String(planId) !== "-1" && String(planId) !== "0");
+  const { post } = useApiClient();
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [inputMessage, setInputMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState(null);
+  const [shownPlaces, setShownPlaces] = useState([]);
+  const [recentUserMessages, setRecentUserMessages] = useState([]);
+  const [notice, setNotice] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  
-  const { post } = useApiClient();
-  const BASE_URL = import.meta.env.VITE_API_URL;
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const planSummary = {
+    dayCount: pendingPlan?.timetables?.length ?? 0,
+    placeCount: pendingPlan?.placeBlocks?.length ?? 0,
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [isApplying, isSending, messages, pendingPlan, shownPlaces]);
 
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
+    if (isOpen) window.setTimeout(() => inputRef.current?.focus(), 80);
   }, [isOpen]);
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
-
-    const userMessage = {
-      id: Date.now(),
-      text: inputMessage,
-      isBot: false,
-      timestamp: new Date(),
-    };
-
-    const nextMessages = [...messages, userMessage];
-    setMessages(nextMessages);
+  useEffect(() => {
+    setMessages([WELCOME_MESSAGE]);
     setInputMessage("");
-    setIsLoading(true);
+    setPendingPlan(null);
+    setShownPlaces([]);
+    setRecentUserMessages([]);
+    setNotice(null);
+  }, [planId]);
+
+  const appendAssistantMessage = (text) => {
+    setMessages((current) => [
+      ...current,
+      { id: newMessageId(), role: "assistant", text },
+    ]);
+  };
+
+  const sendMessage = async (messageOverride) => {
+    const message = (messageOverride ?? inputMessage).trim();
+    if (!message || isSending || isApplying || !canUseChatbot) return;
+
+    const userMessage = { id: newMessageId(), role: "user", text: message };
+    setMessages((current) => [...current, userMessage]);
+    setInputMessage("");
+    setNotice(null);
+    setIsSending(true);
 
     try {
-      const historyPayload = nextMessages
-        .slice(-12)
-        .map((msg) => ({
-          role: msg.isBot ? "assistant" : "user",
-          content: msg.text,
-        }));
-
-      const response = await post(`${BASE_URL}/api/chatbot/chat`, {
-        message: userMessage.text,
-        userId: "travel_user", // 실제로는 로그인한 사용자 ID를 사용
-        planId: id ? parseInt(id) : null, // URL에서 추출한 계획 ID
-        history: historyPayload,
+      const response = await post(`${import.meta.env.VITE_API_URL}/api/plan/${planId}/chatbot`, {
+        message,
+        pendingContext: pendingPlan ?? null,
+        shownPlaces: shownPlaces.length
+          ? shownPlaces.filter((place) => place.contentId != null).map((place) => ({
+              contentId: String(place.contentId),
+              title: place.title,
+              category: place.category,
+            }))
+          : null,
+        recentMessages: recentUserMessages.slice(-3),
       });
 
-      if (response.success) {
-        const botMessage = {
-          id: Date.now() + 1,
-          text: response.response,
-          isBot: true,
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, botMessage]);
-      } else {
-        throw new Error(response.errorMessage || "응답을 받을 수 없습니다.");
-      }
+      const result = response?.data ?? response ?? {};
+      appendAssistantMessage(result.userMessage || "요청을 확인했어요. 원하는 내용을 조금 더 자세히 알려 주세요.");
+      if (result.plan) setPendingPlan(result.plan);
+      setShownPlaces(Array.isArray(result.shownPlaces) ? result.shownPlaces : []);
+      setRecentUserMessages((current) => [...current, message.slice(0, 500)].slice(-3));
     } catch (error) {
-      console.error("챗봇 API 오류:", error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        text: "죄송합니다. 현재 서비스에 문제가 있습니다. 잠시 후 다시 시도해주세요.",
-        isBot: true,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      appendAssistantMessage(getErrorMessage(error, "chat"));
     } finally {
-      setIsLoading(false);
+      setIsSending(false);
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  const applyPendingPlan = async () => {
+    if (!pendingPlan || isApplying || !canUseChatbot) return;
+
+    setNotice(null);
+    setIsApplying(true);
+    try {
+      const response = await post(`${import.meta.env.VITE_API_URL}/api/plan/${planId}/chatbot-apply`, {
+        plan: pendingPlan,
+      });
+      const result = response?.data ?? response ?? {};
+      setPendingPlan(null);
+      setShownPlaces([]);
+      appendAssistantMessage("제안한 내용을 일정에 반영했어요. 변경된 블록을 시간표에서 확인해 보세요.");
+      setNotice({
+        type: result.conflictDetected ? "warning" : "success",
+        text: result.conflictDetected
+          ? "대화 중 다른 멤버가 일정을 수정했어요. 결과를 확인하고 필요하면 상단의 되돌리기를 사용해 주세요."
+          : "일정 반영이 완료됐어요.",
+      });
+    } catch (error) {
+      setNotice({ type: "error", text: getErrorMessage(error, "apply") });
+    } finally {
+      setIsApplying(false);
     }
   };
 
-  const formatTime = (timestamp) => {
-    return timestamp.toLocaleTimeString("ko-KR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const discardPendingPlan = () => {
+    setPendingPlan(null);
+    setShownPlaces([]);
+    setNotice({ type: "neutral", text: "변경 제안을 취소했어요. 현재 저장된 일정은 그대로예요." });
+  };
+
+  const resetConversation = () => {
+    setMessages([WELCOME_MESSAGE]);
+    setInputMessage("");
+    setPendingPlan(null);
+    setShownPlaces([]);
+    setRecentUserMessages([]);
+    setNotice(null);
+  };
+
+  const handleInputKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void sendMessage();
+    }
   };
 
   return (
     <>
-      {/* 챗봇 토글 버튼 */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg transition-all duration-300 z-50 flex items-center justify-center ${
-          isOpen ? "bg-red-500 hover:bg-red-600" : "bg-main hover:bg-main-dark"
-        }`}
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        className={`fixed bottom-20 left-4 z-[45] flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_14px_34px_rgba(19,68,255,0.34)] transition hover:-translate-y-0.5 md:bottom-6 md:left-6 ${isOpen ? "bg-slate-800 hover:bg-slate-700" : "bg-[#1344FF] hover:bg-[#0d34cc]"}`}
+        aria-label={isOpen ? "AI 여행 도우미 닫기" : "AI 여행 도우미 열기"}
+        aria-expanded={isOpen}
       >
-        {isOpen ? (
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-        )}
+        {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </button>
 
-      {/* 챗봇 창 */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-white rounded-lg shadow-2xl border border-gray-200 z-40 flex flex-col">
-          {/* 헤더 */}
-          <div className="bg-main text-white p-4 rounded-t-lg flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-              <span className="font-semibold">여행 도우미 봇</span>
+        <section
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="planmate-ai-title"
+          className="fixed inset-x-3 bottom-[148px] z-[44] flex h-[min(680px,calc(100dvh-172px))] flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)] md:inset-x-auto md:bottom-[92px] md:left-6 md:h-[min(680px,calc(100dvh-116px))] md:w-[410px]"
+        >
+          <header className="flex flex-none items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3.5">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="relative flex h-10 w-10 flex-none items-center justify-center rounded-2xl bg-blue-50 text-[#1344FF]">
+                <Bot className="h-5 w-5" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <h2 id="planmate-ai-title" className="truncate text-sm font-black text-slate-950">AI 여행 도우미</h2>
+                <p className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-slate-400">
+                  <Sparkles className="h-3 w-3 text-[#1344FF]" /> 일정 추천부터 수정까지
+                </p>
+              </div>
             </div>
             <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:text-gray-300"
+              type="button"
+              onClick={resetConversation}
+              className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-[11px] font-bold text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <RotateCcw className="h-3.5 w-3.5" /> 새 대화
             </button>
+          </header>
+
+          <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/70 py-4">
+            {!canUseChatbot ? (
+              <div className="mx-4 flex h-full min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-8 text-center">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#1344FF]">
+                  <Bot className="h-6 w-6" />
+                </span>
+                <h3 className="mt-4 text-sm font-black text-slate-900">저장된 일정에서 사용할 수 있어요</h3>
+                <p className="mt-2 break-keep text-xs leading-5 text-slate-500">
+                  일정을 먼저 저장한 뒤 AI에게 장소 추천과 일정 수정을 요청해 보세요.
+                </p>
+              </div>
+            ) : (
+              <>
+                {notice && (
+                  <div className={`mx-4 mb-3 flex items-start gap-2 rounded-xl border px-3 py-2.5 text-[11px] font-semibold leading-4 ${
+                    notice.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : notice.type === "warning"
+                        ? "border-amber-200 bg-amber-50 text-amber-700"
+                        : notice.type === "error"
+                          ? "border-rose-200 bg-rose-50 text-rose-700"
+                          : "border-slate-200 bg-white text-slate-600"
+                  }`} role="status">
+                    {notice.type === "success" ? <Check className="mt-0.5 h-3.5 w-3.5 flex-none" /> : <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-none" />}
+                    {notice.text}
+                  </div>
+                )}
+
+                <div className="space-y-3 px-4">
+                  {messages.map((message, index) => (
+                    <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[84%] rounded-2xl px-3.5 py-2.5 text-xs font-medium leading-5 ${
+                        message.role === "user"
+                          ? "rounded-br-md bg-[#1344FF] text-white shadow-[0_6px_16px_rgba(19,68,255,0.18)]"
+                          : "rounded-bl-md border border-slate-200 bg-white text-slate-700 shadow-sm"
+                      }`}>
+                        <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                        {index > 0 && (
+                          <span className={`mt-1 flex items-center gap-1 text-[9px] ${message.role === "user" ? "text-blue-100" : "text-slate-400"}`}>
+                            <Clock3 className="h-2.5 w-2.5" /> 방금
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {messages.length === 1 && (
+                    <div className="space-y-1.5 pt-1">
+                      {QUICK_PROMPTS.map((prompt) => (
+                        <button
+                          key={prompt}
+                          type="button"
+                          onClick={() => void sendMessage(prompt)}
+                          className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-[11px] font-bold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50/60 hover:text-[#1344FF]"
+                        >
+                          <span className="truncate">{prompt}</span>
+                          <ChevronRight className="h-3.5 w-3.5 flex-none" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {isSending && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[84%] rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3.5 py-3 shadow-sm">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                          <LoaderCircle className="h-4 w-4 animate-spin text-[#1344FF]" /> 일정을 살펴보고 있어요
+                        </div>
+                        <p className="mt-1 text-[10px] font-medium text-slate-400">내용에 따라 최대 40초 정도 걸릴 수 있어요.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3">
+                  <SuggestedPlaces places={shownPlaces} />
+                  <PlanPreview
+                    plan={pendingPlan}
+                    isApplying={isApplying}
+                    onApply={applyPendingPlan}
+                    onDiscard={discardPendingPlan}
+                  />
+                </div>
+                <div ref={messagesEndRef} />
+              </>
+            )}
           </div>
 
-          {/* 메시지 영역 */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.isBot ? "justify-start" : "justify-end"}`}
-              >
-                <div
-                  className={`max-w-[75%] p-3 rounded-lg ${
-                    message.isBot
-                      ? "bg-white text-gray-800 shadow-sm border"
-                      : "bg-main text-white"
-                  }`}
-                >
-                  <div className="text-sm whitespace-pre-wrap">{message.text}</div>
-                  <div
-                    className={`text-xs mt-1 ${
-                      message.isBot ? "text-gray-500" : "text-blue-100"
-                    }`}
-                  >
-                    {formatTime(message.timestamp)}
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {/* 로딩 표시 */}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-white p-3 rounded-lg shadow-sm border">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-                  </div>
-                </div>
+          <footer className="flex-none border-t border-slate-100 bg-white p-3">
+            {pendingPlan && (
+              <div className="mb-2 flex items-center gap-1.5 px-1 text-[10px] font-bold text-[#1344FF]">
+                <Sparkles className="h-3 w-3" /> {planSummary.dayCount}일 · {planSummary.placeCount}개 장소 제안을 이어서 수정 중
               </div>
             )}
-            
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* 입력 영역 */}
-          <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
-            <div className="flex space-x-2">
+            <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1.5 transition focus-within:border-blue-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
               <textarea
                 ref={inputRef}
                 value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="메시지를 입력하세요..."
-                className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-main focus:border-transparent"
-                rows="1"
-                disabled={isLoading}
+                onChange={(event) => setInputMessage(event.target.value)}
+                onKeyDown={handleInputKeyDown}
+                placeholder={canUseChatbot ? "원하는 일정이나 장소를 말해 주세요" : "일정을 저장하면 사용할 수 있어요"}
+                rows={1}
+                maxLength={1000}
+                disabled={!canUseChatbot || isSending || isApplying}
+                className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-xs font-medium leading-5 text-slate-800 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
               />
               <button
-                onClick={sendMessage}
-                disabled={!inputMessage.trim() || isLoading}
-                className="bg-main text-white px-4 py-2 rounded-lg hover:bg-main-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                type="button"
+                onClick={() => void sendMessage()}
+                disabled={!canUseChatbot || !inputMessage.trim() || isSending || isApplying}
+                className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-[#1344FF] text-white transition hover:bg-[#0d34cc] disabled:cursor-not-allowed disabled:bg-slate-300"
+                aria-label="메시지 보내기"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
+                {isSending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </button>
             </div>
-          </div>
-        </div>
+            <p className="mt-1.5 text-center text-[9px] font-medium text-slate-400">AI 제안은 반영 전 미리 확인해 주세요.</p>
+          </footer>
+        </section>
       )}
     </>
   );

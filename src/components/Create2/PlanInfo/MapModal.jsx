@@ -28,6 +28,7 @@ export default function MapModal({ setIsMapOpen }) {
     <div
       className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-3 font-pretendard backdrop-blur-[2px] sm:p-6"
       role="presentation"
+      data-tutorial-modal="map"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) setIsMapOpen(false);
       }}
@@ -56,7 +57,7 @@ export default function MapModal({ setIsMapOpen }) {
         <div className="relative min-h-0 w-full bg-gray-100" style={{ flex: "1 1 0%", height: "calc(100% - 64px)" }}>
           <MapComponent
             schedule={schedule}
-            defaultSegmentInfoOpen={false}
+            defaultSegmentInfoOpen
             segmentPanelVariant="edge"
           />
         </div>

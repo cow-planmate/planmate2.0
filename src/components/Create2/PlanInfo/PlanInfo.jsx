@@ -144,7 +144,10 @@ export default function PlanInfo({ id, isOwner }) {
 
   return (
     <div className={`mx-auto min-[1464px]:w-[1416px] min-[1464px]:px-0 md:px-6 md:pt-6 p-3 pb-0 ${flexCenter} justify-between w-full`}>
-      <div className={`${flexCenter} sm:space-x-3 space-x-1 min-w-0 flex-1`}>
+      <div
+        className={`${flexCenter} sm:space-x-3 space-x-1 min-w-0 flex-1`}
+        data-tutorial="plan-controls"
+      >
         <div className="min-w-0 flex-shrink">
           <input
             ref={inputRef}
@@ -181,12 +184,16 @@ export default function PlanInfo({ id, isOwner }) {
         <button
           className="flex items-center justify-center text-sm rounded-full bg-gray-300 hover:bg-gray-400 size-7 md:size-9"
           onClick={() => setIsInfoOpen(true)}
+          data-tutorial="plan-info-button"
         >
           <div className="text-sm"><FontAwesomeIcon icon={faInfo} /></div>
         </button>
       </div>
       <div className={`${flexCenter} mx-2 sm:w-auto`}>
-        <div className={`space-x-1 sm:space-x-3 ${flexCenter}`}>
+        <div
+          className={`space-x-1 sm:space-x-3 ${flexCenter}`}
+          data-tutorial="plan-actions"
+        >
           <div className="-space-x-2 hidden sm:flex sm:items-center">
             {users?.slice(0, 2).map((user) => {
               return (
@@ -226,6 +233,7 @@ export default function PlanInfo({ id, isOwner }) {
           }
           <button
             onClick={() => setIsMapOpen(true)}
+            data-tutorial="map-button"
             className="flex items-center justify-center text-sm sm:text-base sm:px-4 p-2 rounded-full sm:rounded-lg border border-gray-500 hover:bg-gray-100 sm:size-auto size-7"
           >
             <div className="block sm:hidden"><FontAwesomeIcon icon={faMap} /></div>

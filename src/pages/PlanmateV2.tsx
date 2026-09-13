@@ -53,6 +53,7 @@ export default function PlanmateV2() {
   //   undefined = 대기 중인 이동 없음(useParams가 진실) / null = 내 마이페이지 / string = 상대 id
   const [pendingUserId, setPendingUserId] = useState<string | null | undefined>(undefined);
   const activeProfileUserId = pendingUserId !== undefined ? (pendingUserId ?? undefined) : userId;
+  const [myPageReloadKey, setMyPageReloadKey] = useState(0);
 
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
@@ -128,6 +129,7 @@ export default function PlanmateV2() {
     
     // URL 업데이트
     if (view === 'mypage') {
+      if (data?.reload) setMyPageReloadKey((key) => key + 1);
       setPendingUserId(data?.userId ? String(data.userId) : null);
       if (data?.userId) navigate(`/mypage/${data.userId}`);
       else navigate(`/mypage?section=${data?.section || 'profile'}`);
@@ -247,6 +249,7 @@ export default function PlanmateV2() {
             key={activeProfileUserId ?? 'me'}
             onNavigate={handleViewChange}
             userId={activeProfileUserId}
+            reloadKey={myPageReloadKey}
             initialSection={
               myPageSection === 'trips' || myPageSection === 'community'
                 ? myPageSection

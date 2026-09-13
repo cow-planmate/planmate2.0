@@ -78,6 +78,7 @@ export const ChecklistSheet = ({
           <button
             type="button"
             onClick={() => setOpen(true)}
+            data-tutorial="checklist"
             className="flex items-center gap-2 rounded-full bg-[#1344FF] px-4 py-3 text-sm font-bold text-white shadow-[0_12px_30px_rgba(19,68,255,0.28)] transition hover:-translate-y-0.5 hover:bg-[#0e35cc]"
           >
             <CheckSquare2 className="h-5 w-5" />
@@ -136,6 +137,7 @@ export const ChecklistSheet = ({
             variant === "summary" ? "flex items-center justify-center p-4" : ""
           }`}
           role="presentation"
+          data-tutorial-modal="checklist"
           onMouseDown={(event) => {
             event.stopPropagation();
             if (event.target === event.currentTarget) setOpen(false);

@@ -225,7 +225,10 @@ const DaySelectorModal = ({ setIsModalOpen }) => {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm font-pretendard">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm font-pretendard"
+      data-tutorial-modal="day-settings"
+    >
       <div className="relative bg-white p-6 rounded-2xl shadow-2xl min-[587px]:w-[530px] w-[90vw] border border-gray-100 max-h-[90vh] overflow-y-auto">
         <div className="font-bold text-xl text-gray-800 mb-2">
           일정 변경
