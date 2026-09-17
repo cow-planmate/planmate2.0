@@ -49,7 +49,7 @@ export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostC
       role="link"
       tabIndex={0}
       aria-label={`${index + 1}위 ${post.title}`}
-      className="group relative w-[min(78vw,280px)] min-w-0 shrink-0 snap-start cursor-pointer overflow-hidden rounded-xl border border-[#e1e3e8] bg-white px-3 py-2.5 transition-[transform,box-shadow,border-color,background-color] duration-200 hover:bg-[#fffaf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f05a28] focus-visible:ring-offset-2 md:w-auto md:shrink md:rounded-[16px] md:p-4 md:shadow-[0_2px_10px_rgba(17,24,39,0.035)] md:hover:-translate-y-0.5 md:hover:border-[#f3c9b9] md:hover:bg-white md:hover:shadow-[0_8px_20px_rgba(17,24,39,0.075)]"
+      className="group relative w-full min-w-0 shrink-0 snap-center cursor-pointer overflow-hidden rounded-xl border border-[#e1e3e8] bg-white px-3 py-2.5 transition-[transform,box-shadow,border-color,background-color] duration-200 hover:bg-[#fffaf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f05a28] focus-visible:ring-offset-2 md:w-auto md:shrink md:rounded-[16px] md:p-4 md:shadow-[0_2px_10px_rgba(17,24,39,0.035)] md:hover:-translate-y-0.5 md:hover:border-[#f3c9b9] md:hover:bg-white md:hover:shadow-[0_8px_20px_rgba(17,24,39,0.075)]"
     >
       {index === 0 ? <div className="absolute inset-x-0 top-0 hidden h-0.5 bg-[#f05a28] md:block" /> : null}
 
