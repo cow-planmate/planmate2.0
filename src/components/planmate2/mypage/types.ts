@@ -8,7 +8,7 @@ export interface Plan {
   isOwner?: boolean;
 }
 
-export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+export type Gender = 'MALE' | 'FEMALE';
 
 export interface PreferredTheme {
   preferredThemeId: number;

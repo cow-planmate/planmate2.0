@@ -10,8 +10,12 @@ import useItemsStore from '../../../store/Schedules';
 import usePlanStore from '../../../store/Plan';
 import { useSearchParams } from 'react-router-dom';
 import DetailPopup from "./DetailPopup";
+import PlaceDetailModal from "../Place/PlaceDetailModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPencilAlt, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { Info } from "lucide-react";
+
+const PLACE_DETAIL_CATEGORY_IDS = new Set([0, 1, 2]);
 
 export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
   const client = getClient();
@@ -20,6 +24,7 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
   const { deleteItem, updateItemMemo } = useItemsStore();
   const [isResizing, setIsResizing] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isPlaceDetailOpen, setIsPlaceDetailOpen] = useState(false);
   
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
@@ -167,6 +172,9 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
     4: "text-gray-900",
   };
   const isMinimized = localState.height <= SLOT_HEIGHT;
+  const canShowPlaceDetail = Boolean(
+    place?.placeId != null && PLACE_DETAIL_CATEGORY_IDS.has(categoryId),
+  );
 
   const sendWebsocket = (block, action = "delete") => {
     if (client && client.connected) {
@@ -264,18 +272,37 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
               </div>
 
               <div className="flex shrink-0 gap-1 mt-[-4px]">
+                {canShowPlaceDetail && (
+                  <button
+                    type="button"
+                    className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-xs pointer-events-auto flex items-center justify-center transition-colors`}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setIsPlaceDetailOpen(true);
+                    }}
+                    aria-label={`${place.name} 상세 정보 보기`}
+                    title="상세 정보"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                )}
                 <button
+                  type="button"
                   className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-xs pointer-events-auto flex items-center justify-center transition-colors`}
+                  onPointerDown={(event) => event.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsDetailOpen(true);
                   }}
-                  title="수정"
+                  title="메모 수정"
                 >
                   <FontAwesomeIcon icon={faPencilAlt} />
                 </button>
                 <button
+                  type="button"
                   className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-sm pointer-events-auto flex items-center justify-center transition-colors`}
+                  onPointerDown={(event) => event.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteItem(item.id, getTimeTableId(timetables, selectedDay));
@@ -302,6 +329,13 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
         item={item} 
         onUpdateMemo={handleUpdateMemo}
       />
+      {isPlaceDetailOpen ? (
+        <PlaceDetailModal
+          contentId={place.placeId}
+          fallbackPlace={place}
+          onClose={() => setIsPlaceDetailOpen(false)}
+        />
+      ) : null}
     </>
   );
 };

@@ -13,7 +13,7 @@ import Theme from "../../auth/Theme";
 import Themestart from "../../auth/Themestart";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faUserPlus, faInfo, faRotateLeft, faRotateRight, faUsers, faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faUserPlus, faInfo, faUsers, faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { faMap } from "@fortawesome/free-regular-svg-icons";
 
 import PlanInfoModal from "./PlanInfoModal";
@@ -21,6 +21,7 @@ import ShareModal from "../../common/ShareModal";
 import MapModal from "./MapModal";
 import NoLoginSave from "./NoLoginSave";
 import UsersModal from "./UsersModal";
+import { ErrorToast } from "../../common/Toast";
 
 import UndoIcon from "../../../assets/imgs/undo.svg?react";
 import RedoIcon from "../../../assets/imgs/redo.svg?react";
@@ -131,6 +132,15 @@ export default function PlanInfo({ id, isOwner }) {
     setStep(2);
   }
 
+  const handleMapOpen = () => {
+    if (!isAuthenticated()) {
+      ErrorToast("지도는 로그인 후 이용할 수 있어요.");
+      return;
+    }
+
+    setIsMapOpen(true);
+  };
+
   useEffect(() => {
     setLocalName(planName);
   }, [planName]);
@@ -232,8 +242,9 @@ export default function PlanInfo({ id, isOwner }) {
             </button>
           }
           <button
-            onClick={() => setIsMapOpen(true)}
+            onClick={handleMapOpen}
             data-tutorial="map-button"
+            title={!isAuthenticated() ? "로그인 후 지도를 이용할 수 있어요" : undefined}
             className="flex items-center justify-center text-sm sm:text-base sm:px-4 p-2 rounded-full sm:rounded-lg border border-gray-500 hover:bg-gray-100 sm:size-auto size-7"
           >
             <div className="block sm:hidden"><FontAwesomeIcon icon={faMap} /></div>

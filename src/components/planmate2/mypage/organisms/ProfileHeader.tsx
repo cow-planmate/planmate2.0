@@ -164,7 +164,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <div>
               <span className="mb-2 block text-xs font-extrabold text-slate-600">성별</span>
               <div className="flex h-11 rounded-xl bg-slate-100 p-1">
-                {([['MALE', '남성'], ['FEMALE', '여성'], ['OTHER', '기타']] as const).map(([value, label]) => (
+                {([['MALE', '남성'], ['FEMALE', '여성']] as const).map(([value, label]) => (
                   <button key={value} type="button" onClick={() => setNewGender?.(value)} className={`flex-1 rounded-lg text-xs font-bold transition ${newGender === value ? "bg-white text-[#1344FF] shadow-sm" : "text-slate-400"}`}>{label}</button>
                 ))}
               </div>

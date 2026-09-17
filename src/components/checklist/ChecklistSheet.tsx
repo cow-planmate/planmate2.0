@@ -35,9 +35,9 @@ export const ChecklistSheet = ({
     <>
       {variant === "floating" ? (
         <div
-          className={`group fixed bottom-20 right-4 z-30 md:bottom-6 md:right-6 ${className}`}
+          className={`group fixed bottom-20 left-4 z-30 md:bottom-6 md:left-6 ${className}`}
         >
-          <div className="pointer-events-none absolute bottom-full right-0 mb-3 hidden w-64 translate-y-2 rounded-2xl border border-gray-100 bg-white p-4 opacity-0 shadow-[0_14px_35px_rgba(15,23,42,0.16)] transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 md:block">
+          <div className="pointer-events-none absolute bottom-full left-0 mb-3 hidden w-64 translate-y-2 rounded-2xl border border-gray-100 bg-white p-4 opacity-0 shadow-[0_14px_35px_rgba(15,23,42,0.16)] transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 md:bottom-[calc(100%+64px)] md:block">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-black text-gray-800">준비 현황</span>
               <span className="text-[11px] font-bold text-gray-400">
@@ -151,7 +151,7 @@ export const ChecklistSheet = ({
             className={
               variant === "summary"
                 ? "relative flex h-[min(720px,calc(100vh-2rem))] w-full max-w-[560px] flex-col rounded-[24px] bg-white p-5 shadow-2xl sm:p-6"
-                : "absolute inset-x-0 bottom-0 flex max-h-[88vh] min-h-[65vh] flex-col rounded-t-[28px] bg-white p-5 shadow-2xl md:inset-y-0 md:left-auto md:right-0 md:h-full md:max-h-none md:min-h-0 md:w-[430px] md:rounded-none md:p-6"
+                : "absolute inset-x-0 bottom-0 flex max-h-[88vh] min-h-[65vh] flex-col rounded-t-[28px] bg-white p-5 shadow-2xl md:inset-y-0 md:left-0 md:right-auto md:h-full md:max-h-none md:min-h-0 md:w-[430px] md:rounded-none md:p-6"
             }
           >
             <header className="mb-5 flex items-start justify-between border-b pb-4">

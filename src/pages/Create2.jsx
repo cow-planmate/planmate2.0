@@ -14,6 +14,7 @@ import {
   getTempPlan,
   saveTempPlan,
 } from "../utils/tempPlanStorage"; // Import util
+import { clearRecentPlan, saveRecentPlan } from "../utils/recentPlanSession";
 import {
   disconnectStompClient,
   getClient,
@@ -153,6 +154,10 @@ function App() {
           planData.placeBlocks.map((item) => {
             const convert = convertBlock(item);
             addItemFromWebsocket(convert);
+          });
+          saveRecentPlan({
+            planId: id,
+            planName: planData.planFrame?.planName,
           });
           setHasPlanAccess(true);
         } catch (err) {
@@ -310,6 +315,7 @@ function App() {
       // 디바운스 대신 간단하게 1초 딜레이 (Timer 사용)
       const timer = setTimeout(() => {
         saveTempPlan(dataToSave);
+        saveRecentPlan({ planId: null, planName: planData.planName });
       }, 1000);
 
       return () => clearTimeout(timer);
@@ -350,6 +356,7 @@ function App() {
 
   const discardTempPlan = () => {
     clearTempPlan();
+    clearRecentPlan();
     console.log(
       planId,
       timetables.length,
@@ -467,7 +474,7 @@ function App() {
   return (
     <div className="font-pretendard h-screen">
       <div>
-        <Navbar currentView="plan-maker" onNavigate={handleNavbarNavigate} />
+        <Navbar currentView="schedule-editor" onNavigate={handleNavbarNavigate} />
       </div>
       <PlanInfo id={id} isOwner={isOwner} />
       <ChecklistSheet

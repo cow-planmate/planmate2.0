@@ -2,10 +2,11 @@ import {
   ArrowLeft,
   ArrowRight,
   CircleHelp,
-  GripHorizontal,
   Hand,
+  Info,
   MapPin,
   MousePointerClick,
+  Pencil,
   Sparkles,
   X,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import { createPortal } from "react-dom";
 
 const NUDGE_STORAGE_KEY = "planmate-create-tutorial-nudge-dismissed-v1";
 const SPOTLIGHT_GAP = 7;
+const RESIZE_DEMO_ICONS = [Info, Pencil, X];
 
 const STEPS = [
   {
@@ -247,16 +249,13 @@ export default function CreateTutorial() {
       return;
     }
 
-    const width = clamp(timetableRect.width - 88, 150, 230);
-    const endLeft = clamp(
-      timetableRect.left + Math.min(64, timetableRect.width * 0.18),
-      16,
-      window.innerWidth - width - 16,
-    );
+    // 실제 시간표 블록의 left: 4rem, right: 8px 배치와 같은 가로폭을 사용한다.
+    const width = Math.max(150, timetableRect.width - 72);
+    const endLeft = timetableRect.left + 64;
     const endTop = clamp(
       timetableRect.top + Math.min(150, timetableRect.height * 0.28),
       90,
-      window.innerHeight - 170,
+      window.innerHeight - (step.key === "resize-demo" ? 210 : 170),
     );
 
     if (step.key === "resize-demo") {
@@ -490,7 +489,7 @@ export default function CreateTutorial() {
   return (
     <>
       {!isOpen && (
-        <div className="fixed bottom-[140px] right-4 z-30 flex flex-col items-end gap-3 md:bottom-[84px] md:right-6">
+        <div className="fixed bottom-[140px] left-4 z-30 flex flex-col items-start gap-3 md:bottom-[84px] md:left-6">
           {showNudge && (
             <div className="relative w-[min(290px,calc(100vw-2rem))] rounded-2xl border border-blue-100 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.16)]">
               <button
@@ -533,21 +532,15 @@ export default function CreateTutorial() {
               70%, 100% { transform: translate3d(var(--tutorial-dx), var(--tutorial-dy), 0) scale(1); }
             }
             @keyframes planmateTutorialResize {
-              0%, 18% { height: 74px; }
-              68%, 100% { height: 136px; }
-            }
-            @keyframes planmateTutorialHandle {
-              0%, 18% { transform: translateY(0); }
-              68%, 100% { transform: translateY(62px); }
+              0%, 18% { height: 96px; }
+              68%, 100% { height: 160px; }
             }
             .planmate-tutorial-drag { animation: planmateTutorialDrag 2.6s cubic-bezier(.55,.08,.25,1) infinite; }
             .planmate-tutorial-resize { animation: planmateTutorialResize 1.7s cubic-bezier(.4,0,.2,1) infinite alternate; }
-            .planmate-tutorial-handle { animation: planmateTutorialHandle 1.7s cubic-bezier(.4,0,.2,1) infinite alternate; }
             @media (prefers-reduced-motion: reduce) {
-              .planmate-tutorial-drag, .planmate-tutorial-resize, .planmate-tutorial-handle { animation: none; }
+              .planmate-tutorial-drag, .planmate-tutorial-resize { animation: none; }
               .planmate-tutorial-drag { transform: translate3d(var(--tutorial-dx), var(--tutorial-dy), 0); }
-              .planmate-tutorial-resize { height: 112px; }
-              .planmate-tutorial-handle { transform: translateY(38px); }
+              .planmate-tutorial-resize { height: 136px; }
             }
           `}</style>
 
@@ -630,14 +623,35 @@ export default function CreateTutorial() {
               }`}
               style={{ left: demoLayout.endLeft, top: demoLayout.endTop, width: demoLayout.width }}
             >
-              <div className="planmate-tutorial-resize relative h-[74px] overflow-visible rounded-xl border-l-4 border-l-lime-500 bg-lime-50 px-4 py-3 shadow-2xl ring-1 ring-slate-900/10">
-                <strong className="block truncate text-sm text-slate-900">성산일출봉</strong>
-                <span className="text-[11px] font-semibold text-lime-700">10:00 · 체류시간 조절</span>
-                <div className="absolute inset-x-3 bottom-[-6px] flex h-3 items-center justify-center rounded-full bg-[#1344FF] text-white shadow-md">
-                  <GripHorizontal className="h-3 w-3" />
+              <div className="planmate-tutorial-resize relative h-[96px]">
+                <div className="h-full w-full select-none overflow-hidden rounded border-l-4 border-l-lime-500 bg-lime-50 p-5 shadow-sm ring-1 ring-inset ring-slate-900/15">
+                  <div className="flex w-full min-w-0 items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-lg font-bold text-lime-900">성산일출봉</div>
+                      <div className="text-xs font-medium text-lime-600">
+                        관광지 | 10:00 - 11:00
+                      </div>
+                    </div>
+                    <div className="mt-[-4px] flex shrink-0 gap-1" aria-hidden="true">
+                      {RESIZE_DEMO_ICONS.map((Icon, index) => (
+                        <span
+                          key={index}
+                          className="flex h-7 w-7 items-center justify-center rounded-full text-xs text-lime-900"
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+                <span className="absolute inset-x-0 top-0 flex h-[14px] justify-center pt-[3px]">
+                  <span className="h-1 w-6 rounded-sm bg-black/15" />
+                </span>
+                <span className="absolute inset-x-0 bottom-0 flex h-[14px] items-end justify-center pb-[3px]">
+                  <span className="h-1 w-6 rounded-sm bg-black/15" />
+                </span>
               </div>
-              <div className="planmate-tutorial-handle absolute bottom-[-27px] right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#1344FF] shadow-lg">
+              <div className="absolute bottom-[-27px] right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#1344FF] shadow-lg">
                 <MousePointerClick className="h-5 w-5" />
               </div>
             </div>

@@ -62,7 +62,7 @@ export default function PlanInfo({ planFrame, isOwner }) {
           <button type="button" onClick={() => setIsShareOpen(true)} className="flex h-10 items-center gap-2 rounded-xl border border-[#e5e7eb] bg-white px-3 text-sm font-bold text-[#4b5563] transition hover:bg-gray-50 md:px-4">
             <Share2 className="h-4 w-4" /><span className="hidden sm:inline">공유</span>
           </button>
-          <button type="button" onClick={() => navigate("/mypage")} className="flex h-10 items-center gap-2 rounded-xl bg-[#1344FF] px-3 text-sm font-bold text-white transition hover:bg-[#0e35cc] md:px-4">
+          <button type="button" onClick={() => navigate("/mypage?section=trips")} className="flex h-10 items-center gap-2 rounded-xl bg-[#1344FF] px-3 text-sm font-bold text-white transition hover:bg-[#0e35cc] md:px-4">
             <Check className="h-4 w-4" /><span className="hidden sm:inline">확인</span>
           </button>
         </div></div>

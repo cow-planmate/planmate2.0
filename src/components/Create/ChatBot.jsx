@@ -5,6 +5,7 @@ import {
   Check,
   ChevronRight,
   Clock3,
+  Info,
   LoaderCircle,
   MapPin,
   MessageCircle,
@@ -17,6 +18,8 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApiClient } from "../../hooks/useApiClient";
 import usePlanStore from "../../store/Plan";
+import { mapPlaceSummary } from "../../utils/createUtils";
+import PlaceDetailModal from "../Create2/Place/PlaceDetailModal";
 
 const WELCOME_MESSAGE = {
   id: "welcome",
@@ -61,7 +64,28 @@ const formatBlockTime = (block) => {
   return start && end ? `${start}–${end}` : start ?? "시간 미정";
 };
 
-const SuggestedPlaces = ({ places }) => {
+const getOverviewText = (value) =>
+  typeof value === "string"
+    ? value.replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim()
+    : "";
+
+const InlineMarkdown = ({ text }) => {
+  const parts = String(text ?? "").split(/(\*\*[^*]+\*\*)/g);
+
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={`${part}-${index}`} className="font-extrabold">
+          {part.slice(2, -2).trim()}
+        </strong>
+      );
+    }
+
+    return part;
+  });
+};
+
+const SuggestedPlaces = ({ places, onShowDetail }) => {
   if (!places.length) return null;
 
   return (
@@ -92,10 +116,23 @@ const SuggestedPlaces = ({ places }) => {
               <span className="text-[10px] font-bold text-[#1344FF]">
                 {CATEGORY_LABELS[place.category] ?? place.category ?? "여행 장소"}
               </span>
-              <h4 className="mt-0.5 truncate text-xs font-extrabold text-slate-900">{place.title}</h4>
-              <p className="mt-1 line-clamp-1 text-[10px] font-medium text-slate-400">
-                {place.addr1 || "주소 정보 없음"}
-              </p>
+              <h4 className="mt-0.5 truncate text-xs font-extrabold text-slate-900">
+                <InlineMarkdown text={place.title} />
+              </h4>
+              {getOverviewText(place.overview) ? (
+                <p className="mt-2 line-clamp-2 text-[10px] font-medium leading-4 text-slate-500">
+                  {getOverviewText(place.overview)}
+                </p>
+              ) : null}
+              {place.contentId != null ? (
+                <button
+                  type="button"
+                  onClick={() => onShowDetail(place)}
+                  className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-slate-50 px-2 py-1.5 text-[10px] font-extrabold text-slate-600 transition hover:bg-blue-50 hover:text-[#1344FF]"
+                >
+                  <Info className="h-3 w-3" /> 자세히
+                </button>
+              ) : null}
             </div>
           </article>
         ))}
@@ -191,10 +228,12 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   const [isApplying, setIsApplying] = useState(false);
   const [pendingPlan, setPendingPlan] = useState(null);
   const [shownPlaces, setShownPlaces] = useState([]);
-  const [recentUserMessages, setRecentUserMessages] = useState([]);
+  const [detailPlace, setDetailPlace] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [panelSize, setPanelSize] = useState({ width: 480, height: 740 });
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const resizeStateRef = useRef(null);
 
   const planSummary = {
     dayCount: pendingPlan?.timetables?.length ?? 0,
@@ -210,11 +249,52 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handlePointerMove = (event) => {
+      const resizeState = resizeStateRef.current;
+      if (!resizeState) return;
+
+      const maxWidth = Math.max(390, window.innerWidth - 48);
+      const maxHeight = Math.max(320, window.innerHeight - 116);
+      const width = resizeState.axis.includes("x")
+        ? resizeState.width + resizeState.x - event.clientX
+        : resizeState.width;
+      const height = resizeState.axis.includes("y")
+        ? resizeState.height + resizeState.y - event.clientY
+        : resizeState.height;
+
+      setPanelSize({
+        width: Math.min(maxWidth, Math.max(390, width)),
+        height: Math.min(maxHeight, Math.max(320, height)),
+      });
+    };
+
+    const handlePointerUp = () => {
+      const resizeState = resizeStateRef.current;
+      if (!resizeState) return;
+      resizeStateRef.current = null;
+      document.body.style.cursor = resizeState.previousCursor;
+      document.body.style.userSelect = resizeState.previousUserSelect;
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+    return () => {
+      handlePointerUp();
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     setMessages([WELCOME_MESSAGE]);
     setInputMessage("");
     setPendingPlan(null);
     setShownPlaces([]);
-    setRecentUserMessages([]);
+    setDetailPlace(null);
     setNotice(null);
   }, [planId]);
 
@@ -239,21 +319,21 @@ const ChatBot = ({ planId: explicitPlanId }) => {
       const response = await post(`${import.meta.env.VITE_API_URL}/api/plan/${planId}/chatbot`, {
         message,
         pendingContext: pendingPlan ?? null,
-        shownPlaces: shownPlaces.length
-          ? shownPlaces.filter((place) => place.contentId != null).map((place) => ({
-              contentId: String(place.contentId),
-              title: place.title,
-              category: place.category,
-            }))
-          : null,
-        recentMessages: recentUserMessages.slice(-3),
+        shownPlaces: shownPlaces.filter((place) => place.contentId != null).map((place) => ({
+          contentId: String(place.contentId),
+          title: place.title,
+          category: place.category,
+        })),
+        recentMessages: messages
+          .filter((item) => item.role === "user")
+          .slice(-3)
+          .map((item) => item.text.slice(0, 500)),
       });
 
       const result = response?.data ?? response ?? {};
       appendAssistantMessage(result.userMessage || "요청을 확인했어요. 원하는 내용을 조금 더 자세히 알려 주세요.");
       if (result.plan) setPendingPlan(result.plan);
       setShownPlaces(Array.isArray(result.shownPlaces) ? result.shownPlaces : []);
-      setRecentUserMessages((current) => [...current, message.slice(0, 500)].slice(-3));
     } catch (error) {
       appendAssistantMessage(getErrorMessage(error, "chat"));
     } finally {
@@ -298,7 +378,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
     setInputMessage("");
     setPendingPlan(null);
     setShownPlaces([]);
-    setRecentUserMessages([]);
+    setDetailPlace(null);
     setNotice(null);
   };
 
@@ -309,12 +389,28 @@ const ChatBot = ({ planId: explicitPlanId }) => {
     }
   };
 
+  const startResize = (axis, event) => {
+    if (window.innerWidth < 768) return;
+    event.preventDefault();
+    event.stopPropagation();
+    resizeStateRef.current = {
+      axis,
+      x: event.clientX,
+      y: event.clientY,
+      previousCursor: document.body.style.cursor,
+      previousUserSelect: document.body.style.userSelect,
+      ...panelSize,
+    };
+    document.body.style.cursor = axis === "xy" ? "nwse-resize" : axis === "x" ? "ew-resize" : "ns-resize";
+    document.body.style.userSelect = "none";
+  };
+
   return (
     <>
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className={`fixed bottom-20 left-4 z-[45] flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_14px_34px_rgba(19,68,255,0.34)] transition hover:-translate-y-0.5 md:bottom-6 md:left-6 ${isOpen ? "bg-slate-800 hover:bg-slate-700" : "bg-[#1344FF] hover:bg-[#0d34cc]"}`}
+        className={`fixed bottom-20 right-4 z-[45] flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_14px_34px_rgba(19,68,255,0.34)] transition hover:-translate-y-0.5 md:bottom-6 md:right-6 ${isOpen ? "bg-slate-800 hover:bg-slate-700" : "bg-[#1344FF] hover:bg-[#0d34cc]"}`}
         aria-label={isOpen ? "AI 여행 도우미 닫기" : "AI 여행 도우미 열기"}
         aria-expanded={isOpen}
       >
@@ -326,8 +422,31 @@ const ChatBot = ({ planId: explicitPlanId }) => {
           role="dialog"
           aria-modal="false"
           aria-labelledby="planmate-ai-title"
-          className="fixed inset-x-3 bottom-[148px] z-[44] flex h-[min(680px,calc(100dvh-172px))] flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)] md:inset-x-auto md:bottom-[92px] md:left-6 md:h-[min(680px,calc(100dvh-116px))] md:w-[410px]"
+          className="fixed inset-x-3 bottom-[148px] z-[44] flex h-[min(680px,calc(100dvh-172px))] flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)] md:inset-x-auto md:bottom-[92px] md:right-6 md:h-[var(--chatbot-height)] md:min-h-[320px] md:w-[var(--chatbot-width)] md:min-w-[390px] md:max-h-[calc(100dvh-116px)] md:max-w-[calc(100vw-3rem)]"
+          style={{
+            "--chatbot-width": `${panelSize.width}px`,
+            "--chatbot-height": `${panelSize.height}px`,
+          }}
         >
+          <div
+            aria-hidden="true"
+            onPointerDown={(event) => startResize("x", event)}
+            className="group absolute bottom-5 left-0 top-5 z-50 hidden w-2 -translate-x-1/2 cursor-ew-resize md:block"
+          >
+            <span className="absolute bottom-8 left-1/2 top-8 w-0.5 -translate-x-1/2 rounded-full bg-transparent transition group-hover:bg-[#1344FF]/35" />
+          </div>
+          <div
+            aria-hidden="true"
+            onPointerDown={(event) => startResize("y", event)}
+            className="group absolute left-5 right-5 top-0 z-50 hidden h-2 -translate-y-1/2 cursor-ns-resize md:block"
+          >
+            <span className="absolute left-8 right-8 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-transparent transition group-hover:bg-[#1344FF]/35" />
+          </div>
+          <div
+            aria-hidden="true"
+            onPointerDown={(event) => startResize("xy", event)}
+            className="absolute -left-1 -top-1 z-[51] hidden h-5 w-5 cursor-nwse-resize md:block"
+          />
           <header className="flex flex-none items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3.5">
             <div className="flex min-w-0 items-center gap-3">
               <span className="relative flex h-10 w-10 flex-none items-center justify-center rounded-2xl bg-blue-50 text-[#1344FF]">
@@ -386,7 +505,9 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                           ? "rounded-br-md bg-[#1344FF] text-white shadow-[0_6px_16px_rgba(19,68,255,0.18)]"
                           : "rounded-bl-md border border-slate-200 bg-white text-slate-700 shadow-sm"
                       }`}>
-                        <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                        <p className="whitespace-pre-wrap break-words">
+                          <InlineMarkdown text={message.text} />
+                        </p>
                         {index > 0 && (
                           <span className={`mt-1 flex items-center gap-1 text-[9px] ${message.role === "user" ? "text-blue-100" : "text-slate-400"}`}>
                             <Clock3 className="h-2.5 w-2.5" /> 방금
@@ -425,7 +546,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                 </div>
 
                 <div className="mt-3">
-                  <SuggestedPlaces places={shownPlaces} />
+                  <SuggestedPlaces places={shownPlaces} onShowDetail={setDetailPlace} />
                   <PlanPreview
                     plan={pendingPlan}
                     isApplying={isApplying}
@@ -470,6 +591,13 @@ const ChatBot = ({ planId: explicitPlanId }) => {
           </footer>
         </section>
       )}
+      {detailPlace ? (
+        <PlaceDetailModal
+          contentId={detailPlace.contentId}
+          fallbackPlace={mapPlaceSummary(detailPlace)}
+          onClose={() => setDetailPlace(null)}
+        />
+      ) : null}
     </>
   );
 };

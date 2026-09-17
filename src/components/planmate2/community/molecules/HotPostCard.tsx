@@ -49,11 +49,28 @@ export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostC
       role="link"
       tabIndex={0}
       aria-label={`${index + 1}위 ${post.title}`}
-      className="group relative min-w-0 cursor-pointer overflow-hidden rounded-[16px] border border-[#e1e3e8] bg-white p-4 shadow-[0_2px_10px_rgba(17,24,39,0.035)] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-[#f3c9b9] hover:shadow-[0_8px_20px_rgba(17,24,39,0.075)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f05a28] focus-visible:ring-offset-2"
+      className="group relative w-[min(78vw,280px)] min-w-0 shrink-0 snap-start cursor-pointer overflow-hidden rounded-xl border border-[#e1e3e8] bg-white px-3 py-2.5 transition-[transform,box-shadow,border-color,background-color] duration-200 hover:bg-[#fffaf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f05a28] focus-visible:ring-offset-2 md:w-auto md:shrink md:rounded-[16px] md:p-4 md:shadow-[0_2px_10px_rgba(17,24,39,0.035)] md:hover:-translate-y-0.5 md:hover:border-[#f3c9b9] md:hover:bg-white md:hover:shadow-[0_8px_20px_rgba(17,24,39,0.075)]"
     >
-      {index === 0 ? <div className="absolute inset-x-0 top-0 h-0.5 bg-[#f05a28]" /> : null}
+      {index === 0 ? <div className="absolute inset-x-0 top-0 hidden h-0.5 bg-[#f05a28] md:block" /> : null}
 
-      <div className="flex min-w-0 flex-col">
+      <div className="flex min-w-0 items-center gap-2 md:hidden">
+        <Flame className="h-4 w-4 shrink-0 fill-[#f05a28] text-[#f05a28]" aria-hidden="true" />
+        <span className={`shrink-0 text-[11px] font-black tabular-nums ${index === 0 ? 'text-[#e24d1d]' : 'text-[#8b909a]'}`}>
+          {index + 1}
+        </span>
+        <h3 className="min-w-0 flex-1 truncate text-[13px] font-bold tracking-[-0.01em] text-[#272a31]">
+          {post.title}
+        </h3>
+        <span
+          className="flex shrink-0 items-center gap-1 text-[11px] font-semibold tabular-nums text-[#7b818d]"
+          aria-label={`추천 ${post.likes ?? 0}`}
+        >
+          <ThumbsUp className="h-3.5 w-3.5" aria-hidden="true" />
+          {post.likes ?? 0}
+        </span>
+      </div>
+
+      <div className="hidden min-w-0 flex-col md:flex">
         <div className="mb-3 flex items-center justify-between gap-3">
           <span className="inline-flex min-w-0 items-center gap-1.5 text-[12px] font-extrabold text-[#e24d1d]">
             <Flame className="h-3.5 w-3.5 shrink-0 fill-current" aria-hidden="true" />

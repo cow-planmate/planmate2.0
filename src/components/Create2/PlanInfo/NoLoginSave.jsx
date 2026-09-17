@@ -7,11 +7,12 @@ import useItemsStore from "../../../store/Schedules";
 import useTimetableStore from "../../../store/Timetables";
 import { exportBlock } from "../../../utils/createUtils";
 import { clearTempPlan } from "../../../utils/tempPlanStorage";
+import { saveRecentPlan } from "../../../utils/recentPlanSession";
 
 export default function NoLoginSave({ isOpen }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
   const { isAuthenticated, post } = useApiClient();
-  const { destinationId, adultCount, childCount } =
+  const { destinationId, adultCount, childCount, planName } =
     usePlanStore();
   const { timetables } = useTimetableStore();
   const { items } = useItemsStore();
@@ -69,6 +70,7 @@ export default function NoLoginSave({ isOpen }) {
             ),
           });
           clearTempPlan();
+          saveRecentPlan({ planId: res.planId, planName });
           console.log(res.message);
           navigate(`/complete?id=${res.planId}`);
         } catch (err) {
@@ -78,7 +80,7 @@ export default function NoLoginSave({ isOpen }) {
     };
 
     savePlan();
-  }, [BASE_URL, adultCount, childCount, destinationId, isAuthenticated, isOpen, items, navigate, post, timetables]);
+  }, [BASE_URL, adultCount, childCount, destinationId, isAuthenticated, isOpen, items, navigate, planName, post, timetables]);
 
   if (!isOpen) return null;
 

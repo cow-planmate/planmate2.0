@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getTempPlan, clearTempPlan } from "../../utils/tempPlanStorage";
+import { clearRecentPlan } from "../../utils/recentPlanSession";
 
 export default function GlobalTempPlanModal() {
     const [isOpen, setIsOpen] = useState(false);
@@ -37,6 +38,7 @@ export default function GlobalTempPlanModal() {
 
     const discardTempPlan = () => {
         clearTempPlan();
+        clearRecentPlan();
         setIsOpen(false);
     };
 

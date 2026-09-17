@@ -175,12 +175,6 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               >
                 여성
               </button>
-              <button
-                onClick={() => setNewGender('OTHER')}
-                className={`flex-1 rounded-lg text-sm font-bold transition-all ${newGender === 'OTHER' ? 'bg-white text-[#1344FF] shadow-sm' : 'text-gray-400'}`}
-              >
-                기타
-              </button>
             </div>
           </FormItem>
         </div>
