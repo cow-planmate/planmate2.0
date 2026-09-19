@@ -83,7 +83,7 @@ export const HotPostsGrid = ({ hotPosts, type, onNavigate }: HotPostsGridProps) 
               post={post}
               index={index}
               type={type}
-              onClick={() => onNavigate(type === 'recommend' ? 'recommend-detail' : 'detail', { post: { ...post, category: type } })}
+              onClick={() => onNavigate('detail', { post: { ...post, category: type } })}
               onNavigate={onNavigate}
             />
           ))}

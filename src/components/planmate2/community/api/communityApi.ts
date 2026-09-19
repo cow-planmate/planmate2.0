@@ -65,7 +65,7 @@ export interface DayPlaces {
 export interface CommunityPostSummary {
   id: number;
   userId: string;
-  category: 'free' | 'qna' | 'recommend' | 'feed';
+  category: 'free' | 'qna' | 'feed';
   title: string;
   author: string;
   /** 작성자가 올린 프로필 사진 (없으면 생략) */
@@ -108,31 +108,9 @@ export interface CommunityPostSummary {
   actedAt?: string;
 }
 
-/**
- * 장소 추천 글에 담긴 장소 한 건.
- *
- * 장소를 하나만 담던 시절의 글도 서버가 대표 장소로 한 건짜리 배열을 만들어 내려주므로,
- * 클라이언트는 항상 이 배열만 보면 된다.
- */
-export interface RecommendPlace {
-  name: string;
-  address?: string | null;
-  phone?: string | null;
-  category?: string | null;
-  url?: string | null;
-  lat?: number | null;
-  lng?: number | null;
-  /** 작성자가 장소마다 남긴 한 줄 코멘트 */
-  memo?: string | null;
-  /** 장소별 평점 (0.0~5.0). 글 전체 평점은 이 값들의 평균이다 */
-  rating?: number | null;
-}
-
 export interface CommunityPostDetail extends CommunityPostSummary {
   content: unknown; // BlockNote 블록 JSON
   contentText: string;
-  /** RECOMMEND 전용 — 글에 담긴 장소 전체 */
-  places?: RecommendPlace[];
   updatedAt?: string;
   myReaction?: 'like' | 'dislike' | null;
   // FEED 전용
@@ -290,7 +268,7 @@ export const fetchFeedPosts = async (
 
 /**
  * 다른 사용자의 프로필에 노출되는 작성글.
- * category에 쉼표로 여러 게시판을 넘길 수 있다 (예: 'free,qna,mate,recommend').
+ * category에 쉼표로 여러 게시판을 넘길 수 있다 (예: 'free,qna,mate').
  * 대상이 프로필을 비공개로 두면 403(USER_002)이 온다.
  */
 export const fetchUserPosts = async (
@@ -394,8 +372,6 @@ export interface CreatePostPayload {
   placePhone?: string | null;
   placeCategory?: string | null;
   placeUrl?: string | null;
-  /** 장소 목록. 보내면 통째로 교체되고 첫 번째가 대표 장소가 된다 */
-  places?: RecommendPlace[];
   region?: string;
   maxParticipants?: number | null;
   // FEED 전용
