@@ -8,7 +8,7 @@ import { NavigationTabs } from '../organisms/NavigationTabs';
 import { PostListTable } from '../organisms/PostListTable';
 
 interface CommunityPageProps {
-  type: 'free' | 'qna' | 'recommend';
+  type: 'free' | 'qna';
   onNavigate: (view: any, data?: any) => void;
 }
 
@@ -52,7 +52,6 @@ export const CommunityPage = ({ type, onNavigate }: CommunityPageProps) => {
     switch (type) {
       case 'free': return '자유게시판';
       case 'qna': return '질문게시판';
-      case 'recommend': return '장소 추천';
       default: return '게시판';
     }
   };

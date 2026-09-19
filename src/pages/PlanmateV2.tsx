@@ -3,7 +3,6 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CommunityCreatePage as CommunityCreate } from '../components/planmate2/community/pages/CommunityCreatePage';
 import { CommunityPage as BoardList } from '../components/planmate2/community/pages/CommunityPage';
 import { PostDetailPage as CommunityPostDetail } from '../components/planmate2/community/pages/PostDetailPage';
-import { RecommendDetailPage as RecommendDetail } from '../components/planmate2/community/pages/RecommendDetailPage';
 import CreatePost from '../components/planmate2/create-feed/pages/CreatePostPage';
 import PostDetail from '../components/planmate2/feed/pages/FeedDetailPage';
 import MainFeed from '../components/planmate2/feed/pages/MainFeed';
@@ -37,15 +36,15 @@ export default function PlanmateV2() {
     return 'feed';
   };
 
-  const ArrayBoardTypes = ['free', 'qna', 'recommend'] as const;
+  const ArrayBoardTypes = ['free', 'qna'] as const;
   const getInitialBoardType = () => {
     if (category && (ArrayBoardTypes as any).includes(category)) return category as any;
     return 'free';
   };
 
-  const [currentView, setCurrentView] = useState<'feed' | 'detail' | 'create' | 'feed-edit' | 'mypage' | 'board-list' | 'plan-maker' | 'community-create' | 'community-edit' | 'recommend-detail' | 'social'>(getInitialView() as any);
+  const [currentView, setCurrentView] = useState<'feed' | 'detail' | 'create' | 'feed-edit' | 'mypage' | 'board-list' | 'plan-maker' | 'community-create' | 'community-edit' | 'social'>(getInitialView() as any);
   const [selectedPost, setSelectedPost] = useState<any>(null);
-  const [boardType, setBoardType] = useState<'free' | 'qna' | 'recommend'>('free');
+  const [boardType, setBoardType] = useState<'free' | 'qna'>('free');
   const [filterRegion, setFilterRegion] = useState<string>(region ? decodeURIComponent(region) : '전체');
   // 마이페이지로 전환할 때 currentView는 즉시 바뀌지만 useParams().userId는 navigate가 커밋된
   // 다음 렌더에야 들어온다. 그 한 프레임 동안 MyPage가 옛 userId로 마운트되어 엉뚱한 프로필이
@@ -76,24 +75,20 @@ export default function PlanmateV2() {
       if (path === '/community/create' || path.startsWith('/community/create/')) {
         setCurrentView('community-create');
         const typeFromPath = path.split('/')[3];
-        if (typeFromPath && ['free', 'qna', 'recommend'].includes(typeFromPath)) {
+        if (typeFromPath && ['free', 'qna'].includes(typeFromPath)) {
           setBoardType(typeFromPath as any);
         }
       } else if (path.startsWith('/community/edit/')) {
         setCurrentView('community-edit');
-        if (category && ['free', 'qna', 'recommend'].includes(category)) {
+        if (category && ['free', 'qna'].includes(category)) {
           setBoardType(category as any);
         }
-      } else if (category === 'recommend' && id) {
-        // 장소 추천 상세 페이지 (특수 뷰)
-        setCurrentView('recommend-detail');
-        setBoardType('recommend');
       } else if (category && id) {
         // 일반 커뮤니티 게시글 상세
         setCurrentView('detail');
         setBoardType(category as any);
       } else if (category) {
-        if (['free', 'qna', 'recommend'].includes(category)) {
+        if (['free', 'qna'].includes(category)) {
           setCurrentView('board-list');
           setBoardType(category as any);
         } else {
@@ -164,19 +159,13 @@ export default function PlanmateV2() {
     }
     else if (view === 'detail' && data?.post) {
       setSelectedPost(data.post);
-      if (data.post.category === 'recommend') {
-        navigate(`/community/recommend/${data.post.id}`);
-      } else if (data.post.category && data.post.category !== 'feed') {
+      if (data.post.category && data.post.category !== 'feed') {
         // 커뮤니티 게시글
         navigate(`/community/${data.post.category}/${data.post.id}`);
       } else {
         // 여행 피드 게시글 (category === 'feed' 또는 미지정)
         navigate(`/travel/${data.post.id}`);
       }
-    }
-    else if ((view as any) === 'recommend-detail' && data?.post) {
-      setSelectedPost(data.post);
-      navigate(`/community/recommend/${data.post.id}`);
     }
     
     if (data?.post) setSelectedPost(data.post);
@@ -201,14 +190,6 @@ export default function PlanmateV2() {
         {currentView === 'board-list' && (
           <BoardList 
             type={boardType}
-            onNavigate={handleViewChange}
-          />
-        )}
-        {currentView === 'recommend-detail' && (
-          <RecommendDetail
-            post={selectedPost}
-            postId={id}
-            onBack={() => handleViewChange('board-list', { boardType: 'recommend' })}
             onNavigate={handleViewChange}
           />
         )}

@@ -1,4 +1,4 @@
-import { Flame, MessageCircle, Star, ThumbsUp } from 'lucide-react';
+import { Flame, MessageCircle, ThumbsUp } from 'lucide-react';
 import { authorNameClass, authorNavProps } from '../../common/authorLink';
 import { UserAvatar } from '../../common/UserAvatar';
 
@@ -17,13 +17,6 @@ const getCategoryBadge = (type: string, isAnswered?: boolean) => {
       className: isAnswered
         ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/15'
         : 'bg-amber-50 text-amber-700 ring-amber-600/15',
-    };
-  }
-
-  if (type === 'recommend') {
-    return {
-      label: '장소 추천',
-      className: 'bg-teal-50 text-teal-700 ring-teal-600/15',
     };
   }
 
@@ -85,9 +78,7 @@ export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostC
         <div className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold ring-1 ring-inset ${categoryBadge.className}`}>
-              {type === 'recommend' ? <Star className="h-2.5 w-2.5 fill-current" aria-hidden="true" /> : null}
               {categoryBadge.label}
-              {type === 'recommend' && post.rating ? ` ${post.rating}` : null}
             </span>
           </div>
           {index === 0 ? <span className="rounded-full bg-[#fff0e9] px-2.5 py-1 text-[10px] font-extrabold text-[#e24d1d]">인기 급상승</span> : null}

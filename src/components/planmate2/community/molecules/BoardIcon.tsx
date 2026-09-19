@@ -1,7 +1,7 @@
-import { HelpCircle, MapPin, MessageSquare } from 'lucide-react';
+import { HelpCircle, MessageSquare } from 'lucide-react';
 
 interface BoardIconProps {
-  type: 'free' | 'qna' | 'recommend';
+  type: 'free' | 'qna';
 }
 
 export const BoardIcon = ({ type }: BoardIconProps) => {
@@ -9,7 +9,6 @@ export const BoardIcon = ({ type }: BoardIconProps) => {
     switch (type) {
       case 'free': return <MessageSquare className="w-6 h-6 text-[#1344FF]" />;
       case 'qna': return <HelpCircle className="w-6 h-6 text-orange-500" />;
-      case 'recommend': return <MapPin className="w-6 h-6 text-gray-400" />;
       default: return null;
     }
   };
@@ -18,7 +17,6 @@ export const BoardIcon = ({ type }: BoardIconProps) => {
     switch (type) {
       case 'free': return 'bg-blue-50';
       case 'qna': return 'bg-orange-50';
-      case 'recommend': return 'bg-emerald-50';
       default: return 'bg-gray-50';
     }
   };
