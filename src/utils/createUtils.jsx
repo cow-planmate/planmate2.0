@@ -2,10 +2,6 @@ import usePlanStore from "../store/Plan";
 import useTimetableStore from "../store/Timetables";
 import usePlacesStore from "../store/Places";
 
-const googlePlaceImageUrl = (placeId) => placeId
-  ? `${(import.meta.env.VITE_API_URL || "").replace(/\/$/, "")}/api/image/place/${encodeURIComponent(placeId)}`
-  : null;
-
 // blockCategory(백엔드 enum 문자열) <-> categoryId(프론트 내부 정수 표현) 매핑.
 // 정수 순서는 scheduleUtils.jsx의 getCategoryByIconUrl과 동일하게 맞춤(0=관광지,1=숙소,2=식당,3=직접추가,4=검색).
 export const BLOCK_CATEGORY_TO_ID = {
@@ -74,28 +70,6 @@ export function mapPlaceSummary(dto) {
     yLocation: dto.latitude,
     contentTypeId: dto.contentTypeId,
     copyrightDivCd: dto.copyrightDivCd,
-  };
-}
-
-// GET /api/place/text-search(PlaceTextSearchResultDto) 응답을 일정 편집 화면의
-// 공통 place 객체로 변환한다. 검색으로 추가한 블록은 SEARCH 카테고리로 저장된다.
-export function mapTextSearchResult(dto) {
-  const latitude = dto.latitude ?? null;
-  const longitude = dto.longitude ?? null;
-  const hasCoordinates = latitude != null && longitude != null;
-
-  return {
-    placeId: dto.placeId,
-    name: dto.name,
-    formatted_address: dto.address,
-    photoUrl: googlePlaceImageUrl(dto.placeId),
-    iconUrl: "./src/assets/imgs/default.png",
-    categoryId: BLOCK_CATEGORY_TO_ID.SEARCH,
-    xLocation: longitude,
-    yLocation: latitude,
-    url: hasCoordinates
-      ? `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}&query_place_id=${encodeURIComponent(dto.placeId)}`
-      : "",
   };
 }
 
@@ -221,9 +195,8 @@ export function convertBlock(block) {
     categoryId: getBlockCategoryId(block),
     name: block.placeName,
     formatted_address: block.placeAddress,
-    photoUrl: getBlockCategoryId(block) === BLOCK_CATEGORY_TO_ID.SEARCH
-      ? googlePlaceImageUrl(block.placeId)
-      : block.placeThumbnailUrl,
+    // 검색으로 담았던 옛 블록은 사진이 없다 — 장소사진 API를 걷어내면서 썸네일 출처가 사라졌다
+    photoUrl: block.placeThumbnailUrl,
     iconUrl: "./src/assets/imgs/default.png",
     xLocation: block.longitude ?? block.xLocation ?? block.xlocation,
     yLocation: block.latitude ?? block.yLocation ?? block.ylocation,
