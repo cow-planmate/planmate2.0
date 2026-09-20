@@ -13,7 +13,6 @@ export default function Themestart({
 }) {
   const { post } = useApiClient();
   const [isSaving, setIsSaving] = useState(false);
-  const [selectionError, setSelectionError] = useState("");
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -26,14 +25,13 @@ export default function Themestart({
       .map((item) => item.preferredThemeId)
       .filter((id) => id != null);
 
-    // v2 초기 저장 API는 preferredThemeIds에 @NotEmpty가 적용된다.
+    // 미선택도 정상적인 온보딩 결과다. v2 저장 API는 빈 배열을 허용하지 않으므로
+    // 선택값이 없을 때는 요청하지 않고 온보딩만 완료한다.
     if (selectedIds.length === 0) {
-      setSelectionError("선호 테마를 1개 이상 선택해주세요.");
-      onThemeOpen();
+      onClose();
       return;
     }
 
-    setSelectionError("");
     setIsSaving(true);
     try {
       // v2 명세: POST /api/user/preferredTheme
@@ -104,10 +102,7 @@ export default function Themestart({
 
           <div className="flex gap-3">
             <button
-              onClick={() => {
-                setSelectionError("");
-                onThemeOpen();
-              }}
+              onClick={onThemeOpen}
               className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg border transition-colors ${
                 Object.values(selectedThemeKeywords).some(
                   (arr) => arr.length > 0,
@@ -130,11 +125,6 @@ export default function Themestart({
               {isSaving ? "저장 중..." : "완료"}
             </button>
           </div>
-          {selectionError ? (
-            <p className="text-center text-sm font-semibold text-red-500" role="alert">
-              {selectionError}
-            </p>
-          ) : null}
         </div>
       </div>
     </div>
