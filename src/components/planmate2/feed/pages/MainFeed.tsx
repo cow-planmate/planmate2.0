@@ -229,9 +229,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
             mapState={mapState}
             onRegionSelect={setters.handleRegionSelect}
             selectedRegion={filters.selectedRegion}
-            onNavigate={onNavigate}
             regionMarkers={regionMarkers}
-            isAuthenticated={isAuthenticated()}
           />
         </aside>
       </div>

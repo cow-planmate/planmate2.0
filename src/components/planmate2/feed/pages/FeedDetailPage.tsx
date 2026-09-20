@@ -927,7 +927,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
         planName={post.title}
         adjustedBlocks={forkResult?.adjustedBlocks ?? 0}
         onEdit={() => navigate(`/create?id=${forkResult?.planId}`)}
-        onGoToMyTrips={() => navigate('/mypage')}
+        onGoToMyTrips={() => navigate('/mypage?section=trips')}
       />
     </div>
   );
