@@ -41,7 +41,7 @@ export const PostListTable = ({ posts, type, onNavigate, page, totalPages, onPag
             type={type}
             isCurrent={String(post.id) === String(currentPostId)}
             onNavigate={onNavigate}
-            onClick={() => onNavigate(type === 'recommend' ? 'recommend-detail' : 'detail', { post: { ...post, category: type } })}
+            onClick={() => onNavigate('detail', { post: { ...post, category: type } })}
           />
         ))}
       </div>

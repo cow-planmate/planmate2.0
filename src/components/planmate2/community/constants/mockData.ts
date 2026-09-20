@@ -45,35 +45,4 @@ export const MOCK_POSTS = {
     }?w=400&auto=format&fit=crop`,
     content: "궁금한 점이 있어서 질문드립니다. 답변 부탁드려요!",
   })),
-  recommend: Array.from({ length: 15 }).map((_, i) => ({
-    id: i + 1,
-    userId: 500 + i,
-    title: `[${["제주", "서울", "부산", "강릉"][Math.floor(Math.random() * 4)]}] ${["진짜 맛있는 횟집", "분위기 좋은 카페", "노을 명소", "숨겨진 야경포인트"][Math.floor(Math.random() * 4)]} 추천합니다!`,
-    author: `추천왕${i + 1}`,
-    level: Math.floor(Math.random() * 5) + 1,
-    likes: Math.floor(Math.random() * 200),
-    dislikes: Math.floor(Math.random() * 5),
-    comments: Math.floor(Math.random() * 30),
-    views: Math.floor(Math.random() * 2000),
-    createdAt: `${Math.floor(Math.random() * 24) + 1}시간 전`,
-    image: `https://images.unsplash.com/photo-${
-      [
-        "1506744038136-46273834b3fb",
-        "1501785888041-af3ef285b470",
-        "1472396961695-1ad22395ea92",
-        "1532708059644-5590ed51ce4c",
-      ][Math.floor(Math.random() * 4)]
-    }?w=400&auto=format&fit=crop`,
-    location: ["제주도", "서울특별시", "부산광역시", "강원도"][
-      Math.floor(Math.random() * 4)
-    ],
-    rating: (Math.random() * 1.5 + 3.5).toFixed(1),
-    content: "여기는 정말 제가 아껴둔 곳인데 공유합니다. 꼭 가보세요!",
-    coords: [
-      { lat: 33.450701, lng: 126.570667 }, // 제주
-      { lat: 37.5665, lng: 126.978 }, // 서울
-      { lat: 35.1796, lng: 129.0756 }, // 부산
-      { lat: 37.7512, lng: 128.8762 }, // 강릉
-    ][i % 4],
-  })),
 };

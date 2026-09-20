@@ -1,6 +1,5 @@
-import { ImageIcon, MapPin, Star } from 'lucide-react';
+import { ImageIcon } from 'lucide-react';
 import { authorNameClass, authorNavProps } from '../../common/authorLink';
-import { buildKakaoMapUrl } from '../../common/kakaoMapLink';
 import { UserAvatar } from '../../common/UserAvatar';
 
 interface PostListItemProps {
@@ -12,49 +11,12 @@ interface PostListItemProps {
   onNavigate: (view: any, data?: any) => void;
 }
 
-/** 게시판 성격별 앞머리 배지 (답변 여부·모집 현황·장소/평점) */
+/** 게시판 성격별 앞머리 배지 (답변 여부·모집 현황) */
 const StatusBadge = ({ post, type }: { post: any; type: string }) => {
   if (type === 'qna') {
     return post.isAnswered
       ? <span className="shrink-0 px-1.5 py-0.5 bg-green-50 text-green-700 text-[11px] rounded font-bold">답변완료</span>
       : <span className="shrink-0 px-1.5 py-0.5 bg-gray-50 text-gray-600 text-[11px] rounded font-bold">답변대기</span>;
-  }
-  if (type === 'recommend') {
-    // 장소 배지는 목록에서 바로 카카오맵으로 넘어가는 지름길 — 행 클릭(상세 이동)과 분리한다
-    const kakaoMapUrl = buildKakaoMapUrl(post);
-    const badgeClass = 'max-w-[120px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] rounded font-bold flex items-center gap-0.5 min-w-0';
-    return (
-      <span className="shrink-0 flex items-center gap-1.5">
-        {kakaoMapUrl ? (
-          <a
-            href={kakaoMapUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="카카오맵에서 보기"
-            onClick={(e) => e.stopPropagation()}
-            className={`${badgeClass} hover:bg-emerald-100 transition-colors`}
-          >
-            <MapPin className="w-2.5 h-2.5 shrink-0" />
-            <span className="truncate">{post.location}</span>
-          </a>
-        ) : (
-          <span className={badgeClass}>
-            <MapPin className="w-2.5 h-2.5 shrink-0" />
-            <span className="truncate">{post.location}</span>
-          </span>
-        )}
-        {/* 여러 장소를 담은 글 — 배지의 장소명은 대표 장소 하나뿐이라 전체 수를 따로 알려준다 */}
-        {post.placeCount > 1 && (
-          <span className="shrink-0 px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[11px] rounded font-bold">
-            {post.placeCount}곳
-          </span>
-        )}
-        <span className="px-1.5 py-0.5 bg-yellow-50 text-yellow-700 text-[11px] rounded font-bold flex items-center gap-0.5">
-          <Star className="w-2.5 h-2.5 fill-current" />
-          {post.rating}
-        </span>
-      </span>
-    );
   }
   return null;
 };
