@@ -9,6 +9,7 @@ interface MainPostsGridProps {
   onNavigate: (view: any, data?: any) => void;
   likedPosts: Set<number>;
   onLike: (postId: number, e: React.MouseEvent) => void;
+  pendingReactionPosts: Set<number>;
   onClearFilters: () => void;
 }
 
@@ -18,6 +19,7 @@ export const MainPostsGrid: React.FC<MainPostsGridProps> = ({
   onNavigate,
   likedPosts,
   onLike,
+  pendingReactionPosts,
   onClearFilters
 }) => {
   if (posts.length === 0) {
@@ -46,6 +48,7 @@ export const MainPostsGrid: React.FC<MainPostsGridProps> = ({
             onNavigate={onNavigate}
             liked={likedPosts.has(post.id)}
             onLike={onLike}
+            isReactionPending={pendingReactionPosts.has(post.id)}
           />
         ) : (
           <CompactPostCard
@@ -54,6 +57,7 @@ export const MainPostsGrid: React.FC<MainPostsGridProps> = ({
             onNavigate={onNavigate}
             liked={likedPosts.has(post.id)}
             onLike={onLike}
+            isReactionPending={pendingReactionPosts.has(post.id)}
           />
         )
       ))}

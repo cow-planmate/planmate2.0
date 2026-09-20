@@ -9,6 +9,7 @@ interface MainFeedPostCardProps {
   onNavigate: (view: any, data?: any) => void;
   liked: boolean;
   onLike: (postId: number, e: React.MouseEvent) => void;
+  isReactionPending: boolean;
 }
 
 export const MainFeedPostCard: React.FC<MainFeedPostCardProps> = ({
@@ -16,6 +17,7 @@ export const MainFeedPostCard: React.FC<MainFeedPostCardProps> = ({
   onNavigate,
   liked,
   onLike,
+  isReactionPending,
 }) => {
   const authorNav = authorNavProps(post, onNavigate);
   const hasRoute = post.placesByDay.length > 0;
@@ -78,8 +80,9 @@ export const MainFeedPostCard: React.FC<MainFeedPostCardProps> = ({
             <span className="w-px h-3 bg-[#e0e2e7] shrink-0" />
             <button
               onClick={(e) => onLike(post.id, e)}
+              disabled={isReactionPending}
               aria-pressed={liked}
-              className={`flex items-center gap-1 font-bold whitespace-nowrap transition-colors ${liked ? 'text-[#1344FF]' : 'text-[#5b6270] hover:text-[#1344FF]'}`}
+              className={`flex items-center gap-1 font-bold whitespace-nowrap transition-colors disabled:opacity-50 ${liked ? 'text-[#1344FF]' : 'text-[#5b6270] hover:text-[#1344FF]'}`}
             >
               <ThumbsUp className={`w-3.5 h-3.5 ${liked ? 'fill-[#1344FF]' : ''}`} />
               추천 <span className="tabular-nums">{post.likes.toLocaleString()}</span>

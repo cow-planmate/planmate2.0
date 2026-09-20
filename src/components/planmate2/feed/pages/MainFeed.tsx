@@ -14,6 +14,7 @@ import { DetailFilterPanel } from '../organisms/DetailFilterPanel';
 import { MainFeedSidebar } from '../organisms/MainFeedSidebar';
 import { MainPostsGrid } from '../organisms/MainPostsGrid';
 import { TourApiAttribution } from '../../../common/TourApiAttribution';
+import { ErrorToast, WarningToast } from '../../../common/Toast';
 
 interface MainFeedProps {
   initialRegion?: string;
@@ -39,6 +40,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
   // 눌림 표시는 세션 로컬 (목록 요약에는 myReaction이 없음) — 카운트는 서버 값 그대로 표시
   // 비추천은 목록에서 아예 노출하지 않는다(상세에서만) — 훑어보다 누르는 버튼이 되면 안 된다
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
+  const [pendingReactionPosts, setPendingReactionPosts] = useState<Set<number>>(new Set());
   const [mapState, setMapState] = useState({
     center: DEFAULT_MAP_CENTER,
     level: 14
@@ -75,18 +77,33 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
   }, [filters.selectedRegion, regionMarkers]);
 
   const react = async (postId: number, type: 'like' | 'dislike') => {
+    if (pendingReactionPosts.has(postId)) return;
+    setPendingReactionPosts(prev => new Set(prev).add(postId));
     try {
       await reactToPost(postId, type, true);
-      queryClient.invalidateQueries({ queryKey: ['community', 'posts'] });
+      await queryClient.invalidateQueries({ queryKey: ['community', 'posts'] });
     } catch (error) {
-      alert(`반응 처리에 실패했습니다: ${(error as Error).message}`);
+      setLikedPosts(prev => {
+        const next = new Set(prev);
+        if (next.has(postId)) next.delete(postId);
+        else next.add(postId);
+        return next;
+      });
+      ErrorToast(`반응 처리에 실패했습니다: ${(error as Error).message}`);
+    } finally {
+      setPendingReactionPosts(prev => {
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
     }
   };
 
   const handleLike = (postId: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (pendingReactionPosts.has(postId)) return;
     if (!isAuthenticated()) {
-      alert('로그인이 필요합니다.');
+      WarningToast('로그인이 필요합니다.');
       return;
     }
     setLikedPosts(prev => {
@@ -100,7 +117,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
 
   const handleWrite = () => {
     if (!isAuthenticated()) {
-      alert('로그인 후 여행기를 작성할 수 있습니다.');
+      WarningToast('로그인 후 여행기를 작성할 수 있습니다.');
       return;
     }
     onNavigate('create');
@@ -153,6 +170,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
             <div className="px-4 pt-4 sm:px-6">
               <DetailFilterPanel
                 onClear={setters.clearFilters}
+                onClose={() => setters.setShowFilters(false)}
                 regions={regions}
                 durations={durations}
                 sortOptions={sortOptions}
@@ -184,6 +202,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
                 onNavigate={onNavigate}
                 likedPosts={likedPosts}
                 onLike={handleLike}
+                pendingReactionPosts={pendingReactionPosts}
                 onClearFilters={setters.clearFilters}
               />
               {hasNextPage && (

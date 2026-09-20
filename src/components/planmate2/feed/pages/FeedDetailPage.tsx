@@ -15,6 +15,7 @@ import PageLoading from '../../../common/PageLoading';
 import { PlaceActionButtons } from '../../../common/PlaceActionButtons';
 import { buildCreatePlanRequest, canForkItinerary } from '../utils/itineraryToPlan';
 import { isTourApiCopyright, TourApiAttribution } from '../../../common/TourApiAttribution';
+import { ErrorToast, SuccessToast, WarningToast } from '../../../common/Toast';
 
 interface PostDetailProps {
   postId: number | string;
@@ -128,18 +129,19 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
 
   const requireLogin = () => {
     if (!isLoggedIn) {
-      alert('로그인이 필요합니다.');
+      WarningToast('로그인이 필요합니다.');
       return false;
     }
     return true;
   };
 
   const handleReact = async (type: 'like' | 'dislike') => {
+    if (reactMutation.isPending) return;
     if (!requireLogin()) return;
     try {
       await reactMutation.mutateAsync(type);
     } catch (error) {
-      alert(`반응 처리에 실패했습니다: ${(error as Error).message}`);
+      ErrorToast(`반응 처리에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -185,7 +187,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       setIsForkDateOpen(false);
       setForkResult({ planId, adjustedBlocks });
     } catch (error) {
-      alert(`일정을 가져오지 못했습니다: ${(error as Error).message}`);
+      ErrorToast(`일정을 가져오지 못했습니다: ${(error as Error).message}`);
     } finally {
       setIsCreatingPlan(false);
     }
@@ -194,9 +196,9 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      alert('링크가 클립보드에 복사되었습니다!');
+      SuccessToast('링크가 클립보드에 복사되었습니다!');
     } catch {
-      alert('링크 복사에 실패했습니다.');
+      ErrorToast('링크 복사에 실패했습니다.');
     }
   };
 
@@ -204,10 +206,10 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
     if (!post || !confirm('여행기를 삭제할까요? 삭제하면 되돌릴 수 없습니다.')) return;
     try {
       await deletePostMutation.mutateAsync(post.id);
-      alert('여행기가 삭제되었습니다.');
+      SuccessToast('여행기가 삭제되었습니다.');
       onNavigate('feed');
     } catch (error) {
-      alert(`여행기 삭제에 실패했습니다: ${(error as Error).message}`);
+      ErrorToast(`여행기 삭제에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -218,7 +220,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       await createComment.mutateAsync({ content: comment.trim() });
       setComment('');
     } catch (error) {
-      alert(`댓글 등록에 실패했습니다: ${(error as Error).message}`);
+      ErrorToast(`댓글 등록에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -230,7 +232,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       setReplyContent('');
       setReplyingTo(null);
     } catch (error) {
-      alert(`답글 등록에 실패했습니다: ${(error as Error).message}`);
+      ErrorToast(`답글 등록에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -239,7 +241,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
     try {
       await deleteComment.mutateAsync(commentId);
     } catch (error) {
-      alert(`댓글 삭제에 실패했습니다: ${(error as Error).message}`);
+      ErrorToast(`댓글 삭제에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -812,8 +814,9 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
               <div className="flex gap-2 mb-4">
                 <button
                   onClick={() => handleReact('like')}
+                  disabled={reactMutation.isPending}
                   aria-pressed={isLiked}
-                  className={`flex-1 py-2.5 rounded-lg border transition-all flex flex-col items-center justify-center gap-0.5 ${isLiked
+                  className={`flex-1 py-2.5 rounded-lg border transition-all flex flex-col items-center justify-center gap-0.5 disabled:opacity-50 ${isLiked
                     ? 'border-[#1344FF] text-[#1344FF] bg-blue-50'
                     : 'border-[#e5e7eb] text-[#666666] hover:border-[#1344FF] hover:text-[#1344FF]'
                     }`}
@@ -824,8 +827,9 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                 </button>
                 <button
                   onClick={() => handleReact('dislike')}
+                  disabled={reactMutation.isPending}
                   aria-pressed={isDisliked}
-                  className={`flex-1 py-2.5 rounded-lg border transition-all flex flex-col items-center justify-center gap-0.5 ${isDisliked
+                  className={`flex-1 py-2.5 rounded-lg border transition-all flex flex-col items-center justify-center gap-0.5 disabled:opacity-50 ${isDisliked
                     ? 'border-gray-900 text-gray-900 bg-gray-50'
                     : 'border-[#e5e7eb] text-[#666666] hover:border-gray-900 hover:text-gray-900'
                     }`}
@@ -878,8 +882,9 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleReact('like')}
+            disabled={reactMutation.isPending}
             aria-pressed={isLiked}
-            className={`flex flex-col items-center justify-center w-14 h-12 shrink-0 rounded-xl border transition-all ${isLiked
+            className={`flex flex-col items-center justify-center w-14 h-12 shrink-0 rounded-xl border transition-all disabled:opacity-50 ${isLiked
               ? 'border-[#1344FF] text-[#1344FF] bg-blue-50'
               : 'border-[#e5e7eb] text-[#6b7280]'
               }`}

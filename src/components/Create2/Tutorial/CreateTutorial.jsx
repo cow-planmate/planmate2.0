@@ -67,7 +67,7 @@ const STEPS = [
   },
   {
     key: "drag-demo",
-    target: '[data-tutorial="schedule-workspace"]',
+    target: '[data-tutorial="timetable"]',
     title: "끌어서 일정에 추가",
     description: "장소 카드를 원하는 시간으로 옮겨 놓아요.",
     kind: "drag",
@@ -150,6 +150,32 @@ const getPaddedRect = (element, gap = SPOTLIGHT_GAP) => {
     width: Math.max(0, right - left),
     height: Math.max(0, bottom - top),
   };
+};
+
+const isElementVisible = (element) => {
+  if (!element) return false;
+  const rect = element.getBoundingClientRect();
+  const style = window.getComputedStyle(element);
+  return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+};
+
+const findTutorialTarget = (step) => {
+  if (!step.target) return null;
+  const candidates = Array.from(document.querySelectorAll(step.target)).filter(isElementVisible);
+  if (candidates.length === 0) return null;
+  return candidates[Math.min(step.targetIndex ?? 0, candidates.length - 1)] ?? null;
+};
+
+const scrollTargetIntoViewIfNeeded = (element) => {
+  const rect = element.getBoundingClientRect();
+  const viewportTop = 78;
+  const viewportBottom = window.innerHeight - 78;
+  const visibleHeight = Math.max(0, Math.min(rect.bottom, viewportBottom) - Math.max(rect.top, viewportTop));
+  const requiredVisibleHeight = Math.min(96, rect.height * 0.35);
+
+  if (visibleHeight < requiredVisibleHeight) {
+    element.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+  }
 };
 
 export default function CreateTutorial() {
@@ -249,13 +275,19 @@ export default function CreateTutorial() {
       return;
     }
 
-    // 실제 시간표 블록의 left: 4rem, right: 8px 배치와 같은 가로폭을 사용한다.
-    const width = Math.max(150, timetableRect.width - 72);
-    const endLeft = timetableRect.left + 64;
+    // 데모는 문서 전체 좌표가 아니라 현재 화면에 실제로 보이는 시간표 영역 안에 둔다.
+    const visibleLeft = Math.max(timetableRect.left, 8);
+    const visibleRight = Math.min(timetableRect.right, window.innerWidth - 8);
+    const endLeft = visibleLeft + Math.min(64, Math.max(48, (visibleRight - visibleLeft) * 0.12));
+    const width = Math.max(150, visibleRight - endLeft - 8);
+    const demoHeight = step.key === "resize-demo" ? 170 : 78;
+    const visibleTop = Math.max(timetableRect.top, 86);
+    const visibleBottom = Math.min(timetableRect.bottom, window.innerHeight - 76);
+    const preferredTop = visibleTop + Math.min(96, Math.max(24, (visibleBottom - visibleTop - demoHeight) * 0.28));
     const endTop = clamp(
-      timetableRect.top + Math.min(150, timetableRect.height * 0.28),
-      90,
-      window.innerHeight - (step.key === "resize-demo" ? 210 : 170),
+      preferredTop,
+      visibleTop + 12,
+      Math.max(visibleTop + 12, visibleBottom - demoHeight - 12),
     );
 
     if (step.key === "resize-demo") {
@@ -344,9 +376,7 @@ export default function CreateTutorial() {
     }
 
     if (step.target) {
-      const candidates = document.querySelectorAll(step.target);
-      const targetIndex = Math.min(step.targetIndex ?? 0, candidates.length - 1);
-      targetElementRef.current = candidates[targetIndex] ?? null;
+      targetElementRef.current = findTutorialTarget(step);
     } else {
       targetElementRef.current = null;
     }
@@ -358,7 +388,7 @@ export default function CreateTutorial() {
       return undefined;
     }
 
-    element.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    scrollTargetIntoViewIfNeeded(element);
     const firstMeasure = window.setTimeout(measureTarget, 70);
     const settledMeasure = window.setTimeout(measureTarget, 380);
     const resizeObserver = new ResizeObserver(measureTarget);
@@ -424,11 +454,19 @@ export default function CreateTutorial() {
 
     const firstMeasure = window.setTimeout(measureDemo, 100);
     const settledMeasure = window.setTimeout(measureDemo, 430);
+    const timetable = document.querySelector('[data-tutorial="timetable"]');
+    const dropzone = document.querySelector('[data-tutorial="timetable-dropzone"]');
+    const placeList = document.querySelector('[data-tutorial="place-results"]');
+    const resizeObserver = new ResizeObserver(measureDemo);
+    [timetable, dropzone, placeList].filter(Boolean).forEach((element) => resizeObserver.observe(element));
     window.addEventListener("resize", measureDemo);
+    window.addEventListener("scroll", measureDemo, { capture: true, passive: true });
     return () => {
       window.clearTimeout(firstMeasure);
       window.clearTimeout(settledMeasure);
+      resizeObserver.disconnect();
       window.removeEventListener("resize", measureDemo);
+      window.removeEventListener("scroll", measureDemo, true);
     };
   }, [isOpen, measureDemo, step.key]);
 

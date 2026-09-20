@@ -11,6 +11,7 @@ import { CommentSection } from '../organisms/CommentSection';
 import { PostListTable } from '../organisms/PostListTable';
 import { PostContentViewer } from '../organisms/PostContentViewer';
 import PageLoading from '../../../common/PageLoading';
+import { ErrorToast, SuccessToast, WarningToast } from '../../../common/Toast';
 
 interface PostDetailPageProps {
   postId: number | string;
@@ -34,16 +35,18 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
   const isAuthor = post && myUserId === post.userId;
 
   const handleReact = async (type: 'like' | 'dislike') => {
-    if (!isLoggedIn) { alert('로그인이 필요합니다.'); return; }
-    try { await react.mutateAsync(type); } catch (e) { alert((e as Error).message); }
+    if (react.isPending) return;
+    if (!isLoggedIn) { WarningToast('로그인이 필요합니다.'); return; }
+    try { await react.mutateAsync(type); } catch (e) { ErrorToast((e as Error).message); }
   };
 
   const handleDelete = async () => {
     if (!post || !confirm('게시글을 삭제할까요?')) return;
     try {
       await deletePost.mutateAsync(post.id);
+      SuccessToast('게시글이 삭제되었습니다.');
       onBack();
-    } catch (e) { alert((e as Error).message); }
+    } catch (e) { ErrorToast((e as Error).message); }
   };
 
   if (isLoading) {
@@ -102,7 +105,8 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
                 {post.category === 'qna' && (
                   <button
                     onClick={() => updateAnswered.mutate(!post.isAnswered)}
-                    className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                    disabled={updateAnswered.isPending}
+                    className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     {post.isAnswered ? '답변대기로 변경' : '답변완료로 표시'}
@@ -116,7 +120,8 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="flex min-h-8 items-center gap-1 whitespace-nowrap rounded-lg bg-[#fff0f1] px-3 text-xs font-bold text-[#ef4c55] transition-colors hover:bg-[#ffe1e3]"
+                  disabled={deletePost.isPending}
+                  className="flex min-h-8 items-center gap-1 whitespace-nowrap rounded-lg bg-[#fff0f1] px-3 text-xs font-bold text-[#ef4c55] transition-colors hover:bg-[#ffe1e3] disabled:opacity-50"
                 >
                   <Trash2 className="w-4 h-4" />삭제
                 </button>
@@ -134,7 +139,8 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
         <div className="flex flex-wrap justify-center gap-3 border-b border-[#eef0f3] px-6 pb-7 sm:px-9">
           <button
             onClick={() => handleReact('like')}
-            className={`flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl border px-5 text-sm font-bold transition-colors ${
+            disabled={react.isPending}
+            className={`flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl border px-5 text-sm font-bold transition-colors disabled:opacity-50 ${
               post.myReaction === 'like'
                 ? 'bg-[#1344FF] text-white border-[#1344FF]'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#1344FF] hover:text-[#1344FF]'
@@ -144,7 +150,8 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
           </button>
           <button
             onClick={() => handleReact('dislike')}
-            className={`flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl border px-5 text-sm font-bold transition-colors ${
+            disabled={react.isPending}
+            className={`flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl border px-5 text-sm font-bold transition-colors disabled:opacity-50 ${
               post.myReaction === 'dislike'
                 ? 'bg-gray-700 text-white border-gray-700'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-500'

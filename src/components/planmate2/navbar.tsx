@@ -76,7 +76,7 @@ export default function Navbar({
   const handleMyPageSectionSelect = (section: MyPageMenuSection) => {
     setIsProfileMenuOpen(false);
     setIsMobileMenuOpen(false);
-    onNavigate("mypage", { section });
+    navigate(`/mypage?section=${section}`);
   };
 
   // 인증 관련 상태

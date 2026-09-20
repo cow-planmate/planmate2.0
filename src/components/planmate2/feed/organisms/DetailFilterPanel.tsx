@@ -1,4 +1,4 @@
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, X } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, RotateCcw, X } from 'lucide-react';
 import React from 'react';
 import { regionLabel } from '../utils/region';
 
@@ -10,6 +10,7 @@ const DEFAULT_ORDER_LABELS = { desc: '높은순', asc: '낮은순' };
 
 interface DetailFilterPanelProps {
   onClear: () => void;
+  onClose: () => void;
   regions: string[];
   durations: string[];
   sortOptions: string[];
@@ -25,6 +26,7 @@ interface DetailFilterPanelProps {
 
 export const DetailFilterPanel: React.FC<DetailFilterPanelProps> = ({
   onClear,
+  onClose,
   regions,
   durations,
   sortOptions,
@@ -44,11 +46,12 @@ export const DetailFilterPanel: React.FC<DetailFilterPanelProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-[#1a1a1a]">상세 필터</h3>
         <button
-          onClick={onClear}
-          className="flex items-center gap-1 text-sm text-[#666666] hover:text-[#1344FF] transition-colors"
+          type="button"
+          onClick={onClose}
+          aria-label="상세 필터 닫기"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-[#777d88] transition-colors hover:bg-gray-100 hover:text-[#111318]"
         >
-          <X className="w-4 h-4" />
-          초기화
+          <X className="h-5 w-5" />
         </button>
       </div>
 
@@ -134,6 +137,17 @@ export const DetailFilterPanel: React.FC<DetailFilterPanelProps> = ({
             })}
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 flex justify-end border-t border-[#eef0f3] pt-4">
+        <button
+          type="button"
+          onClick={onClear}
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-[#596170] transition-colors hover:bg-[#f1f4ff] hover:text-[#1344FF]"
+        >
+          <RotateCcw className="h-4 w-4" />
+          필터 초기화
+        </button>
       </div>
     </div>
   );

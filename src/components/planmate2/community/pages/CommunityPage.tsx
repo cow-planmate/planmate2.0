@@ -6,6 +6,7 @@ import { SearchBar } from '../molecules/SearchBar';
 import { HotPostsGrid } from '../organisms/HotPostsGrid';
 import { NavigationTabs } from '../organisms/NavigationTabs';
 import { PostListTable } from '../organisms/PostListTable';
+import { WarningToast } from '../../../common/Toast';
 
 interface CommunityPageProps {
   type: 'free' | 'qna';
@@ -60,7 +61,7 @@ export const CommunityPage = ({ type, onNavigate }: CommunityPageProps) => {
 
   const handleWrite = () => {
     if (!isAuthenticated()) {
-      alert('로그인 후 글을 작성할 수 있습니다.');
+      WarningToast('로그인 후 글을 작성할 수 있습니다.');
       return;
     }
     onNavigate('community-create');

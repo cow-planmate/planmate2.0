@@ -4,6 +4,7 @@ import type { CommunityComment } from '../api/communityApi';
 import { UserAvatar } from '../../common/UserAvatar';
 import { LevelBadge } from '../atoms/LevelBadge';
 import { useComments, useCreateComment, useDeleteComment, useUpdateComment } from '../hooks/queries';
+import { ErrorToast } from '../../../common/Toast';
 
 interface CommentSectionProps {
   postId: number | string;
@@ -49,7 +50,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
       await createComment.mutateAsync({ content: content.trim() });
       setContent('');
     } catch (error) {
-      alert(`댓글 등록에 실패했습니다: ${(error as Error).message}`);
+      ErrorToast(`댓글 등록에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -60,7 +61,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
       setReplyContent('');
       setReplyingTo(null);
     } catch (error) {
-      alert(`답글 등록에 실패했습니다: ${(error as Error).message}`);
+      ErrorToast(`답글 등록에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -77,7 +78,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
       setEditingId(null);
       setEditContent('');
     } catch (error) {
-      alert(`댓글 수정에 실패했습니다: ${(error as Error).message}`);
+      ErrorToast(`댓글 수정에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -87,7 +88,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
     try {
       await deleteComment.mutateAsync(commentId);
     } catch (error) {
-      alert(`댓글 삭제에 실패했습니다: ${(error as Error).message}`);
+      ErrorToast(`댓글 삭제에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -117,7 +118,8 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
             </button>
             <button
               onClick={() => handleDelete(comment.id, !isReply && (repliesByParent.get(comment.id)?.length ?? 0) > 0)}
-              className="text-gray-300 hover:text-red-400 transition-colors"
+              disabled={deleteComment.isPending}
+              className="text-gray-300 hover:text-red-400 transition-colors disabled:opacity-40"
               aria-label="댓글 삭제"
             >
               <Trash2 className="w-4 h-4" />

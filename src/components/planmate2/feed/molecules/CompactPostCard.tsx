@@ -10,6 +10,7 @@ interface CompactPostCardProps {
     onNavigate: (view: any, data?: any) => void;
     liked: boolean;
     onLike: (postId: number, e: React.MouseEvent) => void;
+    isReactionPending: boolean;
 }
 
 export const CompactPostCard: React.FC<CompactPostCardProps> = ({
@@ -17,6 +18,7 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({
     onNavigate,
     liked,
     onLike,
+    isReactionPending,
 }) => {
     const authorNav = authorNavProps(post, onNavigate);
     const hasRoute = post.placesByDay.length > 0;
@@ -107,8 +109,9 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({
                         <span>·</span>
                         <button
                             onClick={(e) => onLike(post.id, e)}
+                            disabled={isReactionPending}
                             aria-pressed={liked}
-                            className={`flex items-center gap-1 transition-colors ${liked ? 'font-semibold text-[#1344FF]' : 'hover:text-[#1344FF]'}`}
+                            className={`flex items-center gap-1 transition-colors disabled:opacity-50 ${liked ? 'font-semibold text-[#1344FF]' : 'hover:text-[#1344FF]'}`}
                         >
                             <ThumbsUp className="sr-only" />추천 {post.likes}
                         </button>

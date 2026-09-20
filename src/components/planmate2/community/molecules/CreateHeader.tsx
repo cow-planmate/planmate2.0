@@ -4,9 +4,10 @@ interface CreateHeaderProps {
   title: string;
   onBack: () => void;
   onSubmit: () => void;
+  isSubmitting: boolean;
 }
 
-export const CreateHeader = ({ title, onBack, onSubmit }: CreateHeaderProps) => {
+export const CreateHeader = ({ title, onBack, onSubmit, isSubmitting }: CreateHeaderProps) => {
   return (
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-3">
@@ -20,7 +21,8 @@ export const CreateHeader = ({ title, onBack, onSubmit }: CreateHeaderProps) => 
       </div>
       <button
         onClick={onSubmit}
-        className="flex items-center gap-2 px-4 py-2 bg-[#1344FF] text-white rounded-lg font-bold hover:bg-[#0d34cc] transition-all shadow-sm text-sm"
+        disabled={isSubmitting}
+        className="flex items-center gap-2 px-4 py-2 bg-[#1344FF] text-white rounded-lg font-bold hover:bg-[#0d34cc] transition-all shadow-sm text-sm disabled:opacity-60"
       >
         <Send className="w-4 h-4" />
         등록

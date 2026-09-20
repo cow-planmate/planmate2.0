@@ -5,6 +5,7 @@ import { deleteImage, uploadImage } from '../api/communityApi';
 import { blocksToText } from '../utils/blocksToText';
 import { fileToDataUrl, resolveContentImages } from '../utils/pendingImages';
 import { useCreatePost, usePost, useUpdatePost } from './queries';
+import { ErrorToast, WarningToast } from '../../../common/Toast';
 
 /** 첫 번째 이미지 블록의 URL → 썸네일 */
 const firstImageUrl = (blocks: any[]): string | null => {
@@ -44,7 +45,7 @@ export const useCommunityCreateLogic = (
     try {
       return await fileToDataUrl(file);
     } catch (error) {
-      alert(`이미지를 불러오지 못했습니다: ${(error as Error).message}`);
+      ErrorToast(`이미지를 불러오지 못했습니다: ${(error as Error).message}`);
       throw error;
     }
   };
@@ -96,7 +97,7 @@ export const useCommunityCreateLogic = (
 
     // 이미지 블록은 평문이 없으므로, 사진만 올린 글도 내용이 있는 것으로 본다
     if (!title.trim() || (contentText.trim().length === 0 && !hasImage)) {
-      alert('제목과 내용을 모두 입력해주세요.');
+      WarningToast('제목과 내용을 모두 입력해주세요.');
       return;
     }
 
@@ -123,7 +124,7 @@ export const useCommunityCreateLogic = (
     } catch (error) {
       // 저장 실패 시 방금 올린 이미지는 고아가 되므로 정리한다
       uploadedUrls.forEach((url) => deleteImage(url).catch(() => {}));
-      alert(`게시글 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(error as Error).message}`);
+      ErrorToast(`게시글 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(error as Error).message}`);
     }
   };
 

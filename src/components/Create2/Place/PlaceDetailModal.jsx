@@ -83,15 +83,29 @@ export default function PlaceDetailModal({ contentId, fallbackPlace, onClose }) 
   useEffect(() => {
     const onKeyDown = (event) => event.key === "Escape" && onClose();
     const previousOverflow = document.body.style.overflow;
+    const previousPosition = document.body.style.position;
+    const previousTop = document.body.style.top;
+    const previousWidth = document.body.style.width;
+    const scrollPosition = window.scrollY;
     document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollPosition}px`;
+    document.body.style.width = "100%";
     window.addEventListener("keydown", onKeyDown);
+    const restorePageScroll = () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.position = previousPosition;
+      document.body.style.top = previousTop;
+      document.body.style.width = previousWidth;
+      window.scrollTo(0, scrollPosition);
+    };
     let cancelled = false;
     if (contentId == null || String(contentId).trim() === "") {
       setDetail(null);
       setError("이 장소는 현재 화면에서 제공된 기본 정보만 확인할 수 있어요.");
       setLoading(false);
       return () => {
-        document.body.style.overflow = previousOverflow;
+        restorePageScroll();
         window.removeEventListener("keydown", onKeyDown);
       };
     }
@@ -108,7 +122,7 @@ export default function PlaceDetailModal({ contentId, fallbackPlace, onClose }) 
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
-      document.body.style.overflow = previousOverflow;
+      restorePageScroll();
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [BASE_URL, contentId, get, onClose]);

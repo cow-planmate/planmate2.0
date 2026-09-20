@@ -1,5 +1,5 @@
 import { MapPin, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CustomOverlayMap, Map } from "react-kakao-maps-sdk";
 import type { RegionMarker } from '../hooks/useRegionMarkers';
 
@@ -22,6 +22,20 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
   isAuthenticated
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isModalOpen]);
 
   return (
     <div className="space-y-5 xl:sticky xl:top-[94px]">
@@ -78,21 +92,35 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
 
       {/* 지도 크게 보기 모달 */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="relative w-[95vw] h-[95vh] bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm animate-in fade-in duration-200 sm:p-6"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsModalOpen(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="feed-map-title"
+            className="relative flex w-full max-w-[1400px] flex-col overflow-hidden rounded-2xl border border-white/70 bg-white shadow-2xl animate-in zoom-in-95 duration-200"
+            style={{ height: 'min(900px, calc(100vh - 48px))' }}
+          >
             {/* Header */}
             <div className="absolute top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md flex items-center justify-between px-8 z-10 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
                   <MapPin className="w-5 h-5 text-[#1344FF]" />
                 </div>
-                <h2 className="text-xl font-bold text-[#1a1a1a]">전체 여행지 지도</h2>
+                <h2 id="feed-map-title" className="text-xl font-bold text-[#1a1a1a]">전체 여행지 지도</h2>
                 <span className="px-2.5 py-1 bg-[#f0f4ff] text-[#1344FF] text-xs font-bold rounded-full">
                   {regionMarkers.length}곳
                 </span>
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
+                aria-label="전체 여행지 지도 닫기"
                 className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-all text-gray-400 hover:text-gray-900 shadow-sm"
               >
                 <X className="w-6 h-6" />
@@ -146,7 +174,7 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
                 )}
               </div>
             </div>
-          </div>
+          </section>
         </div>
       )}
     </div>

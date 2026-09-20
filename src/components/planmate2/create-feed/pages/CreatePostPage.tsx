@@ -60,7 +60,7 @@ export default function CreatePost({ onBack, onSubmit, editPostId }: CreatePostP
             <button
               type="submit"
               disabled={logic.isSubmitting}
-              className="flex-[2] py-5 bg-[#1344FF] text-white rounded-2xl hover:bg-[#0d34cc] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-100 font-black text-lg disabled:opacity-50 disabled:hover:scale-100"
+              className="flex flex-[2] items-center justify-center gap-2 py-5 bg-[#1344FF] text-white rounded-2xl hover:bg-[#0d34cc] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-100 font-black text-lg disabled:opacity-50 disabled:hover:scale-100"
             >
               {logic.isEditMode ? '수정 완료' : '피드 등록하기'}
             </button>

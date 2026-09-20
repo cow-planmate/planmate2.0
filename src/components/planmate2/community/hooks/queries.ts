@@ -234,7 +234,12 @@ export const useReactToPost = (postId: number | string, feed = false) => {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (type: 'like' | 'dislike') => reactToPost(Number(postId), type, feed),
-    onSuccess: () => { invalidate.post(postId, feed); invalidate.lists(); },
+    onSuccess: async () => {
+      await Promise.all([
+        invalidate.post(postId, feed),
+        invalidate.lists(),
+      ]);
+    },
   });
 };
 

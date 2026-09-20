@@ -12,6 +12,7 @@ import { usePost, useCreatePost, useUpdatePost } from '../../community/hooks/que
 import { blocksToText } from '../../community/utils/blocksToText';
 import { fileToDataUrl, resolveContentImages } from '../../community/utils/pendingImages';
 import { normalizeRegion } from '../../feed/utils/region';
+import { ErrorToast, SuccessToast, WarningToast } from '../../../common/Toast';
 
 /** 플랜 상세를 폼 형태로 변환해 둔 것. 사용자가 확인을 누르면 그대로 state에 커밋된다. */
 interface PendingPlan {
@@ -128,7 +129,7 @@ export const useCreatePostLogic = (
     try {
       return await fileToDataUrl(file);
     } catch (error) {
-      alert(`이미지를 불러오지 못했습니다: ${(error as Error).message}`);
+      ErrorToast(`이미지를 불러오지 못했습니다: ${(error as Error).message}`);
       throw error;
     }
   };
@@ -272,7 +273,7 @@ export const useCreatePostLogic = (
         });
       } catch (err) {
         console.error('플랜 상세 정보 로드 실패:', err);
-        alert('플랜 상세 정보를 불러오지 못했습니다.');
+        ErrorToast('플랜 상세 정보를 불러오지 못했습니다.');
       } finally {
         setLoadingPlanPreview(false);
       }
@@ -316,7 +317,7 @@ export const useCreatePostLogic = (
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !destination || !duration) {
-      alert('필수 항목을 모두 입력해주세요.');
+      WarningToast('필수 항목을 모두 입력해주세요.');
       return;
     }
 
@@ -386,12 +387,12 @@ export const useCreatePostLogic = (
         });
       }
 
-      alert(isEditMode ? '여행기가 수정되었습니다!' : '여행기가 성공적으로 작성되었습니다!');
+      SuccessToast(isEditMode ? '여행기가 수정되었습니다!' : '여행기가 성공적으로 작성되었습니다!');
       onSubmitCallback();
     } catch (err) {
       // 저장 실패 시 방금 올린 본문 이미지는 고아가 되므로 정리한다
       uploadedUrls.forEach((url) => deleteImage(url).catch(() => {}));
-      alert(`여행기 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(err as Error).message}`);
+      ErrorToast(`여행기 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(err as Error).message}`);
     }
   };
 
