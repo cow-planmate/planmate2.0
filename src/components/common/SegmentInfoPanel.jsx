@@ -40,7 +40,7 @@ const DEFAULT_SUBWAY_COLOR = "#3B82F6";
 export const BUS_COLOR = "#33B540";
 
 const TRANSIT_API_LIMIT_MESSAGE =
-  "현재 대중교통 경로 조회 한도가 제한되어 있어요. 이용 한도는 추후 확대될 예정이니 양해 부탁드립니다.";
+  "현재 대중교통 경로 조회 한도가 제한되어 있어요.\n이용 한도는 추후 확대될 예정입니다.";
 
 const isTransitApiLimitError = (value) => [
   value?.code,
@@ -551,7 +551,7 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
         </span>
         <div className="min-w-0 pt-0.5">
           <p className="text-[13px] font-bold text-slate-700">대중교통 정보를 표시할 수 없어요</p>
-          <p className="mt-1 text-[11px] font-medium leading-4 text-slate-400">
+          <p className="mt-1 whitespace-pre-line text-[11px] font-bold leading-4 text-slate-400">
             {unavailableMessage}
           </p>
         </div>
