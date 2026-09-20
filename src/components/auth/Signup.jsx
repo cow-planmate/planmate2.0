@@ -726,7 +726,7 @@ export default function Signup({
                   <div>
                     <p className="font-bold mb-1">2. 수집하는 개인정보 항목</p>
                     <ul className="list-disc pl-4 space-y-0.5">
-                      <li>필수 항목: 이메일, 비밀번호, 닉네임, 나이, 성별</li>
+                      <li>필수 항목: 이메일, 비밀번호, 닉네임, 생년월일, 성별</li>
                     </ul>
                   </div>
                   <div>
@@ -736,6 +736,11 @@ export default function Signup({
                       <li>
                         단, 관련 법령에 따라 보존이 필요한 경우 해당 기간 동안
                         보관
+                      </li>
+                      <li>
+                        재해 복구를 위해 별도 보관하는 백업 데이터는 탈퇴 후에도
+                        데이터베이스 최대 28일, 이미지 최대 30일간 남아있을 수
+                        있으며, 해당 기간이 지나면 자동으로 삭제됩니다
                       </li>
                     </ul>
                   </div>
