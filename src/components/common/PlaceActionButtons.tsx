@@ -70,11 +70,11 @@ export function PlaceActionButtons({
             rel="noopener noreferrer"
             onClick={stopInteraction}
             className={buttonClass}
-            aria-label={`${title} 네이버 지도에서 보기`}
-            title="네이버 지도"
+            aria-label={`${title} 지도에서 보기`}
+            title="지도"
           >
             <MapPinned className="h-4 w-4" />
-            {labelButtons ? "네이버 지도" : null}
+            {labelButtons ? "지도" : null}
           </a>
         ) : null}
       </div>

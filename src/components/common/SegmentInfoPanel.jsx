@@ -39,6 +39,31 @@ export const SUBWAY_COLORS = {
 const DEFAULT_SUBWAY_COLOR = "#3B82F6";
 export const BUS_COLOR = "#33B540";
 
+const TRANSIT_API_LIMIT_MESSAGE =
+  "현재 대중교통 경로 조회 한도가 제한되어 있어요. 이용 한도는 추후 확대될 예정이니 양해 부탁드립니다.";
+
+const isTransitApiLimitError = (value) => [
+  value?.code,
+  value?.message,
+  value?.error,
+  value?.error?.code,
+  value?.error?.message,
+].some((candidate) => String(candidate ?? "").toLowerCase().includes("apikeyauthfailed"));
+
+const transitDebugContext = (segmentIndex, waypoints, endpoint) => ({
+  segmentIndex,
+  endpoint,
+  from: waypoints[segmentIndex],
+  to: waypoints[segmentIndex + 1],
+});
+
+const transitRequestError = (error) => ({
+  name: error?.name,
+  message: error?.message ?? String(error),
+  status: error?.status,
+  code: error?.code,
+});
+
 // 분 → "X분" / "H시간 M분"
 const formatMinutes = (minutes) => {
   if (minutes == null || Number.isNaN(minutes)) return null;
@@ -512,11 +537,13 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
     : 0;
 
   if (!isLoading && !available) {
-    const unavailableMessage = transit?.message || "출발지와 도착지 사이의 대중교통 경로를 찾지 못했어요.";
+    const unavailableMessage = isTransitApiLimitError(transit)
+      ? TRANSIT_API_LIMIT_MESSAGE
+      : transit?.message || "출발지와 도착지 사이의 대중교통 경로를 찾지 못했어요.";
     return (
       <div
         className="flex items-start gap-3 px-4 py-4"
-        title={transit?.message ?? undefined}
+        title={unavailableMessage}
         role="status"
       >
         <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-slate-100 text-slate-500">
@@ -631,12 +658,20 @@ export default function SegmentInfoPanel({
       ...(placeId ? { placeId } : {}),
     });
     const waypoints = positions.map(toRoutePoint);
+    const transitEndpoint = `${baseUrl}/api/route/transit`;
+
+    console.debug("[Transit Debug] 대중교통 경로 조회 시작", {
+      positionsKey: capturedKey,
+      endpoint: transitEndpoint,
+      segmentCount: Math.max(0, waypoints.length - 1),
+      waypoints,
+    });
 
     Promise.allSettled([
       post(`${baseUrl}/api/route/table`, { waypoints, profile: "driving" }),
       post(`${baseUrl}/api/route/table`, { waypoints, profile: "foot" }),
       ...positions.slice(0, -1).map((pos, i) =>
-        post(`${baseUrl}/api/route/transit`, {
+        post(transitEndpoint, {
           from: toRoutePoint(pos),
           to: toRoutePoint(positions[i + 1]),
         })
@@ -648,13 +683,41 @@ export default function SegmentInfoPanel({
       if (latestKeyRef.current !== capturedKey) return; // 좌표가 바뀐 뒤 도착한 응답은 버림
 
       const [drivingResult, footResult, ...transitResults] = results;
+      transitResults.forEach((result, segmentIndex) => {
+        const context = transitDebugContext(segmentIndex, waypoints, transitEndpoint);
+
+        if (result.status === "rejected") {
+          console.error("[Transit Debug] 대중교통 API 요청 실패", {
+            ...context,
+            error: transitRequestError(result.reason),
+          });
+          return;
+        }
+
+        if (!result.value?.available) {
+          console.warn("[Transit Debug] 대중교통 API가 이용 불가 응답을 반환했습니다", {
+            ...context,
+            response: result.value,
+          });
+          return;
+        }
+
+        console.debug("[Transit Debug] 대중교통 경로 조회 성공", {
+          ...context,
+          routeCount: result.value.routes?.length ?? 0,
+        });
+      });
+
       setSegmentData({
         key: capturedKey,
         driving: drivingResult.status === "fulfilled" ? drivingResult.value : null,
         foot: footResult.status === "fulfilled" ? footResult.value : null,
-        transit: transitResults.map((result) =>
-          result.status === "fulfilled" ? result.value : null
-        ),
+        transit: transitResults.map((result) => {
+          if (result.status === "fulfilled") return result.value;
+          return isTransitApiLimitError(result.reason)
+            ? { available: false, message: TRANSIT_API_LIMIT_MESSAGE }
+            : null;
+        }),
         hasError: results.every((result) => result.status === "rejected"),
       });
     });

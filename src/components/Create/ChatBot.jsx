@@ -1,7 +1,6 @@
 import {
   AlertCircle,
   Bot,
-  CalendarDays,
   Check,
   ChevronRight,
   Clock3,
@@ -14,7 +13,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApiClient } from "../../hooks/useApiClient";
 import usePlanStore from "../../store/Plan";
@@ -65,6 +64,45 @@ const formatBlockTime = (block) => {
   const start = block?.blockStartTime?.slice?.(0, 5);
   const end = block?.blockEndTime?.slice?.(0, 5);
   return start && end ? `${start}–${end}` : start ?? "시간 미정";
+};
+
+const formatPreviewDate = (date) => {
+  if (!date) return "날짜 미정";
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    weekday: "short",
+  }).format(new Date(`${date}T00:00:00`));
+};
+
+const getPlanTimetables = (plan) => {
+  const source = Array.isArray(plan?.timetables) ? plan.timetables : [];
+  if (source.length) {
+    return source.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  }
+
+  const placeBlocks = Array.isArray(plan?.placeBlocks) ? plan.placeBlocks : [];
+  const dates = [...new Set(placeBlocks.map((block) => block.date).filter(Boolean))];
+  if (dates.length) return dates.sort().map((date) => ({ date }));
+  return placeBlocks.length ? [{ date: null }] : [];
+};
+
+const getTimetableBlocks = (plan, timetable) => {
+  const blocks = Array.isArray(plan?.placeBlocks) ? plan.placeBlocks : [];
+  if (!timetable) return [];
+
+  const timetableId = timetable.timeTableId ?? timetable.timetableId;
+  return blocks
+    .filter((block) => {
+      const blockTimetableId = block.timeTableId ?? block.timetableId;
+      if (timetableId != null && blockTimetableId != null) {
+        return String(blockTimetableId) === String(timetableId);
+      }
+      if (timetable.date) return block.date === timetable.date;
+      return true;
+    })
+    .slice()
+    .sort((a, b) => String(a.blockStartTime).localeCompare(String(b.blockStartTime)));
 };
 
 const getOverviewText = (value) =>
@@ -156,11 +194,17 @@ const SuggestedPlaces = ({ places, onShowDetail }) => {
   );
 };
 
-const PlanPreview = ({ plan, status = "pending", isApplying, onApply, onDiscard, onShowDetail }) => {
-  if (!plan) return null;
+const PlanPreview = ({ plan, status = "pending", isApplying, onApply, onShowDetail }) => {
+  const timetables = useMemo(() => getPlanTimetables(plan), [plan]);
+  const [selectedDay, setSelectedDay] = useState(0);
+  const timetable = timetables[selectedDay] ?? timetables[0];
+  const blocks = useMemo(() => getTimetableBlocks(plan, timetable), [plan, timetable]);
 
-  const timetables = Array.isArray(plan.timetables) ? plan.timetables : [];
-  const blocks = Array.isArray(plan.placeBlocks) ? plan.placeBlocks : [];
+  useEffect(() => {
+    setSelectedDay(0);
+  }, [plan]);
+
+  if (!plan) return null;
 
   return (
     <section className="mx-4 mb-3 overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-[0_8px_24px_rgba(19,68,255,0.08)]" aria-label="AI 일정 변경 미리보기">
@@ -178,27 +222,40 @@ const PlanPreview = ({ plan, status = "pending", isApplying, onApply, onDiscard,
       </div>
 
       <div className="px-4 py-3">
-        <div className="flex items-center gap-4 text-xs font-bold text-slate-600">
-          <span className="flex items-center gap-1.5">
-            <CalendarDays className="h-3.5 w-3.5 text-[#1344FF]" /> {timetables.length}일
-          </span>
-          <span className="flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-[#1344FF]" /> {blocks.length}개 장소
-          </span>
+        <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="일차 선택">
+          {timetables.map((day, index) => {
+            const selected = selectedDay === index;
+            return (
+              <button
+                key={day.timeTableId ?? day.timetableId ?? day.date ?? index}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setSelectedDay(index)}
+                className={`flex-none rounded-xl px-3 py-2 text-left transition ${selected ? "bg-[#1344FF] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+              >
+                <span className="block text-xs font-black">{index + 1}일차</span>
+                <span className={`mt-0.5 block text-[10px] font-semibold ${selected ? "text-blue-100" : "text-slate-400"}`}>
+                  {formatPreviewDate(day.date)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-3 flex items-center gap-1.5 text-xs font-bold text-slate-600">
+          <MapPin className="h-3.5 w-3.5 text-[#1344FF]" /> {blocks.length}개 장소
         </div>
 
         {blocks.length > 0 && (
-          <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3">
-            {blocks.slice(0, 4).map((block, index) => (
-              <div key={block.blockId ?? `${block.date}-${block.blockStartTime}-${index}`} className="flex min-w-0 items-center gap-2 text-[11px]">
+          <div className="mt-3 border-t border-slate-200">
+            {blocks.map((block, index) => (
+              <div key={block.blockId ?? `${block.date}-${block.blockStartTime}-${index}`} className="flex min-w-0 items-center gap-2 border-b border-slate-200 py-2.5 last:border-b-0 text-[11px]">
                 <span className="w-16 flex-none font-bold tabular-nums text-slate-400">{formatBlockTime(block)}</span>
-                <div className="min-w-0 flex-1"><span className="block truncate font-bold text-slate-700">{block.placeName}</span></div>
+                <div className="min-w-0 flex-1"><span className="block break-words font-bold text-slate-700">{block.placeName}</span></div>
                 <PlaceActionButtons place={block} />
               </div>
             ))}
-            {blocks.length > 4 && (
-              <p className="pl-[72px] text-[10px] font-semibold text-slate-400">외 {blocks.length - 4}개 장소</p>
-            )}
           </div>
         )}
 
@@ -209,12 +266,11 @@ const PlanPreview = ({ plan, status = "pending", isApplying, onApply, onDiscard,
 
       <div className="flex flex-wrap gap-2 border-t border-slate-100 p-3">
         <button type="button" onClick={onShowDetail} className="flex min-w-[120px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-extrabold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#1344FF]"><Info className="h-3.5 w-3.5" />자세히 보기</button>
-        {status !== "applied" ? <>
-          <button type="button" onClick={onDiscard} disabled={isApplying} className="rounded-xl px-3 py-2.5 text-xs font-extrabold text-slate-500 transition hover:bg-slate-100 disabled:opacity-50">제안 취소</button>
+        {status !== "applied" ? (
           <button type="button" onClick={() => void onApply()} disabled={isApplying} className="flex min-w-[140px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#1344FF] px-4 py-2.5 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(19,68,255,0.22)] transition hover:bg-[#0d34cc] disabled:cursor-wait disabled:opacity-70">
             {isApplying ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}{isApplying ? "반영 중..." : "이 일정에 반영"}
           </button>
-        </> : null}
+        ) : null}
       </div>
     </section>
   );
@@ -382,13 +438,6 @@ const ChatBot = ({ planId: explicitPlanId }) => {
       applyInFlightRef.current = false;
       setIsApplying(false);
     }
-  };
-
-  const discardPendingPlan = () => {
-    setPendingPlan(null);
-    setAppliedPlan(null);
-    setShownPlaces([]);
-    setNotice({ type: "neutral", text: "변경 제안을 취소했어요. 현재 저장된 일정은 그대로예요." });
   };
 
   const resetConversation = () => {
@@ -572,7 +621,6 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                     status={pendingPlan ? "pending" : "applied"}
                     isApplying={isApplying}
                     onApply={applyPendingPlan}
-                    onDiscard={discardPendingPlan}
                     onShowDetail={() => setDetailPlan(pendingPlan ?? appliedPlan)}
                   />
                 </div>

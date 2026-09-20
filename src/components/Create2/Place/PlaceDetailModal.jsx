@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { useApiClient } from "../../../hooks/useApiClient";
 import { TourApiAttribution } from "../../common/TourApiAttribution";
-import { buildNaverMapUrl } from "../../../utils/naverMapLink";
 
 const CATEGORY_LABEL = {
   ATTRACTION: "관광지",
@@ -133,8 +132,6 @@ export default function PlaceDetailModal({ contentId, fallbackPlace, onClose }) 
   const attraction = detail?.attraction;
   const accommodation = detail?.accommodation;
   const restaurant = detail?.restaurant;
-  const naverMapUrl = buildNaverMapUrl(detail ?? fallbackPlace);
-
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-[2px] sm:items-center sm:p-5" onMouseDown={onClose}>
       <section
@@ -160,7 +157,6 @@ export default function PlaceDetailModal({ contentId, fallbackPlace, onClose }) 
               <h2 id="place-detail-title" className="text-xl font-extrabold text-slate-900">{title}</h2>
               {fallbackPlace?.formatted_address ? <p className="text-sm text-slate-600">{fallbackPlace.formatted_address}</p> : null}
               <p className="text-sm text-slate-500">{error}</p>
-              {naverMapUrl ? <a href={naverMapUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 rounded-xl bg-[#03C75A] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#02b351]"><MapPin className="h-4 w-4" />네이버 지도에서 보기</a> : null}
             </div>
           ) : (
             <>
@@ -214,7 +210,6 @@ export default function PlaceDetailModal({ contentId, fallbackPlace, onClose }) 
                 {category === "ACCOMMODATION" && accommodation?.rooms?.length > 0 && <section><h3 className="mb-3 text-lg font-extrabold text-slate-900">객실 안내</h3><div className="grid gap-3 sm:grid-cols-2">{accommodation.rooms.map((room, index) => <div key={`${room.roomTitle}-${index}`} className="rounded-2xl border border-slate-200 p-4"><p className="font-extrabold text-slate-900">{cleanText(room.roomTitle) || `객실 ${index + 1}`}</p><div className="mt-2 space-y-1 text-sm text-slate-500">{cleanText(room.roomSize) && <p>{room.roomSize}㎡</p>}{(room.baseCount || room.maxCount) && <p className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />기준 {room.baseCount || "-"}명 · 최대 {room.maxCount || "-"}명</p>}<p className="text-xs">객실 요금은 실제 예약가와 다를 수 있어요.</p></div></div>)}</div></section>}
 
                 <div className="flex flex-wrap gap-2">
-                  {naverMapUrl && <a href={naverMapUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-[#03C75A] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#02b351]">네이버 지도 <MapPin className="h-4 w-4" /></a>}
                   {detail.homepage && <a href={detail.homepage} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800">공식 홈페이지 <ExternalLink className="h-4 w-4" /></a>}
                 </div>
 
