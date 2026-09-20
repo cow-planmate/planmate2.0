@@ -296,6 +296,7 @@ export default function MapComponent({
         lng,
         ...(placeId ? { placeId } : {}),
       })),
+      profile: "driving",
     })
       .then((res) => {
         // 백엔드는 경로 탐색 실패 시 입력 좌표를 그대로(거리/시간 0) 돌려준다 → 직선 폴백 유지

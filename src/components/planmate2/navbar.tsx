@@ -247,9 +247,9 @@ export default function Navbar({
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     clearRecentPlan();
-    logout();
+    await logout();
     window.location.reload();
   };
 

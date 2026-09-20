@@ -183,7 +183,6 @@ export const initStompClient = (id) => {
   }
 
   const SERVER_URL = `${BASE_URL}/ws?token=${encodeURIComponent(token)}`;
-  console.log("🔄 WebSocket 연결 시도 중...", SERVER_URL);
 
   const socket = new SockJS(SERVER_URL);
   client = new Client({

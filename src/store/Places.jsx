@@ -19,11 +19,13 @@ const usePlacesStore = create((set) => ({
   tour: [],
   lodging: [],
   restaurant: [],
+  search: [],
   weather: [],
 
   tourNext: [],
   lodgingNext: [],
   restaurantNext: [],
+  searchNext: null,
 
   setPlacesLoading: (isLoading) =>
     set((state) => ({
@@ -42,6 +44,13 @@ const usePlacesStore = create((set) => ({
       restaurantNext: payload.restaurantNext
     })),
 
+  setAddSearch: (payload) =>
+    set((state) => ({
+      ...state,
+      search: payload.search,
+      searchNext: payload.searchNext,
+    })),
+
   setAddNext: (field, value, nextPageTokens) =>
     set((state) => ({
       ...state,
@@ -54,10 +63,12 @@ const usePlacesStore = create((set) => ({
       tour: [],
       lodging: [],
       restaurant: [],
+      search: [],
       weather: [],
       tourNext: [],
       lodgingNext: [],
       restaurantNext: [],
+      searchNext: null,
     }),
 }));
 

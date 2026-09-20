@@ -512,6 +512,7 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
     : 0;
 
   if (!isLoading && !available) {
+    const unavailableMessage = transit?.message || "출발지와 도착지 사이의 대중교통 경로를 찾지 못했어요.";
     return (
       <div
         className="flex items-start gap-3 px-4 py-4"
@@ -522,9 +523,9 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
           <FontAwesomeIcon icon={faBus} className="text-sm" />
         </span>
         <div className="min-w-0 pt-0.5">
-          <p className="text-[13px] font-bold text-slate-700">이 구간은 대중교통 경로가 없어요</p>
+          <p className="text-[13px] font-bold text-slate-700">대중교통 정보를 표시할 수 없어요</p>
           <p className="mt-1 text-[11px] font-medium leading-4 text-slate-400">
-            자동차 또는 도보 탭에서 다른 이동 방법을 확인해 보세요.
+            {unavailableMessage}
           </p>
         </div>
       </div>
@@ -781,7 +782,25 @@ export default function SegmentInfoPanel({
                                     type="button"
                                     role="tab"
                                     aria-selected={selected}
-                                    onClick={() => setSegmentModes((current) => ({ ...current, [i]: mode.key }))}
+                                    onClick={() => {
+                                      setSegmentModes((current) => ({ ...current, [i]: mode.key }));
+                                      if (mode.key === "transit") {
+                                        const routes = Array.isArray(transit?.routes) ? transit.routes : [];
+                                        const bestIndex = routes.reduce(
+                                          (best, route, routeIndex) =>
+                                            (route.totalTime ?? Infinity) < (routes[best]?.totalTime ?? Infinity)
+                                              ? routeIndex
+                                              : best,
+                                          0,
+                                        );
+                                        const bestRoute = routes[bestIndex];
+                                        if (bestRoute?.mapObj && onShowTransitRoute) {
+                                          void onShowTransitRoute(bestRoute.mapObj, `${i}-auto-${bestIndex}`, i);
+                                        }
+                                      } else if (onShowRoadRoute) {
+                                        void onShowRoadRoute(mode.key, i);
+                                      }
+                                    }}
                                     className={`relative flex min-w-0 flex-1 items-center justify-center gap-1.5 px-1 py-2.5 text-[13px] transition ${
                                       selected
                                         ? "font-bold text-slate-900"

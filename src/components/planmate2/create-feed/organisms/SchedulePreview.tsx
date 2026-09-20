@@ -1,6 +1,7 @@
 import { Clock } from 'lucide-react';
 import React from 'react';
 import { isTourApiCopyright, TourApiAttribution } from '../../../common/TourApiAttribution';
+import { PlaceActionButtons } from '../../../common/PlaceActionButtons';
 
 interface SchedulePreviewProps {
   schedule: any[];
@@ -46,7 +47,10 @@ export const SchedulePreview: React.FC<SchedulePreviewProps> = ({ schedule, show
                 <div className="flex-1 bg-[#f8f9fa] hover:bg-white hover:shadow-md transition-all p-4 rounded-2xl border border-transparent hover:border-[#efefef]">
                   <div className="flex justify-between items-start mb-1">
                     <p className="font-bold text-[#1a1a1a]">{item.place}</p>
-                    <span className="text-[11px] font-bold text-[#1344FF] bg-blue-50 px-2 py-0.5 rounded-md">{item.time}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-[#1344FF] bg-blue-50 px-2 py-0.5 rounded-md">{item.time}</span>
+                      <PlaceActionButtons place={item} />
+                    </div>
                   </div>
                   <p className="text-sm text-[#666666] line-clamp-1">{item.description}</p>
                   {showMemo && item.memo && (

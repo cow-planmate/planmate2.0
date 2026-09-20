@@ -36,7 +36,7 @@ const Router = () => {
         <Route path="travel/:id" element={<PlanmateV2 />} />
         <Route path="mypage" element={<PlanmateV2 />} />
         <Route path="mypage/:userId" element={<PlanmateV2 />} />
-        <Route path="social" element={<PlanmateV2 />} />
+        <Route path="social" element={<Navigate to="/feed" replace />} />
         <Route path="plan-maker" element={<PlanmateV2 />} />
         <Route path="create-post" element={<PlanmateV2 />} />
         <Route path="legacy-home" element={<Home />} />

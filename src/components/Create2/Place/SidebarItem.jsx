@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { Info, MapPin } from "lucide-react";
-import MapIcon from "../../../assets/imgs/googlemaps.svg?react"; // 경로 확인 필요
+import { MapPin } from "lucide-react";
+import { PlaceActionButtons } from "../../common/PlaceActionButtons";
 
 export const SidebarItem = ({
   place,
@@ -67,33 +67,7 @@ export const SidebarItem = ({
         </div>
       </div>
       <div className="space-x-2 flex items-center">
-        {onShowDetail && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowDetail();
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="w-8 h-8 flex items-center justify-center hover:bg-blue-50 text-gray-500 hover:text-main rounded-lg border border-gray-300"
-            aria-label={`${place.name} 상세 정보 보기`}
-            title="상세 정보"
-          >
-            <Info className="h-4.5 w-4.5" />
-          </button>
-        )}
-        {place.url && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(place.url);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded-lg border border-gray-300"
-          >
-            <MapIcon className="h-6 block" />
-          </button>
-        )}
+        <PlaceActionButtons place={place} onShowDetail={onShowDetail} />
         {onDelete && (
           <button
             type="button"

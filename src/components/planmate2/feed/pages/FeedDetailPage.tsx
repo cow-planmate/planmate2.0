@@ -1,4 +1,4 @@
-import { ArrowLeft, BedDouble, Calendar, ChevronDown, ChevronUp, Clock, Coffee, Copy, CornerDownRight, ExternalLink, Landmark, MapPin, Pencil, Send, Share2, ShoppingBag, ThumbsDown, ThumbsUp, Trash2, Utensils } from 'lucide-react';
+import { ArrowLeft, BedDouble, Calendar, ChevronDown, ChevronUp, Clock, Coffee, Copy, CornerDownRight, Landmark, MapPin, Pencil, Send, Share2, ShoppingBag, ThumbsDown, ThumbsUp, Trash2, Utensils } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CustomOverlayMap, Map as KakaoMap, Polyline } from 'react-kakao-maps-sdk';
 import { useNavigate } from 'react-router-dom';
@@ -10,9 +10,9 @@ import { useComments, useCreateComment, useDeleteComment, useDeletePost, useFork
 import { PostContentViewer } from '../../community/organisms/PostContentViewer';
 import { ForkDateModal } from '../organisms/ForkDateModal';
 import { ForkResultModal } from '../organisms/ForkResultModal';
-import { buildKakaoMapUrl } from '../../common/kakaoMapLink';
 import { UserAvatar } from '../../common/UserAvatar';
 import PageLoading from '../../../common/PageLoading';
+import { PlaceActionButtons } from '../../../common/PlaceActionButtons';
 import { buildCreatePlanRequest, canForkItinerary } from '../utils/itineraryToPlan';
 import { isTourApiCopyright, TourApiAttribution } from '../../../common/TourApiAttribution';
 
@@ -30,19 +30,6 @@ const FALLBACK_ITEM_IMAGE = 'https://images.unsplash.com/photo-1516483638261-f4d
  */
 const PLACE_COLORS = ['#1344FF', '#E11D48', '#059669', '#9333EA', '#EA580C', '#0891B2', '#CA8A04', '#DB2777'];
 const placeColor = (index: number) => PLACE_COLORS[index % PLACE_COLORS.length];
-
-/**
- * 일정 항목을 카카오맵에서 여는 링크.
- *
- * 좌표가 있으면 지도 중심을 좌표로 고정한다 — 이름만 넘기면 "간송옛집" 같은 이름이
- * 여러 곳일 때 다른 지역이 열린다. 좌표가 없으면 이름 + 주소로 검색어를 좁힌다.
- */
-const placeMapUrl = (item: { place?: string; description?: string; lat?: number; lng?: number }) =>
-  buildKakaoMapUrl({
-    location: item.place,
-    coords: item.lat && item.lng ? { lat: item.lat, lng: item.lng } : null,
-    searchQuery: [item.place, item.description].filter(Boolean).join(' '),
-  });
 
 export default function PostDetail({ postId, onBack, onNavigate }: PostDetailProps) {
   useKakaoLoader();
@@ -591,19 +578,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                                   )}
                                 </div>
 
-                                {/* 이 서비스는 지도를 소유하지 않는다 — 영업시간·리뷰·길찾기가 필요한 순간에는
-                                    카카오맵으로 넘긴다. 좌표가 있으면 검색어 대신 좌표로 보내 엉뚱한 동명 장소를 피한다 */}
-                                <a
-                                  href={placeMapUrl(item) ?? undefined}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  title="카카오맵에서 보기"
-                                  aria-label={`${item.place ?? '장소'} 카카오맵에서 보기`}
-                                  className="mt-2 self-start inline-flex items-center p-1.5 rounded-md border border-[#e5e7eb] text-gray-400 hover:text-gray-700 hover:border-gray-300 transition-colors"
-                                >
-                                  <ExternalLink className="w-3 h-3" />
-                                </a>
+                                <PlaceActionButtons place={item} className="mt-2" labelButtons />
                               </div>
                             </div>
                           </div>

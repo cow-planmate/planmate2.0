@@ -13,6 +13,7 @@ export default function Themestart({
 }) {
   const { post } = useApiClient();
   const [isSaving, setIsSaving] = useState(false);
+  const [selectionError, setSelectionError] = useState("");
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -20,12 +21,21 @@ export default function Themestart({
 
   const savePreferredTheme = async () => {
     if (isSaving) return;
+    const selectedIds = Object.values(selectedThemeKeywords)
+      .flat()
+      .map((item) => item.preferredThemeId)
+      .filter((id) => id != null);
+
+    // v2 초기 저장 API는 preferredThemeIds에 @NotEmpty가 적용된다.
+    if (selectedIds.length === 0) {
+      setSelectionError("선호 테마를 1개 이상 선택해주세요.");
+      onThemeOpen();
+      return;
+    }
+
+    setSelectionError("");
     setIsSaving(true);
     try {
-      const selectedIds = Object.values(selectedThemeKeywords)
-        .flat()
-        .map((item) => item.preferredThemeId); // ID 추출
-
       // v2 명세: POST /api/user/preferredTheme
       await post(`${BASE_URL}/api/user/preferredTheme`, {
         preferredThemeIds: selectedIds,
@@ -94,7 +104,10 @@ export default function Themestart({
 
           <div className="flex gap-3">
             <button
-              onClick={onThemeOpen}
+              onClick={() => {
+                setSelectionError("");
+                onThemeOpen();
+              }}
               className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg border transition-colors ${
                 Object.values(selectedThemeKeywords).some(
                   (arr) => arr.length > 0,
@@ -117,6 +130,11 @@ export default function Themestart({
               {isSaving ? "저장 중..." : "완료"}
             </button>
           </div>
+          {selectionError ? (
+            <p className="text-center text-sm font-semibold text-red-500" role="alert">
+              {selectionError}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

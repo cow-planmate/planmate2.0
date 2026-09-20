@@ -17,7 +17,6 @@ import {
 import { clearRecentPlan, saveRecentPlan } from "../utils/recentPlanSession";
 import {
   disconnectStompClient,
-  getClient,
   initStompClient,
   sendRedo,
   sendUndo,
@@ -48,8 +47,6 @@ import { ChecklistSheet } from "../components/checklist/ChecklistSheet";
 
 function App() {
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const client = getClient();
-
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
 
@@ -92,6 +89,8 @@ function App() {
   const [showTempPlanPrompt, setShowTempPlanPrompt] = useState(false); // Alert state
   const [isTempLoaded, setIsTempLoaded] = useState(false); // Prevent auto-save until loaded
   const [isPlaceLoading, setIsPlaceLoading] = useState(false);
+  const [placeLoadError, setPlaceLoadError] = useState("");
+  const [placeLoadRetry, setPlaceLoadRetry] = useState(0);
   const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
@@ -179,6 +178,8 @@ function App() {
 
   useEffect(() => {
     const updatePlace = async () => {
+      setIsPlaceLoading(false);
+      setPlaceLoadError("");
       setPlacesLoading(true);
       // 기존 일정은 편집 권한 확인이 끝난 뒤에만 추천 장소를 조회한다.
       if (id && !hasPlanAccess) {
@@ -215,12 +216,23 @@ function App() {
         setIsPlaceLoading(true);
       } catch (err) {
         console.error("추천 장소를 가져오는데 실패했습니다:", err);
+        setPlaceLoadError(
+          "추천 장소를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+        );
+      } finally {
+        setPlacesLoading(false);
       }
-      setPlacesLoading(false);
     };
 
     if (destinationId) updatePlace();
-  }, [destinationId, hasPlanAccess, id, isTempLoaded, isAuthenticated]);
+  }, [
+    destinationId,
+    hasPlanAccess,
+    id,
+    isTempLoaded,
+    isAuthenticated,
+    placeLoadRetry,
+  ]);
 
   useEffect(() => {
     if (id && hasPlanAccess && isAuthenticated() && planId && planId !== -1) {
@@ -463,6 +475,22 @@ function App() {
                 편집 권한 요청하기
               </button>
             </div>
+          </div>
+        ) : placeLoadError ? (
+          <div
+            className="h-[calc(100vh-69px)] flex items-center justify-center flex-col gap-4 px-6 text-center"
+            role="alert"
+          >
+            <p className="text-lg font-semibold text-gray-800">
+              {placeLoadError}
+            </p>
+            <button
+              type="button"
+              onClick={() => setPlaceLoadRetry((retry) => retry + 1)}
+              className="font-semibold text-white bg-main hover:bg-mainDark py-2 px-4 rounded-lg"
+            >
+              다시 시도
+            </button>
           </div>
         ) : (
           <AirplaneLoading />

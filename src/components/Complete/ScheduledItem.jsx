@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BedDouble, Landmark, MapPin, Sparkles, Utensils } from "lucide-react";
 import DetailPopup from "../Create2/Timetable/DetailPopup";
+import { PlaceActionButtons } from "../common/PlaceActionButtons";
 
 const CATEGORIES = {
   0: { label: "관광지", Icon: Landmark, chip: "bg-blue-50 text-[#1344FF]" },
@@ -41,7 +42,19 @@ export const ScheduledItem = ({ item, START_HOUR, index, isLast }) => {
         <span className="absolute bottom-[-20px] top-[21px] w-0.5 bg-[#e2e5ea]" aria-hidden="true" />
       </div>
 
-      <button type="button" onClick={() => setIsDetailOpen(true)} className="min-w-0 overflow-hidden rounded-xl border border-[#ececf0] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#1344FF]/25 hover:shadow-md" aria-label={`${place.name} 상세 보기`}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setIsDetailOpen(true)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setIsDetailOpen(true);
+          }
+        }}
+        className="min-w-0 overflow-hidden rounded-xl border border-[#ececf0] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#1344FF]/25 hover:shadow-md"
+        aria-label={`${place.name} 상세 보기`}
+      >
         <div className="flex min-h-[132px]">
           <div className="hidden w-[142px] shrink-0 items-center justify-center overflow-hidden bg-[#f3f5f8] sm:flex">
             {!imageFailed && imageUrl ? (
@@ -60,6 +73,7 @@ export const ScheduledItem = ({ item, START_HOUR, index, isLast }) => {
               <div className="mb-2 flex min-w-0 items-center gap-2">
                 <span className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold ${category.chip}`}><Icon className="h-3.5 w-3.5" />{category.label}</span>
                 <h3 className="truncate text-[15px] font-black text-[#111318] sm:text-base">{place.name}</h3>
+                <PlaceActionButtons place={place} className="ml-auto shrink-0" />
               </div>
               {place.formatted_address ? <p className="line-clamp-2 text-xs leading-5 text-[#666666]">{place.formatted_address}</p> : null}
             </div>
@@ -76,7 +90,7 @@ export const ScheduledItem = ({ item, START_HOUR, index, isLast }) => {
             ) : null}
           </div>
         </div>
-      </button>
+      </div>
 
       {isLast ? (
         <>

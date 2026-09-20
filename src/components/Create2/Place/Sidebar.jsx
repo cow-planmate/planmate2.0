@@ -1,15 +1,17 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SidebarItem } from "./SidebarItem";
 import { useApiClient } from "../../../hooks/useApiClient";
 import usePlacesStore from "../../../store/Places";
 import usePlanStore from "../../../store/Plan";
-import { mapPlaceSummary } from "../../../utils/createUtils";
-import { faCirclePlus, faUmbrellaBeach, faBed, faUtensils, faPenNib, faLightbulb } from "@fortawesome/free-solid-svg-icons";
+import { mapPlaceSummary, mapSearchPlaceSummary } from "../../../utils/createUtils";
+import { faCirclePlus, faUmbrellaBeach, faBed, faUtensils, faPenNib, faLightbulb, faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import LoadingRing from "../../../assets/imgs/ring-resize.svg?react";
 import useNicknameStore from "../../../store/Nickname";
 import PlaceDetailModal from "./PlaceDetailModal";
 import { TourApiAttribution } from "../../common/TourApiAttribution";
+
+const SEARCH_TIMEOUT_MS = 12000;
 
 export default function Sidebar({
   planId,
@@ -18,9 +20,9 @@ export default function Sidebar({
   handleMobileAdd,
 }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const { get } = useApiClient();
+  const { get, apiRequest } = useApiClient();
   const store = usePlacesStore();
-  const { setAddNext, isLoading } = store;
+  const { search, setAddSearch, setAddNext, isLoading } = store;
   const { destinationId } = usePlanStore();
   const { customPlaces, createCustomPlace, removeCustomPlace } = useNicknameStore();
 
@@ -32,21 +34,31 @@ export default function Sidebar({
   };
 
   const [selectedTab, setSelectedTab] = useState("tour");
+  const [searchText, setSearchText] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchTrigger, setSearchTrigger] = useState(0);
   const [nextLoading, setNextLoading] = useState(false);
   const [detailPlace, setDetailPlace] = useState(null);
   const nextRequestInFlightRef = useRef(false);
+  const searchTimerRef = useRef(null);
+  const lastSearchRef = useRef("");
+  const searchRequestIdRef = useRef(0);
 
   const tabSelectedClass = {
     tour: "bg-lime-700 text-white",
     lodging: "bg-orange-700 text-white",
     restaurant: "bg-blue-700 text-white",
     custom: "bg-violet-700 text-white",
+    search: "bg-gray-700 text-white",
   };
   const koreanName = {
     tour: "관광지",
     lodging: "숙소",
     restaurant: "식당",
     custom: "직접 추가",
+    search: "검색",
   };
 
   const [customPlaceName, setCustomPlaceName] = useState("");
@@ -65,6 +77,83 @@ export default function Sidebar({
     setCustomPlaceName("");
   };
 
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    if (selectedTab !== "search") {
+      searchRequestIdRef.current += 1;
+      setSearchLoading(false);
+      return undefined;
+    }
+
+    const query = searchText.trim();
+    if (query.length < 2) {
+      searchRequestIdRef.current += 1;
+      lastSearchRef.current = "";
+      setHasSearched(false);
+      setSearchError("");
+      setSearchLoading(false);
+      setAddSearch({ search: [], searchNext: null });
+      return undefined;
+    }
+
+    if (lastSearchRef.current === query) return undefined;
+
+    setHasSearched(false);
+    setSearchError("");
+    setAddSearch({ search: [], searchNext: null });
+    const requestId = ++searchRequestIdRef.current;
+    const controller = new AbortController();
+
+    searchTimerRef.current = setTimeout(async () => {
+      lastSearchRef.current = query;
+      const timeoutId = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
+
+      try {
+        setSearchLoading(true);
+        const params = new URLSearchParams({
+          query,
+          page: "1",
+          size: "20",
+        });
+        const response = await apiRequest(`${BASE_URL}/api/place/search?${params}`, {
+          method: "GET",
+          signal: controller.signal,
+        });
+        if (searchRequestIdRef.current !== requestId) return;
+
+        setAddSearch({
+          search: (response?.places ?? []).map(mapSearchPlaceSummary),
+          searchNext: response?.hasNext ? 2 : null,
+        });
+        setHasSearched(true);
+      } catch (error) {
+        if (searchRequestIdRef.current !== requestId) return;
+        lastSearchRef.current = "";
+        setSearchError(
+          error?.name === "AbortError"
+            ? "검색 응답이 늦어 요청을 중단했습니다. 다시 시도해 주세요."
+            : error?.message || "장소 검색에 실패했습니다.",
+        );
+        setHasSearched(true);
+      } finally {
+        clearTimeout(timeoutId);
+        if (searchRequestIdRef.current === requestId) setSearchLoading(false);
+      }
+    }, 400);
+
+    return () => {
+      clearTimeout(searchTimerRef.current);
+      controller.abort();
+    };
+  }, [BASE_URL, apiRequest, searchText, searchTrigger, selectedTab, setAddSearch]);
+
+  const handleSearch = () => {
+    if (searchText.trim().length < 2 || searchLoading) return;
+    lastSearchRef.current = "";
+    setSearchTrigger((value) => value + 1);
+  };
+
   const handleNext = async () => {
     if (nextRequestInFlightRef.current) return;
 
@@ -74,6 +163,22 @@ export default function Sidebar({
     try {
       nextRequestInFlightRef.current = true;
       setNextLoading(true);
+      if (currentTab === "search") {
+        const query = lastSearchRef.current;
+        const params = new URLSearchParams({
+          query,
+          page: String(nextPage),
+          size: "20",
+        });
+        const response = await get(`${BASE_URL}/api/place/search?${params}`);
+        if (lastSearchRef.current !== query) return;
+        setAddNext(
+          "search",
+          (response?.places ?? []).map(mapSearchPlaceSummary),
+          response?.hasNext ? nextPage + 1 : null,
+        );
+        return;
+      }
       const res = await get(
         `${BASE_URL}/api/place?destinationId=${destinationId}&category=${CATEGORY_PARAM[currentTab]}&page=${nextPage}&size=20`,
       );
@@ -99,7 +204,7 @@ export default function Sidebar({
         className="flex space-x-1 overflow-x-auto shrink-0 px-5 md:px-0"
         data-tutorial="place-tabs"
       >
-        {["tour", "lodging", "restaurant", "custom"].map((tab) => (
+        {["tour", "lodging", "restaurant", "custom", "search"].map((tab) => (
           <button
             key={tab}
             className={`px-4 py-2 rounded-lg md:rounded-none md:rounded-t-lg text-sm md:text-base text-nowrap ${selectedTab === tab
@@ -116,6 +221,32 @@ export default function Sidebar({
         className="flex-1 min-h-0 flex flex-col md:border md:border-gray-300 rounded-lg rounded-tl-none divide-y divide-gray-300 md:min-h-0"
         data-tutorial="place-results"
       >
+        {selectedTab === "search" && (
+          <div className="px-5 py-2 shrink-0">
+            <div className="flex items-center space-x-2">
+              <input
+                type="search"
+                placeholder="장소를 입력하세요 (2글자 이상)"
+                className="flex-1 border rounded-md px-3 py-2 min-w-0"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleSearch();
+                }}
+                aria-label="장소 검색"
+              />
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={searchText.trim().length < 2 || searchLoading}
+                className="h-10 min-w-16 rounded-md bg-gray-700 px-4 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {searchLoading ? <LoadingRing className="mx-auto h-5 w-5" /> : "검색"}
+              </button>
+            </div>
+            <p className="mt-1.5 text-xs text-gray-400">두 글자 이상 입력하면 자동으로 검색합니다.</p>
+          </div>
+        )}
         {selectedTab === "custom" && (
           <div className="px-5 py-2 shrink-0">
             <div className="flex items-center space-x-2">
@@ -148,7 +279,7 @@ export default function Sidebar({
               isMobile={isMobile}
               onMobileAdd={() => handleMobileAdd(place)}
               onShowDetail={
-                ["tour", "lodging", "restaurant"].includes(selectedTab) && place.placeId
+                ["tour", "lodging", "restaurant", "search"].includes(selectedTab) && place.placeId
                   ? () => setDetailPlace(place)
                   : undefined
               }
@@ -171,6 +302,20 @@ export default function Sidebar({
               <p className="text-gray-500 text-xs mt-4 bg-gray-100 px-3 py-1.5 rounded-full inline-block">
                 <FontAwesomeIcon icon={faLightbulb} className="mr-1" /> 추가된 장소는 현재 기기에만 저장돼요
               </p>
+            </div>
+          )}
+          {selectedTab === "search" && searchError && !searchLoading && (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center break-keep mt-4">
+              <FontAwesomeIcon icon={faMagnifyingGlass} className="mb-5 text-5xl text-red-400" />
+              <p className="text-gray-600 text-[15px] font-medium">장소 검색에 실패했습니다.</p>
+              <p className="text-gray-400 text-xs mt-3">{searchError}</p>
+            </div>
+          )}
+          {selectedTab === "search" && hasSearched && !searchLoading && !searchError && search.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center break-keep mt-4">
+              <FontAwesomeIcon icon={faMagnifyingGlass} className="mb-5 text-5xl text-gray-400" />
+              <p className="text-gray-600 text-[15px] font-medium">검색 결과가 없습니다.</p>
+              <p className="text-gray-400 text-xs mt-3">다른 키워드로 다시 찾아보세요.</p>
             </div>
           )}
           {["tour", "lodging", "restaurant"].includes(selectedTab) &&
@@ -212,7 +357,7 @@ export default function Sidebar({
                 </p>
               </div>
             )}
-          {selectedTab !== "custom" && !isLoading &&
+          {!['custom'].includes(selectedTab) && !isLoading && !searchLoading &&
             store[`${selectedTab}Next`] && (
               <div className="text-center py-3">
                 <button
@@ -230,7 +375,7 @@ export default function Sidebar({
               </div>
             )}
         </div>
-        {["tour", "lodging", "restaurant"].includes(selectedTab) && (
+        {["tour", "lodging", "restaurant", "search"].includes(selectedTab) && (
           <TourApiAttribution className="shrink-0 border-t border-slate-200 bg-slate-50/80 px-5 py-2.5" />
         )}
         <div className="h-12 block md:hidden" />

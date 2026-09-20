@@ -1,6 +1,7 @@
 import usePlanStore from "../store/Plan";
 import useTimetableStore from "../store/Timetables";
 import usePlacesStore from "../store/Places";
+import { buildNaverMapUrl } from "./naverMapLink";
 
 // blockCategory(백엔드 enum 문자열) <-> categoryId(프론트 내부 정수 표현) 매핑.
 // 정수 순서는 scheduleUtils.jsx의 getCategoryByIconUrl과 동일하게 맞춤(0=관광지,1=숙소,2=식당,3=직접추가,4=검색).
@@ -66,10 +67,23 @@ export function mapPlaceSummary(dto) {
     photoUrl: dto.thumbnailUrl,
     iconUrl: "./src/assets/imgs/default.png",
     categoryId: PLACE_CATEGORY_TO_ID[dto.category] ?? null,
-    xLocation: dto.longitude,
-    yLocation: dto.latitude,
+    // 최신 v2 명세는 lat/lng를 사용한다. 기존 응답명도 배포 전환 기간 동안 호환한다.
+    xLocation: dto.lng ?? dto.longitude,
+    yLocation: dto.lat ?? dto.latitude,
     contentTypeId: dto.contentTypeId,
     copyrightDivCd: dto.copyrightDivCd,
+    naverMapUrl: dto.naverMapUrl,
+    url: dto.naverMapUrl ?? buildNaverMapUrl(dto),
+  };
+}
+
+// GET /api/place/search는 추천 API와 같은 PlaceSummaryDto를 반환하지만,
+// 일정 블록에는 검색으로 추가했다는 출처를 SEARCH 카테고리로 보존한다.
+export function mapSearchPlaceSummary(dto) {
+  return {
+    ...mapPlaceSummary(dto),
+    categoryId: BLOCK_CATEGORY_TO_ID.SEARCH,
+    sourcePlaceCategory: dto.category ?? null,
   };
 }
 

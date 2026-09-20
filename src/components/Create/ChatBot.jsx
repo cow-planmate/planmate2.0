@@ -21,6 +21,8 @@ import usePlanStore from "../../store/Plan";
 import { mapPlaceSummary } from "../../utils/createUtils";
 import PlaceDetailModal from "../Create2/Place/PlaceDetailModal";
 import { TourApiAttribution } from "../common/TourApiAttribution";
+import { PlaceActionButtons } from "../common/PlaceActionButtons";
+import ChatbotPlanDetailModal from "./ChatbotPlanDetailModal";
 
 const WELCOME_MESSAGE = {
   id: "welcome",
@@ -69,6 +71,15 @@ const getOverviewText = (value) =>
   typeof value === "string"
     ? value.replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim()
     : "";
+
+const compactPlaceFacts = (place) => [
+  place.distanceKm != null ? `현재 기준 ${Number(place.distanceKm).toFixed(1)}km` : null,
+  place.firstMenu ? `대표 메뉴 ${place.firstMenu}` : null,
+  place.openTime ? `영업 ${place.openTime}` : null,
+  place.useTime ? `이용 ${place.useTime}` : null,
+  place.checkInTime ? `체크인 ${place.checkInTime}` : null,
+  place.roomCount ? `객실 ${place.roomCount}` : null,
+].filter(Boolean).slice(0, 3);
 
 const InlineMarkdown = ({ text }) => {
   const parts = String(text ?? "").split(/(\*\*[^*]+\*\*)/g);
@@ -125,15 +136,17 @@ const SuggestedPlaces = ({ places, onShowDetail }) => {
                   {getOverviewText(place.overview)}
                 </p>
               ) : null}
-              {place.contentId != null ? (
-                <button
-                  type="button"
-                  onClick={() => onShowDetail(place)}
-                  className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-slate-50 px-2 py-1.5 text-[10px] font-extrabold text-slate-600 transition hover:bg-blue-50 hover:text-[#1344FF]"
-                >
-                  <Info className="h-3 w-3" /> 자세히
-                </button>
+              {compactPlaceFacts(place).length ? (
+                <ul className="mt-2 space-y-1 text-[10px] font-medium leading-4 text-slate-500">
+                  {compactPlaceFacts(place).map((fact) => <li key={fact} className="truncate">• {fact}</li>)}
+                </ul>
               ) : null}
+              <PlaceActionButtons
+                place={place}
+                onShowDetail={place.contentId != null ? () => onShowDetail(place) : undefined}
+                className="mt-2"
+                labelButtons
+              />
             </div>
           </article>
         ))}
@@ -143,7 +156,7 @@ const SuggestedPlaces = ({ places, onShowDetail }) => {
   );
 };
 
-const PlanPreview = ({ plan, isApplying, onApply, onDiscard }) => {
+const PlanPreview = ({ plan, status = "pending", isApplying, onApply, onDiscard, onShowDetail }) => {
   if (!plan) return null;
 
   const timetables = Array.isArray(plan.timetables) ? plan.timetables : [];
@@ -155,12 +168,12 @@ const PlanPreview = ({ plan, isApplying, onApply, onDiscard }) => {
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[#1344FF]">
             <Sparkles className="h-3.5 w-3.5" />
-            변경 미리보기
+            {status === "applied" ? "반영된 AI 일정" : "변경 미리보기"}
           </div>
           <h3 className="mt-1 truncate text-sm font-black text-slate-950">{getPlanName(plan)}</h3>
         </div>
-        <span className="flex-none rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-500 ring-1 ring-blue-100">
-          아직 미반영
+        <span className={`flex-none rounded-full px-2.5 py-1 text-[10px] font-bold ring-1 ${status === "applied" ? "bg-emerald-50 text-emerald-700 ring-emerald-100" : "bg-white text-slate-500 ring-blue-100"}`}>
+          {status === "applied" ? "반영 완료" : "아직 미반영"}
         </span>
       </div>
 
@@ -176,41 +189,32 @@ const PlanPreview = ({ plan, isApplying, onApply, onDiscard }) => {
 
         {blocks.length > 0 && (
           <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3">
-            {blocks.slice(0, 3).map((block, index) => (
+            {blocks.slice(0, 4).map((block, index) => (
               <div key={block.blockId ?? `${block.date}-${block.blockStartTime}-${index}`} className="flex min-w-0 items-center gap-2 text-[11px]">
                 <span className="w-16 flex-none font-bold tabular-nums text-slate-400">{formatBlockTime(block)}</span>
-                <span className="truncate font-bold text-slate-700">{block.placeName}</span>
+                <div className="min-w-0 flex-1"><span className="block truncate font-bold text-slate-700">{block.placeName}</span></div>
+                <PlaceActionButtons place={block} />
               </div>
             ))}
-            {blocks.length > 3 && (
-              <p className="pl-[72px] text-[10px] font-semibold text-slate-400">외 {blocks.length - 3}개 장소</p>
+            {blocks.length > 4 && (
+              <p className="pl-[72px] text-[10px] font-semibold text-slate-400">외 {blocks.length - 4}개 장소</p>
             )}
           </div>
         )}
 
         <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-[10px] font-medium leading-4 text-slate-500">
-          내용을 더 바꾸고 싶다면 아래 입력창에서 이어서 요청하세요.
+          {status === "applied" ? "이 일정은 현재 시간표에 반영됐습니다. 카드와 상세 내용은 계속 확인할 수 있어요." : "내용을 더 바꾸고 싶다면 아래 입력창에서 이어서 요청하세요."}
         </p>
       </div>
 
-      <div className="grid grid-cols-[auto_1fr] gap-2 border-t border-slate-100 p-3">
-        <button
-          type="button"
-          onClick={onDiscard}
-          disabled={isApplying}
-          className="rounded-xl px-3 py-2.5 text-xs font-extrabold text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
-        >
-          제안 취소
-        </button>
-        <button
-          type="button"
-          onClick={onApply}
-          disabled={isApplying}
-          className="flex items-center justify-center gap-1.5 rounded-xl bg-[#1344FF] px-4 py-2.5 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(19,68,255,0.22)] transition hover:bg-[#0d34cc] disabled:cursor-wait disabled:opacity-70"
-        >
-          {isApplying ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-          {isApplying ? "반영 중..." : "이 일정에 반영"}
-        </button>
+      <div className="flex flex-wrap gap-2 border-t border-slate-100 p-3">
+        <button type="button" onClick={onShowDetail} className="flex min-w-[120px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-extrabold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#1344FF]"><Info className="h-3.5 w-3.5" />자세히 보기</button>
+        {status !== "applied" ? <>
+          <button type="button" onClick={onDiscard} disabled={isApplying} className="rounded-xl px-3 py-2.5 text-xs font-extrabold text-slate-500 transition hover:bg-slate-100 disabled:opacity-50">제안 취소</button>
+          <button type="button" onClick={() => void onApply()} disabled={isApplying} className="flex min-w-[140px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#1344FF] px-4 py-2.5 text-xs font-extrabold text-white shadow-[0_8px_18px_rgba(19,68,255,0.22)] transition hover:bg-[#0d34cc] disabled:cursor-wait disabled:opacity-70">
+            {isApplying ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}{isApplying ? "반영 중..." : "이 일정에 반영"}
+          </button>
+        </> : null}
       </div>
     </section>
   );
@@ -229,13 +233,16 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   const [isSending, setIsSending] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [pendingPlan, setPendingPlan] = useState(null);
+  const [appliedPlan, setAppliedPlan] = useState(null);
   const [shownPlaces, setShownPlaces] = useState([]);
   const [detailPlace, setDetailPlace] = useState(null);
+  const [detailPlan, setDetailPlan] = useState(null);
   const [notice, setNotice] = useState(null);
   const [panelSize, setPanelSize] = useState({ width: 480, height: 740 });
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const resizeStateRef = useRef(null);
+  const applyInFlightRef = useRef(false);
 
   const planSummary = {
     dayCount: pendingPlan?.timetables?.length ?? 0,
@@ -243,7 +250,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
   }, [isApplying, isSending, messages, pendingPlan, shownPlaces]);
 
   useEffect(() => {
@@ -295,8 +302,10 @@ const ChatBot = ({ planId: explicitPlanId }) => {
     setMessages([WELCOME_MESSAGE]);
     setInputMessage("");
     setPendingPlan(null);
+    setAppliedPlan(null);
     setShownPlaces([]);
     setDetailPlace(null);
+    setDetailPlan(null);
     setNotice(null);
   }, [planId]);
 
@@ -334,7 +343,10 @@ const ChatBot = ({ planId: explicitPlanId }) => {
 
       const result = response?.data ?? response ?? {};
       appendAssistantMessage(result.userMessage || "요청을 확인했어요. 원하는 내용을 조금 더 자세히 알려 주세요.");
-      if (result.plan) setPendingPlan(result.plan);
+      if (result.plan) {
+        setPendingPlan(result.plan);
+        setAppliedPlan(null);
+      }
       setShownPlaces(Array.isArray(result.shownPlaces) ? result.shownPlaces : []);
     } catch (error) {
       appendAssistantMessage(getErrorMessage(error, "chat"));
@@ -344,17 +356,19 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   };
 
   const applyPendingPlan = async () => {
-    if (!pendingPlan || isApplying || !canUseChatbot) return;
+    if (!pendingPlan || applyInFlightRef.current || !canUseChatbot) return;
 
+    const planToApply = pendingPlan;
+    applyInFlightRef.current = true;
     setNotice(null);
     setIsApplying(true);
     try {
       const response = await post(`${import.meta.env.VITE_API_URL}/api/plan/${planId}/chatbot-apply`, {
-        plan: pendingPlan,
+        plan: planToApply,
       });
       const result = response?.data ?? response ?? {};
+      setAppliedPlan(planToApply);
       setPendingPlan(null);
-      setShownPlaces([]);
       appendAssistantMessage("제안한 내용을 일정에 반영했어요. 변경된 블록을 시간표에서 확인해 보세요.");
       setNotice({
         type: result.conflictDetected ? "warning" : "success",
@@ -365,12 +379,14 @@ const ChatBot = ({ planId: explicitPlanId }) => {
     } catch (error) {
       setNotice({ type: "error", text: getErrorMessage(error, "apply") });
     } finally {
+      applyInFlightRef.current = false;
       setIsApplying(false);
     }
   };
 
   const discardPendingPlan = () => {
     setPendingPlan(null);
+    setAppliedPlan(null);
     setShownPlaces([]);
     setNotice({ type: "neutral", text: "변경 제안을 취소했어요. 현재 저장된 일정은 그대로예요." });
   };
@@ -379,8 +395,10 @@ const ChatBot = ({ planId: explicitPlanId }) => {
     setMessages([WELCOME_MESSAGE]);
     setInputMessage("");
     setPendingPlan(null);
+    setAppliedPlan(null);
     setShownPlaces([]);
     setDetailPlace(null);
+    setDetailPlan(null);
     setNotice(null);
   };
 
@@ -550,10 +568,12 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                 <div className="mt-3">
                   <SuggestedPlaces places={shownPlaces} onShowDetail={setDetailPlace} />
                   <PlanPreview
-                    plan={pendingPlan}
+                    plan={pendingPlan ?? appliedPlan}
+                    status={pendingPlan ? "pending" : "applied"}
                     isApplying={isApplying}
                     onApply={applyPendingPlan}
                     onDiscard={discardPendingPlan}
+                    onShowDetail={() => setDetailPlan(pendingPlan ?? appliedPlan)}
                   />
                 </div>
                 <div ref={messagesEndRef} />
@@ -598,6 +618,13 @@ const ChatBot = ({ planId: explicitPlanId }) => {
           contentId={detailPlace.contentId}
           fallbackPlace={mapPlaceSummary(detailPlace)}
           onClose={() => setDetailPlace(null)}
+        />
+      ) : null}
+      {detailPlan ? (
+        <ChatbotPlanDetailModal
+          plan={detailPlan}
+          status={pendingPlan ? "pending" : "applied"}
+          onClose={() => setDetailPlan(null)}
         />
       ) : null}
     </>

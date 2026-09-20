@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStar, faMapMarkerAlt, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
+import { faStar, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons';
 import { MapPin } from 'lucide-react';
 import { isTourApiCopyright, TourApiAttribution } from '../../common/TourApiAttribution';
+import { PlaceActionButtons } from '../../common/PlaceActionButtons';
 
 const DetailPopup = ({ isOpen, onClose, item, onUpdateMemo, readOnly = false }) => {
   const [memo, setMemo] = useState(item?.memo || "");
@@ -78,17 +79,7 @@ const DetailPopup = ({ isOpen, onClose, item, onUpdateMemo, readOnly = false }) 
                 </div>
               )}
             </div>
-            {place.url && (
-              <a 
-                href={place.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-main transition-colors"
-                title="Google Maps에서 보기"
-              >
-                <FontAwesomeIcon icon={faExternalLinkAlt} />
-              </a>
-            )}
+            <PlaceActionButtons place={place} />
           </div>
 
           {place.formatted_address && (

@@ -252,7 +252,7 @@ export default function MyPage({
   ) as PageData<any> | undefined;
 
   // 내 여행기 삭제 — 목록 캐시는 useDeletePost가 무효화한다
-  const deleteTravelPost = useDeletePost();
+  const deleteTravelPost = useDeletePost(true);
   const handleDeleteTravelPost = async (post: any) => {
     if (!confirm(`'${post.title}' 여행기를 삭제할까요? 삭제하면 되돌릴 수 없습니다.`)) return;
     try {
@@ -310,37 +310,6 @@ export default function MyPage({
   const [actionPlan, setActionPlan] = useState<any | null>(null);
   const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-
-  const handleFriendAdd = async () => {
-    if (!isAuthenticated()) {
-      alert("로그인 후 이용 가능합니다.");
-      return;
-    }
-    try {
-      // 실제 API가 있을 경우: await post(`${BASE_URL}/api/friends`, { friendId: userId });
-      alert(
-        `${userProfile?.nickName || "사용자"}님에게 친구 요청을 보냈습니다.`,
-      );
-    } catch (err) {
-      alert("친구 요청 중 오류가 발생했습니다.");
-    }
-  };
-
-  const handleSendMessage = (targetUser?: any) => {
-    if (!isAuthenticated()) {
-      alert("로그인 후 이용 가능합니다.");
-      return;
-    }
-
-    // 이 핸들러는 이제 부모로부터 받은 전역 채팅 함수를 호출하거나
-    // 여기 프로필 사용자를 넘겨야 합니다 (현재는 팝업 준비중 메시지 대신 전역 처리 필요)
-    // onNavigate를 통해 부모의 전역 핸들러를 호출하도록 유도하거나
-    // props로 직접 전달받아야 하지만, 현재 구조상 팝업은 부모가 관리하므로
-    // 여기서 알림만 띄우거나 기능을 유지하려면 props 수정이 필요합니다.
-    alert(
-      `${targetUser?.nickName || userProfile?.nickname || "사용자"}님과의 채팅을 시작합니다.`,
-    );
-  };
 
   // 캘린더 이벤트 팝업 상태
   const [selectedCalendarEvent, setSelectedCalendarEvent] = useState<any>(null);
@@ -416,8 +385,8 @@ export default function MyPage({
   );
   const stats = isOtherUser ? otherUserStats : myStats;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setStoreNickname("");
     setStoreProfileImage("");
     navigate("/");
@@ -611,7 +580,7 @@ export default function MyPage({
         confirmPassword: confirmPassword,
       });
       SuccessToast("비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.");
-      handleLogout();
+      await handleLogout();
     } catch (err: any) {
       console.error("비밀번호 변경 실패:", err);
       ErrorToast(err.response?.data?.message || "비밀번호 변경에 실패했습니다.");
@@ -622,7 +591,7 @@ export default function MyPage({
     try {
       await del(`${BASE_URL}/api/user/account`);
       alert("회원 탈퇴가 완료되었습니다.");
-      handleLogout();
+      await handleLogout();
     } catch (err) {
       console.error("회원 탈퇴 실패:", err);
       alert("회원 탈퇴 중 오류가 발생했습니다.");
@@ -1068,8 +1037,6 @@ export default function MyPage({
     <ProfileHeader
       dummyUser={{ ...dummyUser, profileLogo: isOtherUser ? dummyUser.profileLogo : profileEditImage }}
       onEditThemes={() => setIsThemeStartOpen(true)}
-      onAddFriend={handleFriendAdd}
-      onSendMessage={handleSendMessage}
       isOtherUser={isOtherUser}
       newNickname={newNickname}
       setNewNickname={setNewNickname}

@@ -20,7 +20,7 @@ export function TourApiAttribution({
     <div
       role="note"
       aria-label="TourAPI 콘텐츠 출처"
-      className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-medium leading-5 text-slate-500 ${className}`}
+      className={`flex w-full flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-right text-[11px] font-medium leading-5 text-slate-500 ${className}`}
     >
       <Copyright className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
       <span>{label}</span>

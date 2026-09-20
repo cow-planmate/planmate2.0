@@ -13,7 +13,7 @@ import DetailPopup from "./DetailPopup";
 import PlaceDetailModal from "../Place/PlaceDetailModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPencilAlt, faTimes } from "@fortawesome/free-solid-svg-icons";
-import { Info } from "lucide-react";
+import { PlaceActionButtons } from "../../common/PlaceActionButtons";
 
 const PLACE_DETAIL_CATEGORY_IDS = new Set([0, 1, 2]);
 
@@ -272,21 +272,10 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
               </div>
 
               <div className="flex shrink-0 gap-1 mt-[-4px]">
-                {canShowPlaceDetail && (
-                  <button
-                    type="button"
-                    className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-xs pointer-events-auto flex items-center justify-center transition-colors`}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setIsPlaceDetailOpen(true);
-                    }}
-                    aria-label={`${place.name} 상세 정보 보기`}
-                    title="상세 정보"
-                  >
-                    <Info className="h-4 w-4" />
-                  </button>
-                )}
+                <PlaceActionButtons
+                  place={place}
+                  onShowDetail={canShowPlaceDetail ? () => setIsPlaceDetailOpen(true) : undefined}
+                />
                 <button
                   type="button"
                   className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-xs pointer-events-auto flex items-center justify-center transition-colors`}

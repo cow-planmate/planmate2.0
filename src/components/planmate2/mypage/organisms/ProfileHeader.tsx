@@ -14,7 +14,8 @@ import {
   Landmark,
   type LucideIcon,
 } from "lucide-react";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import { PrivacyPolicyModal } from "../../../common/PrivacyPolicyModal";
 import type { Gender } from "../types";
 
 interface ProfileHeaderProps {
@@ -86,6 +87,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onOpenDeleteAccount,
   isSocialLogin = false,
 }) => {
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const themesByCategory = useMemo(() => {
     const grouped = new Map<ThemeCategory, string[]>();
     THEME_GROUPS.forEach(({ key }) => grouped.set(key, []));
@@ -113,16 +115,19 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <p className="text-xs font-black tracking-[0.14em] text-[#1344FF]">PLANMATE PROFILE</p>
             <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-slate-950">{dummyUser.nickName}</h2>
           </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={onAddFriend} className="flex items-center gap-2 rounded-xl bg-[#1344FF] px-5 py-3 text-sm font-bold text-white"><UserPlus className="h-4 w-4" />친구 추가</button>
-            <button type="button" onClick={onSendMessage} className="rounded-xl bg-white p-3 text-[#1344FF] ring-1 ring-slate-200" aria-label="메시지 보내기"><MessageSquare className="h-5 w-5" /></button>
-          </div>
+          {onAddFriend || onSendMessage ? (
+            <div className="flex gap-2">
+              {onAddFriend ? <button type="button" onClick={onAddFriend} className="flex items-center gap-2 rounded-xl bg-[#1344FF] px-5 py-3 text-sm font-bold text-white"><UserPlus className="h-4 w-4" />친구 추가</button> : null}
+              {onSendMessage ? <button type="button" onClick={onSendMessage} className="rounded-xl bg-white p-3 text-[#1344FF] ring-1 ring-slate-200" aria-label="메시지 보내기"><MessageSquare className="h-5 w-5" /></button> : null}
+            </div>
+          ) : null}
         </div>
       </section>
     );
   }
 
   return (
+    <>
     <section className="grid items-stretch gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)]" aria-label="프로필 정보">
       <div className="flex h-full flex-col rounded-[26px] border border-slate-200/80 bg-white p-6 sm:p-7">
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-6">
@@ -179,6 +184,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <div className="mt-6 flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               {!isSocialLogin ? <button type="button" onClick={onOpenPasswordChange} className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#1344FF]"><ShieldCheck className="h-4 w-4" />비밀번호 변경</button> : null}
+              <button type="button" onClick={() => setIsPrivacyOpen(true)} className="text-xs font-bold text-slate-500 transition-colors hover:text-[#1344FF]">개인정보 처리방침</button>
               <button type="button" onClick={onOpenDeleteAccount} className="text-xs font-bold text-red-500 transition-colors hover:text-red-600">회원 탈퇴</button>
             </div>
             <button type="button" onClick={onSave} disabled={saveDisabled} className="flex h-11 min-w-[150px] items-center justify-center gap-2 rounded-xl bg-[#1344FF] px-5 text-sm font-extrabold text-white transition-all duration-150 hover:bg-[#0d39df] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100">
@@ -210,5 +216,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
     </section>
+    <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
+    </>
   );
 };
