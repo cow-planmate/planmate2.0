@@ -12,6 +12,7 @@ import {
 interface PlaceActionButtonsProps {
   place: object;
   className?: string;
+  buttonClassName?: string;
   labelButtons?: boolean;
   onShowDetail?: () => void;
 }
@@ -19,6 +20,7 @@ interface PlaceActionButtonsProps {
 export function PlaceActionButtons({
   place,
   className = "",
+  buttonClassName,
   labelButtons = false,
   onShowDetail,
 }: PlaceActionButtonsProps) {
@@ -33,9 +35,9 @@ export function PlaceActionButtons({
     event.stopPropagation();
   };
 
-  const buttonClass = labelButtons
+  const buttonClass = buttonClassName ?? (labelButtons
     ? "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#1344FF]"
-    : "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#1344FF]";
+    : "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#1344FF]");
 
   return (
     <>

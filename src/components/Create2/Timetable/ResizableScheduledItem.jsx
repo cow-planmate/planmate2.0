@@ -175,6 +175,7 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
   const canShowPlaceDetail = Boolean(
     place?.placeId != null && PLACE_DETAIL_CATEGORY_IDS.has(categoryId),
   );
+  const actionButtonClass = `w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-xs pointer-events-auto flex items-center justify-center transition-colors`;
 
   const sendWebsocket = (block, action = "delete") => {
     if (client && client.connected) {
@@ -274,11 +275,12 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
               <div className="flex shrink-0 gap-1 mt-[-4px]">
                 <PlaceActionButtons
                   place={place}
+                  buttonClassName={actionButtonClass}
                   onShowDetail={canShowPlaceDetail ? () => setIsPlaceDetailOpen(true) : undefined}
                 />
                 <button
                   type="button"
-                  className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-xs pointer-events-auto flex items-center justify-center transition-colors`}
+                  className={actionButtonClass}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
