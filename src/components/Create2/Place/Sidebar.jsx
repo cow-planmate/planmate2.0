@@ -9,6 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import LoadingRing from "../../../assets/imgs/ring-resize.svg?react";
 import useNicknameStore from "../../../store/Nickname";
 import PlaceDetailModal from "./PlaceDetailModal";
+import { TourApiAttribution } from "../../common/TourApiAttribution";
 
 const SEARCH_TIMEOUT_MS = 12000;
 
@@ -391,6 +392,9 @@ export default function Sidebar({
               </div>
             )}
         </div>
+        {["tour", "lodging", "restaurant"].includes(selectedTab) && (
+          <TourApiAttribution className="shrink-0 border-t border-slate-200 bg-slate-50/80 px-5 py-2.5" />
+        )}
         <div className="h-12 block md:hidden" />
       </div>
       {detailPlace && (

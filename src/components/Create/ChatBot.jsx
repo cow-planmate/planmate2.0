@@ -20,6 +20,7 @@ import { useApiClient } from "../../hooks/useApiClient";
 import usePlanStore from "../../store/Plan";
 import { mapPlaceSummary } from "../../utils/createUtils";
 import PlaceDetailModal from "../Create2/Place/PlaceDetailModal";
+import { TourApiAttribution } from "../common/TourApiAttribution";
 
 const WELCOME_MESSAGE = {
   id: "welcome",
@@ -137,6 +138,7 @@ const SuggestedPlaces = ({ places, onShowDetail }) => {
           </article>
         ))}
       </div>
+      <TourApiAttribution className="mt-3 border-t border-slate-100 pt-2.5" />
     </section>
   );
 };

@@ -14,6 +14,7 @@ import { buildKakaoMapUrl } from '../../common/kakaoMapLink';
 import { UserAvatar } from '../../common/UserAvatar';
 import PageLoading from '../../../common/PageLoading';
 import { buildCreatePlanRequest, canForkItinerary } from '../utils/itineraryToPlan';
+import { isTourApiCopyright, TourApiAttribution } from '../../../common/TourApiAttribution';
 
 interface PostDetailProps {
   postId: number | string;
@@ -105,6 +106,9 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       ? itineraryDays.flatMap(d => (d.items ?? []).map(item => ({ ...item, day: d.day })))
       : (currentSchedule?.items ?? []).map(item => ({ ...item, day: currentSchedule!.day })),
     [selectedDay, itineraryDays, currentSchedule]
+  );
+  const hasTourApiVisibleItems = visibleItems.some(item =>
+    isTourApiCopyright(item.placeCopyrightDivCd),
   );
 
   // 지도에 찍을 좌표(선택된 일차 기준) — 마커/경로선 공통으로 사용
@@ -605,6 +609,9 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                           </div>
                         </div>
                       ))}
+                      {hasTourApiVisibleItems ? (
+                        <TourApiAttribution className="rounded-xl border border-[#e5e7eb] bg-white px-4 py-3" />
+                      ) : null}
                     </div>
                   </div>
                 )}

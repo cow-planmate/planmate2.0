@@ -128,6 +128,7 @@ function App() {
       formatted_address: block.placeAddress,
       iconUrl: block.placeThumbnailUrl || "./src/assets/imgs/default.png",
       photoUrl: block.placeThumbnailUrl,
+      copyrightDivCd: block.placeCopyrightDivCd,
       xlocation: block.longitude,
       ylocation: block.latitude,
       memo: block.memo,

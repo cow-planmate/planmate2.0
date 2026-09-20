@@ -1,6 +1,7 @@
 import { CalendarDays, MapPin } from "lucide-react";
 import { getTimeTableId } from "../../utils/createUtils";
 import { ScheduledItem } from "./ScheduledItem";
+import { isTourApiCopyright, TourApiAttribution } from "../common/TourApiAttribution";
 
 export default function TimetableGrid({ placeBlocks, selectedDay, timetables, showTimetable }) {
   const timetable = timetables[selectedDay];
@@ -9,6 +10,9 @@ export default function TimetableGrid({ placeBlocks, selectedDay, timetables, sh
   const dateLabel = timetable?.date
     ? new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" }).format(new Date(timetable.date))
     : "";
+  const hasTourApiItems = schedule.some((item) =>
+    isTourApiCopyright(item?.place?.copyrightDivCd),
+  );
 
   return (
     <section className={`${showTimetable ? "block" : "hidden lg:block"} rounded-2xl border border-[#ececf0] bg-white shadow-sm`}>
@@ -22,7 +26,12 @@ export default function TimetableGrid({ placeBlocks, selectedDay, timetables, sh
 
       <div className="p-4 sm:p-6">
         {schedule.length ? (
-          <ol>{schedule.map((item, index) => <ScheduledItem key={item.id} item={item} START_HOUR={startHour} index={index} isLast={index === schedule.length - 1} />)}</ol>
+          <>
+            <ol>{schedule.map((item, index) => <ScheduledItem key={item.id} item={item} START_HOUR={startHour} index={index} isLast={index === schedule.length - 1} />)}</ol>
+            {hasTourApiItems ? (
+              <TourApiAttribution className="border-t border-slate-100 pt-4" />
+            ) : null}
+          </>
         ) : (
           <div className="flex min-h-56 flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#e5e7eb] bg-[#fafafa] text-center">
             <MapPin className="mb-3 h-8 w-8 text-[#c8ccd3]" />

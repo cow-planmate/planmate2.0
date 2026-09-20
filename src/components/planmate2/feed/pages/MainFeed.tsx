@@ -13,6 +13,7 @@ import { SearchBar } from '../molecules/SearchBar';
 import { DetailFilterPanel } from '../organisms/DetailFilterPanel';
 import { MainFeedSidebar } from '../organisms/MainFeedSidebar';
 import { MainPostsGrid } from '../organisms/MainPostsGrid';
+import { TourApiAttribution } from '../../../common/TourApiAttribution';
 
 interface MainFeedProps {
   initialRegion?: string;
@@ -196,6 +197,10 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
                   </button>
                 </div>
               )}
+              <TourApiAttribution
+                label="서비스 장소 데이터 제공"
+                className="border-t border-[#e5e7eb] bg-[#fafbfc] px-5 py-3 sm:px-6"
+              />
             </>
           )}
         </section>

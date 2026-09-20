@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStar, faMapMarkerAlt, faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { MapPin } from 'lucide-react';
+import { isTourApiCopyright, TourApiAttribution } from '../../common/TourApiAttribution';
 
 const DetailPopup = ({ isOpen, onClose, item, onUpdateMemo, readOnly = false }) => {
   const [memo, setMemo] = useState(item?.memo || "");
@@ -112,6 +113,10 @@ const DetailPopup = ({ isOpen, onClose, item, onUpdateMemo, readOnly = false }) 
               }}
             />
           </div>
+
+          {isTourApiCopyright(place.copyrightDivCd) && (
+            <TourApiAttribution className="border-t border-gray-100 pt-3" />
+          )}
         </div>
 
         <div className="p-4 bg-gray-50 flex justify-end">

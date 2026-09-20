@@ -1,5 +1,6 @@
 import { Clock } from 'lucide-react';
 import React from 'react';
+import { isTourApiCopyright, TourApiAttribution } from '../../../common/TourApiAttribution';
 
 interface SchedulePreviewProps {
   schedule: any[];
@@ -18,6 +19,10 @@ export const SchedulePreview: React.FC<SchedulePreviewProps> = ({ schedule, show
       </div>
     );
   }
+
+  const hasTourApiItems = schedule.some((day) =>
+    day.items?.some((item: any) => isTourApiCopyright(item.placeCopyrightDivCd)),
+  );
 
   return (
     <div className="space-y-6">
@@ -55,6 +60,9 @@ export const SchedulePreview: React.FC<SchedulePreviewProps> = ({ schedule, show
           </div>
         </div>
       ))}
+      {hasTourApiItems ? (
+        <TourApiAttribution className="rounded-xl border border-[#e5e7eb] bg-[#f8f9fa] px-4 py-3" />
+      ) : null}
     </div>
   );
 };
