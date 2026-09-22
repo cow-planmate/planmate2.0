@@ -507,7 +507,7 @@ function App() {
       <PlanInfo id={id} isOwner={isOwner} />
       <ChecklistSheet
         planId={checklistPlanId}
-        enabled={Boolean(checklistPlanId && isAuthenticated())}
+        enabled={isAuthenticated()}
       />
       <CreateTutorial />
       <ChatBot planId={id} />

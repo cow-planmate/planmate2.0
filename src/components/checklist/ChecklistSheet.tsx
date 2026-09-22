@@ -171,7 +171,11 @@ export const ChecklistSheet = ({
               </button>
             </header>
 
-            {planId ? (
+            {!enabled ? (
+              <div className="flex flex-1 items-center justify-center px-8 text-center text-sm text-gray-500">
+                로그인하면 체크리스트를 사용할 수 있어요.
+              </div>
+            ) : planId ? (
               <ChecklistPanel checklist={checklist} enabled={enabled} />
             ) : (
               <div className="flex flex-1 items-center justify-center px-8 text-center text-sm text-gray-500">

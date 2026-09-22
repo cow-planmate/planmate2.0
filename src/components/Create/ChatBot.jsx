@@ -280,8 +280,10 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   const [searchParams] = useSearchParams();
   const storePlanId = usePlanStore((state) => state.planId);
   const planId = explicitPlanId ?? searchParams.get("id") ?? storePlanId;
-  const canUseChatbot = Boolean(planId && String(planId) !== "-1" && String(planId) !== "0");
-  const { post } = useApiClient();
+  const hasSavedPlan = Boolean(planId && String(planId) !== "-1" && String(planId) !== "0");
+  const { post, isAuthenticated } = useApiClient();
+  const isLoggedIn = isAuthenticated();
+  const canUseChatbot = isLoggedIn && hasSavedPlan;
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
@@ -289,7 +291,6 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   const [isSending, setIsSending] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [pendingPlan, setPendingPlan] = useState(null);
-  const [appliedPlan, setAppliedPlan] = useState(null);
   const [shownPlaces, setShownPlaces] = useState([]);
   const [detailPlace, setDetailPlace] = useState(null);
   const [detailPlan, setDetailPlan] = useState(null);
@@ -321,7 +322,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
       if (!resizeState) return;
 
       const maxWidth = Math.max(390, window.innerWidth - 48);
-      const maxHeight = Math.max(320, window.innerHeight - 116);
+      const maxHeight = Math.max(320, window.innerHeight - 162);
       const width = resizeState.axis.includes("x")
         ? resizeState.width + resizeState.x - event.clientX
         : resizeState.width;
@@ -358,17 +359,16 @@ const ChatBot = ({ planId: explicitPlanId }) => {
     setMessages([WELCOME_MESSAGE]);
     setInputMessage("");
     setPendingPlan(null);
-    setAppliedPlan(null);
     setShownPlaces([]);
     setDetailPlace(null);
     setDetailPlan(null);
     setNotice(null);
   }, [planId]);
 
-  const appendAssistantMessage = (text) => {
+  const appendAssistantMessage = (text, attachments = {}) => {
     setMessages((current) => [
       ...current,
-      { id: newMessageId(), role: "assistant", text },
+      { id: newMessageId(), role: "assistant", text, ...attachments },
     ]);
   };
 
@@ -398,12 +398,19 @@ const ChatBot = ({ planId: explicitPlanId }) => {
       });
 
       const result = response?.data ?? response ?? {};
-      appendAssistantMessage(result.userMessage || "요청을 확인했어요. 원하는 내용을 조금 더 자세히 알려 주세요.");
+      const nextPlaces = Array.isArray(result.shownPlaces) ? result.shownPlaces : [];
+      appendAssistantMessage(
+        result.userMessage || "요청을 확인했어요. 원하는 내용을 조금 더 자세히 알려 주세요.",
+        {
+          suggestedPlaces: nextPlaces,
+          suggestedPlan: result.plan ?? null,
+          planStatus: result.plan ? "pending" : null,
+        },
+      );
       if (result.plan) {
         setPendingPlan(result.plan);
-        setAppliedPlan(null);
       }
-      setShownPlaces(Array.isArray(result.shownPlaces) ? result.shownPlaces : []);
+      setShownPlaces(nextPlaces);
     } catch (error) {
       appendAssistantMessage(getErrorMessage(error, "chat"));
     } finally {
@@ -411,10 +418,10 @@ const ChatBot = ({ planId: explicitPlanId }) => {
     }
   };
 
-  const applyPendingPlan = async () => {
-    if (!pendingPlan || applyInFlightRef.current || !canUseChatbot) return;
+  const applyPendingPlan = async (requestedPlan = pendingPlan) => {
+    if (!requestedPlan || applyInFlightRef.current || !canUseChatbot) return;
 
-    const planToApply = pendingPlan;
+    const planToApply = requestedPlan;
     applyInFlightRef.current = true;
     setNotice(null);
     setIsApplying(true);
@@ -423,8 +430,12 @@ const ChatBot = ({ planId: explicitPlanId }) => {
         plan: planToApply,
       });
       const result = response?.data ?? response ?? {};
-      setAppliedPlan(planToApply);
-      setPendingPlan(null);
+      setPendingPlan((current) => current === planToApply ? null : current);
+      setMessages((current) => current.map((message) =>
+        message.suggestedPlan === planToApply
+          ? { ...message, planStatus: "applied" }
+          : message
+      ));
       appendAssistantMessage("제안한 내용을 일정에 반영했어요. 변경된 블록을 시간표에서 확인해 보세요.");
       setNotice({
         type: result.conflictDetected ? "warning" : "success",
@@ -444,7 +455,6 @@ const ChatBot = ({ planId: explicitPlanId }) => {
     setMessages([WELCOME_MESSAGE]);
     setInputMessage("");
     setPendingPlan(null);
-    setAppliedPlan(null);
     setShownPlaces([]);
     setDetailPlace(null);
     setDetailPlan(null);
@@ -491,7 +501,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
           role="dialog"
           aria-modal="false"
           aria-labelledby="planmate-ai-title"
-          className="fixed inset-x-3 bottom-[148px] z-[44] flex h-[min(680px,calc(100dvh-172px))] flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)] md:inset-x-auto md:bottom-[92px] md:right-6 md:h-[var(--chatbot-height)] md:min-h-[320px] md:w-[var(--chatbot-width)] md:min-w-[390px] md:max-h-[calc(100dvh-116px)] md:max-w-[calc(100vw-3rem)]"
+          className="fixed inset-x-3 bottom-[148px] z-[44] flex h-[min(680px,calc(100dvh-172px))] flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)] md:inset-x-auto md:bottom-[92px] md:right-6 md:h-[var(--chatbot-height)] md:min-h-[320px] md:w-[var(--chatbot-width)] md:min-w-[390px] md:max-h-[calc(100dvh-162px)] md:max-w-[calc(100vw-3rem)]"
           style={{
             "--chatbot-width": `${panelSize.width}px`,
             "--chatbot-height": `${panelSize.height}px`,
@@ -544,9 +554,13 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#1344FF]">
                   <Bot className="h-6 w-6" />
                 </span>
-                <h3 className="mt-4 text-sm font-black text-slate-900">저장된 일정에서 사용할 수 있어요</h3>
+                <h3 className="mt-4 text-sm font-black text-slate-900">
+                  {isLoggedIn ? "저장된 일정에서 사용할 수 있어요" : "로그인 후 사용할 수 있어요"}
+                </h3>
                 <p className="mt-2 break-keep text-xs leading-5 text-slate-500">
-                  일정을 먼저 저장한 뒤 AI에게 장소 추천과 일정 수정을 요청해 보세요.
+                  {isLoggedIn
+                    ? "일정을 먼저 저장한 뒤 AI에게 장소 추천과 일정 수정을 요청해 보세요."
+                    : "로그인하면 AI에게 장소 추천과 일정 수정을 요청할 수 있어요."}
                 </p>
               </div>
             ) : (
@@ -566,28 +580,45 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                   </div>
                 )}
 
-                <div className="space-y-3 px-4">
+                <div className="space-y-3">
                   {messages.map((message, index) => (
-                    <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[84%] rounded-2xl px-3.5 py-2.5 text-xs font-medium leading-5 ${
-                        message.role === "user"
-                          ? "rounded-br-md bg-[#1344FF] text-white shadow-[0_6px_16px_rgba(19,68,255,0.18)]"
-                          : "rounded-bl-md border border-slate-200 bg-white text-slate-700 shadow-sm"
-                      }`}>
-                        <p className="whitespace-pre-wrap break-words">
-                          <InlineMarkdown text={message.text} />
-                        </p>
-                        {index > 0 && (
-                          <span className={`mt-1 flex items-center gap-1 text-[9px] ${message.role === "user" ? "text-blue-100" : "text-slate-400"}`}>
-                            <Clock3 className="h-2.5 w-2.5" /> 방금
-                          </span>
-                        )}
+                    <div key={message.id}>
+                      <div className={`flex px-4 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[84%] rounded-2xl px-3.5 py-2.5 text-xs font-medium leading-5 ${
+                          message.role === "user"
+                            ? "rounded-br-md bg-[#1344FF] text-white shadow-[0_6px_16px_rgba(19,68,255,0.18)]"
+                            : "rounded-bl-md border border-slate-200 bg-white text-slate-700 shadow-sm"
+                        }`}>
+                          <p className="whitespace-pre-wrap break-words">
+                            <InlineMarkdown text={message.text} />
+                          </p>
+                          {index > 0 && (
+                            <span className={`mt-1 flex items-center gap-1 text-[9px] ${message.role === "user" ? "text-blue-100" : "text-slate-400"}`}>
+                              <Clock3 className="h-2.5 w-2.5" /> 방금
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      {message.role === "assistant" ? (
+                        <div className="mt-3">
+                          <SuggestedPlaces places={message.suggestedPlaces ?? []} onShowDetail={setDetailPlace} />
+                          <PlanPreview
+                            plan={message.suggestedPlan}
+                            status={message.planStatus ?? "pending"}
+                            isApplying={isApplying && pendingPlan === message.suggestedPlan}
+                            onApply={() => applyPendingPlan(message.suggestedPlan)}
+                            onShowDetail={() => setDetailPlan({
+                              plan: message.suggestedPlan,
+                              status: message.planStatus ?? "pending",
+                            })}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   ))}
 
                   {messages.length === 1 && (
-                    <div className="space-y-1.5 pt-1">
+                    <div className="space-y-1.5 px-4 pt-1">
                       {QUICK_PROMPTS.map((prompt) => (
                         <button
                           key={prompt}
@@ -603,7 +634,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                   )}
 
                   {isSending && (
-                    <div className="flex justify-start">
+                    <div className="flex justify-start px-4">
                       <div className="max-w-[84%] rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3.5 py-3 shadow-sm">
                         <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
                           <LoaderCircle className="h-4 w-4 animate-spin text-[#1344FF]" /> 일정을 살펴보고 있어요
@@ -614,16 +645,6 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                   )}
                 </div>
 
-                <div className="mt-3">
-                  <SuggestedPlaces places={shownPlaces} onShowDetail={setDetailPlace} />
-                  <PlanPreview
-                    plan={pendingPlan ?? appliedPlan}
-                    status={pendingPlan ? "pending" : "applied"}
-                    isApplying={isApplying}
-                    onApply={applyPendingPlan}
-                    onShowDetail={() => setDetailPlan(pendingPlan ?? appliedPlan)}
-                  />
-                </div>
                 <div ref={messagesEndRef} />
               </>
             )}
@@ -641,7 +662,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                 value={inputMessage}
                 onChange={(event) => setInputMessage(event.target.value)}
                 onKeyDown={handleInputKeyDown}
-                placeholder={canUseChatbot ? "원하는 일정이나 장소를 말해 주세요" : "일정을 저장하면 사용할 수 있어요"}
+                placeholder={canUseChatbot ? "원하는 일정이나 장소를 말해 주세요" : isLoggedIn ? "일정을 저장하면 사용할 수 있어요" : "로그인 후 사용할 수 있어요"}
                 rows={1}
                 maxLength={1000}
                 disabled={!canUseChatbot || isSending || isApplying}
@@ -670,8 +691,8 @@ const ChatBot = ({ planId: explicitPlanId }) => {
       ) : null}
       {detailPlan ? (
         <ChatbotPlanDetailModal
-          plan={detailPlan}
-          status={pendingPlan ? "pending" : "applied"}
+          plan={detailPlan.plan}
+          status={detailPlan.status}
           onClose={() => setDetailPlan(null)}
         />
       ) : null}
