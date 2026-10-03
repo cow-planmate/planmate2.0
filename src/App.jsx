@@ -6,6 +6,7 @@ import { ServerDownToast } from "./components/common/Toast";
 import useServerStatusStore from "./store/ServerStatus";
 import Maintenance from "./pages/Maintenance";
 import ConfirmModal from "./components/common/ConfirmModal";
+import AppOrWebPrompt from "./components/common/AppOrWebPrompt";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router />
       <ConfirmModal />
+      <AppOrWebPrompt />
     </QueryClientProvider>
   )
 }
