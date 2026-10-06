@@ -8,6 +8,7 @@ import type { CommunityComment, ItineraryDay } from '../../community/api/communi
 import { LevelBadge } from '../../community/atoms/LevelBadge';
 import { useComments, useCreateComment, useDeleteComment, useDeletePost, useForkPost, usePost, useReactToPost, useSimilarFeedPosts } from '../../community/hooks/queries';
 import { PostContentViewer } from '../../community/organisms/PostContentViewer';
+import { ReportPostButton } from '../../community/organisms/ReportPostButton';
 import { ForkDateModal } from '../organisms/ForkDateModal';
 import { ForkResultModal } from '../organisms/ForkResultModal';
 import { UserAvatar } from '../../common/UserAvatar';
@@ -343,6 +344,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
             <h1 className="flex-1 min-w-0 text-xl sm:text-[27px] font-bold text-[#16181d] leading-snug break-keep">{post.title}</h1>
 
             {/* 작성자 전용 수정/삭제 */}
+            {!isAuthor && <ReportPostButton key={post.id} postId={post.id} feed />}
             {isAuthor && (
               <div className="flex items-center gap-1.5 shrink-0 mt-0.5 sm:mt-1">
                 <button

@@ -515,3 +515,11 @@ export const deleteImage = async (url: string): Promise<void> => {
     method: 'DELETE',
   });
 };
+
+export type ReportReason = 'SPAM' | 'ABUSE' | 'INAPPROPRIATE' | 'PRIVACY' | 'OTHER';
+
+export const reportPost = (postId: number | string, reason: ReportReason, details: string, feed = false) =>
+  request<{ message: string }>(`${postPath(postId, feed)}/reports`, {
+    method: 'POST',
+    body: JSON.stringify({ reason, details: details.trim() }),
+  });
