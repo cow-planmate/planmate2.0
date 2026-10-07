@@ -11,11 +11,63 @@ import usePlanStore from '../../../store/Plan';
 import { useSearchParams } from 'react-router-dom';
 import DetailPopup from "./DetailPopup";
 import PlaceDetailModal from "../Place/PlaceDetailModal";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPencilAlt, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { PlaceActionButtons } from "../../common/PlaceActionButtons";
+import {
+  BedDouble,
+  Clock3,
+  Landmark,
+  PenLine,
+  Search,
+  Sparkles,
+  StickyNote,
+  Utensils,
+  X,
+} from "lucide-react";
 
 const PLACE_DETAIL_CATEGORY_IDS = new Set([0, 1, 2]);
+
+const CATEGORY_STYLES = {
+  0: {
+    label: "관광지",
+    Icon: Landmark,
+    accent: "bg-emerald-500",
+    border: "border-emerald-200/90",
+    icon: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    badge: "bg-emerald-50 text-emerald-700",
+  },
+  1: {
+    label: "숙소",
+    Icon: BedDouble,
+    accent: "bg-orange-500",
+    border: "border-orange-200/90",
+    icon: "bg-orange-50 text-orange-700 ring-orange-100",
+    badge: "bg-orange-50 text-orange-700",
+  },
+  2: {
+    label: "식당",
+    Icon: Utensils,
+    accent: "bg-sky-500",
+    border: "border-sky-200/90",
+    icon: "bg-sky-50 text-sky-700 ring-sky-100",
+    badge: "bg-sky-50 text-sky-700",
+  },
+  3: {
+    label: "직접 추가",
+    Icon: Sparkles,
+    accent: "bg-violet-500",
+    border: "border-violet-200/90",
+    icon: "bg-violet-50 text-violet-700 ring-violet-100",
+    badge: "bg-violet-50 text-violet-700",
+  },
+  4: {
+    label: "검색",
+    Icon: Search,
+    accent: "bg-slate-500",
+    border: "border-slate-200",
+    icon: "bg-slate-100 text-slate-600 ring-slate-200",
+    badge: "bg-slate-100 text-slate-600",
+  },
+};
 
 export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
   const client = getClient();
@@ -129,53 +181,17 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
         }
       : { zIndex: 10 };
 
-  const tripCategory = {
-    0: "관광지",
-    1: "숙소",
-    2: "식당",
-    3: "직접 추가",
-    4: "검색",
-  };
-  const tripColor1 = {
-    0: "bg-lime-50",
-    1: "bg-orange-50",
-    2: "bg-blue-50",
-    3: "bg-violet-50",
-    4: "bg-gray-50",
-  };
-  const tripColor2 = {
-    0: "hover:bg-lime-100",
-    1: "hover:bg-orange-100",
-    2: "hover:bg-blue-100",
-    3: "hover:bg-violet-100",
-    4: "hover:bg-gray-100",
-  };
-  const tripColor3 = {
-    0: "border-lime-500",
-    1: "border-orange-500",
-    2: "border-blue-500",
-    3: "border-violet-500",
-    4: "border-gray-500",
-  };
-  const tripColor4 = {
-    0: "text-lime-600",
-    1: "text-orange-600",
-    2: "text-blue-600",
-    3: "text-violet-600",
-    4: "text-gray-600",
-  };
-  const tripColor5 = {
-    0: "text-lime-900",
-    1: "text-orange-900",
-    2: "text-blue-900",
-    3: "text-violet-900",
-    4: "text-gray-900",
-  };
   const isMinimized = localState.height <= SLOT_HEIGHT;
+  const isCompact = localState.height < SLOT_HEIGHT * 2.5;
   const canShowPlaceDetail = Boolean(
     place?.placeId != null && PLACE_DETAIL_CATEGORY_IDS.has(categoryId),
   );
-  const actionButtonClass = `w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-xs pointer-events-auto flex items-center justify-center transition-colors`;
+  const categoryStyle = CATEGORY_STYLES[categoryId] || CATEGORY_STYLES[4];
+  const CategoryIcon = categoryStyle.Icon;
+  const endTime = formatTime(
+    item.start + Math.round(localState.height / SLOT_HEIGHT),
+  );
+  const actionButtonClass = "flex size-7 items-center justify-center rounded-lg border border-slate-200/80 bg-white/90 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#1344FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1344FF]/30";
 
   const sendWebsocket = (block, action = "delete") => {
     if (client && client.connected) {
@@ -246,35 +262,48 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
         >
           <div
             {...listeners}
-            className={`w-full h-full ${tripColor1[categoryId]} border-l-4 ${tripColor3[categoryId]} rounded ring-1 ring-inset ring-slate-900/15 shadow-sm overflow-hidden select-none ${tripColor2[categoryId]} transition-colors cursor-move
-              ${isDragging ? "shadow-xl ring-2 ring-blue-300" : ""}
-              ${isMinimized ? "flex flex-col items-start justify-center px-5" : "p-5"}`}
+            className={`group/schedule relative h-full w-full cursor-move select-none overflow-hidden rounded-xl border bg-white shadow-[0_3px_12px_rgba(15,23,42,0.09)] transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-px hover:shadow-[0_8px_22px_rgba(15,23,42,0.13)] ${categoryStyle.border}
+              ${isDragging ? "scale-[1.015] border-blue-300 shadow-[0_14px_30px_rgba(19,68,255,0.22)] ring-2 ring-[#1344FF]/20" : ""}`}
           >
-            <div className="w-full flex items-center gap-2 min-w-0">
-              <div className="flex-1 min-w-0">
-                <div
-                  className={`font-bold text-lg ${tripColor5[categoryId]} truncate pointer-events-none`}
-                >
+            <span className={`absolute inset-y-0 left-0 w-1 ${categoryStyle.accent}`} />
+
+            <div className={`flex h-full min-w-0 items-center gap-2.5 pl-3.5 pr-[7.75rem] ${isCompact ? 'py-1.5' : 'py-3'}`}>
+              <span className={`relative flex shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ${categoryStyle.icon} ${isMinimized ? 'size-7' : 'size-9'}`}>
+                <CategoryIcon className={isMinimized ? 'size-3.5' : 'size-4'} aria-hidden="true" />
+              </span>
+
+              <div className="min-w-0 flex-1 pointer-events-none">
+                <div className={`truncate font-bold tracking-[-0.015em] text-slate-900 ${isMinimized ? 'text-sm leading-7' : 'text-[15px] leading-5'}`}>
                   {place.name}
                 </div>
 
                 {!isMinimized && (
-                  <div
-                    className={`text-xs ${tripColor4[categoryId]} font-medium pointer-events-none`}
-                  >
-                    <p>
-                      {tripCategory[categoryId]} | {formatTime(item.start)} -{" "}
-                      {formatTime(
-                        item.start + Math.round(localState.height / SLOT_HEIGHT),
-                      )}
-                    </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    {!isCompact && (
+                      <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${categoryStyle.badge}`}>
+                        {categoryStyle.label}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold tabular-nums text-slate-500">
+                      <Clock3 className="size-3" aria-hidden="true" />
+                      {formatTime(item.start)}–{endTime}
+                    </span>
+                  </div>
+                )}
+
+                {item.memo && !isCompact && (
+                  <div className="mt-2 flex max-w-full items-start gap-1.5 rounded-lg bg-slate-50 px-2 py-1.5 text-[11px] leading-4 text-slate-600">
+                    <StickyNote className="mt-0.5 size-3 shrink-0 text-slate-400" aria-hidden="true" />
+                    <span className="line-clamp-2">{item.memo}</span>
                   </div>
                 )}
               </div>
+            </div>
 
-              <div className="flex shrink-0 gap-1 mt-[-4px]">
+            <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-xl bg-white/80 p-0.5 backdrop-blur-sm">
                 <PlaceActionButtons
                   place={place}
+                  className="flex-nowrap gap-1"
                   buttonClassName={actionButtonClass}
                   onShowDetail={canShowPlaceDetail ? () => setIsPlaceDetailOpen(true) : undefined}
                 />
@@ -287,12 +316,13 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
                     setIsDetailOpen(true);
                   }}
                   title="메모 수정"
+                  aria-label={`${place.name} 메모 수정`}
                 >
-                  <FontAwesomeIcon icon={faPencilAlt} />
+                  <PenLine className="size-3.5" aria-hidden="true" />
                 </button>
                 <button
                   type="button"
-                  className={`w-7 h-7 hover:bg-white hover:bg-opacity-50 rounded-full ${tripColor5[categoryId]} text-sm pointer-events-auto flex items-center justify-center transition-colors`}
+                  className={`${actionButtonClass} hover:border-red-200 hover:bg-red-50 hover:text-red-600`}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -301,16 +331,11 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
                     sendWebsocket(block);
                   }}
                   title="삭제"
+                  aria-label={`${place.name} 일정에서 삭제`}
                 >
-                  <FontAwesomeIcon icon={faTimes} />
+                  <X className="size-4" aria-hidden="true" />
                 </button>
-              </div>
             </div>
-            {item.memo && !isMinimized && (
-              <div className="mt-2 text-xs text-black line-clamp-2 pointer-events-none">
-                {item.memo}
-              </div>
-            )}
           </div>
         </Resizable>
       </div>
