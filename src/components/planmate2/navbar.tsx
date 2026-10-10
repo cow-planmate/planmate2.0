@@ -278,6 +278,9 @@ export default function Navbar({
             onClick={() => onNavigate("plan-maker")}
           >
             <Logo className="h-6 w-auto" />
+            <span className="ml-1.5 self-start text-[10px] font-bold leading-none tracking-wide text-[#1344FF]">
+              test
+            </span>
           </div>
 
           {/* 데스크톱 메뉴 */}
