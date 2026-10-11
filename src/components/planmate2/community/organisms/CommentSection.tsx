@@ -1,3 +1,4 @@
+import { showWriteError } from '../../../../store/SuspensionNotice';
 import { CornerDownRight, MessageCircle, Pencil, Send, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CommunityComment } from '../api/communityApi';
@@ -50,7 +51,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
       await createComment.mutateAsync({ content: content.trim() });
       setContent('');
     } catch (error) {
-      ErrorToast(`댓글 등록에 실패했습니다: ${(error as Error).message}`);
+      showWriteError(error, `댓글 등록에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -61,7 +62,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
       setReplyContent('');
       setReplyingTo(null);
     } catch (error) {
-      ErrorToast(`답글 등록에 실패했습니다: ${(error as Error).message}`);
+      showWriteError(error, `답글 등록에 실패했습니다: ${(error as Error).message}`);
     }
   };
 

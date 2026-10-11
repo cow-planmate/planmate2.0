@@ -9,6 +9,8 @@ import ConfirmModal from "./components/common/ConfirmModal";
 import AppOrWebPrompt from "./components/common/AppOrWebPrompt";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import SuspensionNoticeModal from "./components/common/SuspensionNoticeModal";
+
 const queryClient = new QueryClient();
 
 function App() {
@@ -29,6 +31,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router />
       <ConfirmModal />
+      <SuspensionNoticeModal />
       <AppOrWebPrompt />
     </QueryClientProvider>
   )

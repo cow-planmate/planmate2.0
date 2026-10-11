@@ -23,7 +23,10 @@ export default function CreatePost({ onBack, onSubmit, editPostId }: CreatePostP
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form onSubmit={logic.handleSubmit} className="space-y-6">
-          <BasicInfoSection title={logic.title} setTitle={logic.setTitle} />
+          <article className="rounded-2xl border border-[#e8eaee] bg-white shadow-[0_8px_32px_rgba(30,40,60,0.03)]">
+            <BasicInfoSection title={logic.title} setTitle={logic.setTitle} />
+            <PostEditorSection editor={logic.editor} />
+          </article>
 
           <TravelDetailsSection
             destination={logic.destination}
@@ -46,8 +49,6 @@ export default function CreatePost({ onBack, onSubmit, editPostId }: CreatePostP
             isForkable={logic.isForkable}
           />
 
-          <PostEditorSection editor={logic.editor} />
-
           {/* 제출 버튼 */}
           <div className="flex gap-4">
             <button
@@ -62,7 +63,7 @@ export default function CreatePost({ onBack, onSubmit, editPostId }: CreatePostP
               disabled={logic.isSubmitting}
               className="flex flex-[2] items-center justify-center gap-2 py-5 bg-[#1344FF] text-white rounded-2xl hover:bg-[#0d34cc] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-100 font-black text-lg disabled:opacity-50 disabled:hover:scale-100"
             >
-              {logic.isEditMode ? '수정 완료' : '피드 등록하기'}
+              {logic.isSubmitting ? '저장 중…' : logic.isEditMode ? '수정 완료' : '여행기 발행하기'}
             </button>
           </div>
         </form>
