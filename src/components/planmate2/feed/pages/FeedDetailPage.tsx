@@ -1,4 +1,5 @@
-import { ArrowLeft, BedDouble, Calendar, ChevronDown, ChevronUp, Clock, Coffee, Copy, CornerDownRight, Landmark, MapPin, Pencil, Send, Share2, ShoppingBag, ThumbsDown, ThumbsUp, Trash2, Utensils } from 'lucide-react';
+import { showWriteError } from '../../../../store/SuspensionNotice';
+import { ArrowLeft, BedDouble, Calendar, ChevronDown, ChevronUp, Clock, Coffee, Copy, CornerDownRight, ExternalLink, Landmark, MapPin, Pencil, Send, Share2, ShoppingBag, ThumbsDown, ThumbsUp, Trash2, Utensils } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CustomOverlayMap, Map as KakaoMap, Polyline } from 'react-kakao-maps-sdk';
 import { useNavigate } from 'react-router-dom';
@@ -221,7 +222,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       await createComment.mutateAsync({ content: comment.trim() });
       setComment('');
     } catch (error) {
-      ErrorToast(`댓글 등록에 실패했습니다: ${(error as Error).message}`);
+      showWriteError(error, `댓글 등록에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -233,7 +234,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       setReplyContent('');
       setReplyingTo(null);
     } catch (error) {
-      ErrorToast(`답글 등록에 실패했습니다: ${(error as Error).message}`);
+      showWriteError(error, `답글 등록에 실패했습니다: ${(error as Error).message}`);
     }
   };
 

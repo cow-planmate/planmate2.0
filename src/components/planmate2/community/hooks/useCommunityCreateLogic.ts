@@ -1,3 +1,4 @@
+import { showWriteError } from '../../../../store/SuspensionNotice';
 import { ko } from "@blocknote/core/locales";
 import { useCreateBlockNote } from "@blocknote/react";
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -129,7 +130,7 @@ export const useCommunityCreateLogic = (
     } catch (error) {
       // 저장 실패 시 방금 올린 이미지는 고아가 되므로 정리한다
       uploadedUrls.forEach((url) => deleteImage(url).catch(() => {}));
-      ErrorToast(`게시글 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(error as Error).message}`);
+      showWriteError(error, `게시글 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(error as Error).message}`);
     } finally {
       submitLock.current = false;
       setIsSaving(false);
