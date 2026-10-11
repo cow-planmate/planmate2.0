@@ -213,7 +213,7 @@ const request = async <T>(path: string, options: RequestInit = {}, retried = fal
 
   if (!res.ok) {
     const errorBody = await res.json().catch(() => null);
-    throw new Error(errorBody?.message || `요청 실패: ${res.status}`);
+    throw Object.assign(new Error(errorBody?.message || `요청 실패: ${res.status}`), { code: errorBody?.code });
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
@@ -515,3 +515,11 @@ export const deleteImage = async (url: string): Promise<void> => {
     method: 'DELETE',
   });
 };
+
+export type ReportReason = 'SPAM' | 'ABUSE' | 'INAPPROPRIATE' | 'PRIVACY' | 'OTHER';
+
+export const reportPost = (postId: number | string, reason: ReportReason, details: string, feed = false) =>
+  request<{ message: string }>(`${postPath(postId, feed)}/reports`, {
+    method: 'POST',
+    body: JSON.stringify({ reason, details: details.trim() }),
+  });
