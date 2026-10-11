@@ -1,6 +1,7 @@
 import {
   ArrowLeft, CheckCircle2, Eye, Pencil, ThumbsDown, ThumbsUp, Trash2,
 } from 'lucide-react';
+import { ReportPostButton } from '../organisms/ReportPostButton';
 import { UserAvatar } from '../../common/UserAvatar';
 import { LevelBadge } from '../atoms/LevelBadge';
 import {
@@ -100,6 +101,7 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
               <span className="shrink-0 whitespace-nowrap">{post.createdAt}</span>
               <span className="flex shrink-0 items-center gap-1 whitespace-nowrap"><Eye className="w-4 h-4" />{post.views}</span>
             </div>
+            {!isAuthor && <ReportPostButton key={post.id} postId={post.id} />}
             {isAuthor && (
               <div className="flex flex-wrap items-center gap-2">
                 {post.category === 'qna' && (
