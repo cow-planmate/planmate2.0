@@ -1,6 +1,7 @@
+import { showWriteError } from '../../../../store/SuspensionNotice';
 import { ko } from "@blocknote/core/locales";
 import { useCreateBlockNote } from "@blocknote/react";
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { deleteImage, uploadImage } from '../api/communityApi';
 import { blocksToText } from '../utils/blocksToText';
 import { fileToDataUrl, resolveContentImages } from '../utils/pendingImages';
@@ -26,6 +27,8 @@ export const useCommunityCreateLogic = (
   editPostId?: number | string
 ) => {
   const [title, setTitle] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const submitLock = useRef(false);
 
   const isEditMode = editPostId != null;
   const { data: existingPost } = usePost(isEditMode ? editPostId : undefined);
@@ -51,9 +54,9 @@ export const useCommunityCreateLogic = (
   };
 
   const editor = useCreateBlockNote({
-    dictionary: ko,
+    dictionary: { ...ko, placeholders: { ...ko.placeholders, default: "이야기를 시작해 보세요…" } },
     initialContent,
-    // '/' 명령 이미지 업로드 → 커뮤니티 이미지 API (MinIO)
+    // 사진 삽입은 로컬 미리보기로 두고 발행할 때 업로드한다.
     uploadFile,
   });
 
@@ -81,7 +84,7 @@ export const useCommunityCreateLogic = (
         ];
       default:
         return [
-          "'/'를 입력하여 텍스트 스타일, 목록, 이미지 등을 추가할 수 있습니다.",
+          "상단 도구로 글자 서식, 목록, 사진과 링크를 추가할 수 있습니다.",
           "여행과 관련된 즐거운 이야기를 들려주세요.",
           "서로 존중하는 따뜻한 커뮤니티를 만들어가요."
         ];
@@ -89,6 +92,7 @@ export const useCommunityCreateLogic = (
   };
 
   const handleSubmit = async () => {
+    if (submitLock.current) return;
     const rawBlocks = editor.document as any[];
     const contentText = blocksToText(rawBlocks);
     // 검증은 업로드 전에 한다 — 유효성 실패 시 이미지가 서버에 올라가 고아가 되는 것을 막는다.
@@ -102,6 +106,8 @@ export const useCommunityCreateLogic = (
     }
 
     // 검증 통과 후에만 본문의 data: 이미지를 MinIO에 업로드해 URL로 교체한다
+    submitLock.current = true;
+    setIsSaving(true);
     let uploadedUrls: string[] = [];
     try {
       const resolved = await resolveContentImages(rawBlocks, uploadImage);
@@ -124,7 +130,10 @@ export const useCommunityCreateLogic = (
     } catch (error) {
       // 저장 실패 시 방금 올린 이미지는 고아가 되므로 정리한다
       uploadedUrls.forEach((url) => deleteImage(url).catch(() => {}));
-      ErrorToast(`게시글 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(error as Error).message}`);
+      showWriteError(error, `게시글 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(error as Error).message}`);
+    } finally {
+      submitLock.current = false;
+      setIsSaving(false);
     }
   };
 
@@ -133,7 +142,7 @@ export const useCommunityCreateLogic = (
     setTitle,
     editor,
     handleSubmit,
-    isSubmitting: createPostMutation.isPending || updatePostMutation.isPending,
+    isSubmitting: isSaving || createPostMutation.isPending || updatePostMutation.isPending,
     isEditMode,
     getTips
   };
