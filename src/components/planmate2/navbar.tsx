@@ -5,6 +5,7 @@ import {
   LogOut,
   Menu,
   User,
+  Users,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -517,16 +518,28 @@ export default function Navbar({
                         ))}
                       </div>
                       <div className="border-t border-slate-100 pt-1.5">
-                      <button
-                        onClick={() => {
-                          handleLogout();
-                          setIsProfileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        로그아웃
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onNavigate("social");
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#1344FF]"
+                        >
+                          <Users className="h-4 w-4" />
+                          소셜
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleLogout();
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          로그아웃
+                        </button>
                       </div>
                     </div>
                   </>
@@ -659,6 +672,17 @@ export default function Navbar({
                       ))}
                     </div>
                     <div className="border-t border-slate-100 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onNavigate("social");
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#1344FF]"
+                      >
+                        <Users className="h-4 w-4" />
+                        소셜
+                      </button>
                       <button
                         type="button"
                         onClick={() => {

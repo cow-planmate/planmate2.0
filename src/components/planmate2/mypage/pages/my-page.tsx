@@ -7,7 +7,11 @@ import useKakaoLoader from "../../../../hooks/useKakaoLoader";
 import useNicknameStore from "../../../../store/Nickname";
 import PageLoading from "../../../common/PageLoading";
 import { DEFAULT_MAP_CENTER, getRegionCoords } from "../../feed/utils/region";
+import { LEVEL_CONFIG } from "../constants";
 import { useCalendar } from "../hooks/useCalendar";
+import { useUserStats } from "../hooks/useUserStats";
+import { sendFriendRequest } from "../../social/api/socialApi";
+import type { ChatPartner } from "../../social/molecules/ChatModal";
 import {
   mapFeedPost,
   mapLikedFeedPost,
@@ -17,7 +21,9 @@ import {
 import {
   useDeletePost,
   useMyActivity,
+  useMyBadges,
   useMyStats,
+  useUserBadges,
   useUserComments,
   useUserPosts,
   useUserStats as useUserCommunityStats,
@@ -70,6 +76,8 @@ import {
 
 interface MyPageProps {
   onNavigate: (view: any, data?: any) => void;
+  /** 상대 프로필의 쪽지 버튼 — PlanmateV2 의 전역 쪽지 창을 연다 */
+  onOpenChat?: (user: ChatPartner) => void;
   userId?: string;
   initialSection?: MyPageMenuSection;
   reloadKey?: number;
@@ -102,6 +110,7 @@ const enrichPlan = async (
 
 export default function MyPage({
   onNavigate,
+  onOpenChat,
   userId,
   initialSection = "profile",
   reloadKey = 0,
@@ -142,7 +151,7 @@ export default function MyPage({
   // 커뮤니티 활동 (본인 프로필에서만 의미 있음 — me 엔드포인트)
   // 여행기(feed)는 별도 "나의 여행기" 섹션에서 다루므로 커뮤니티 게시판만 조회한다.
   // 활성 탭만 현재 페이지를 요청하고, 비활성 탭은 개수 배지용으로 1페이지만 유지한다.
-  const COMMUNITY_CATEGORIES = "free,qna,recommend";
+  const COMMUNITY_CATEGORIES = "free,qna,mate,recommend";
   const { data: myCommunityPostsPage } = useMyActivity(
     "posts",
     communityTab === "my_posts" ? communityPage : 0,
@@ -384,6 +393,15 @@ export default function MyPage({
     isOtherUser && !isProfilePrivate ? userId : undefined,
   );
   const stats = isOtherUser ? otherUserStats : myStats;
+  const { exp, userLevel, levelName, displayMax, remainingCount, percent } =
+    useUserStats(stats);
+
+  // 업적(뱃지) — 통계와 같은 게이트를 쓰는 /badges 를 조회한다
+  const { data: myBadges } = useMyBadges(!isOtherUser && isAuthenticated());
+  const { data: otherUserBadges } = useUserBadges(
+    isOtherUser && !isProfilePrivate ? userId : undefined,
+  );
+  const badges = isOtherUser ? otherUserBadges : myBadges;
 
   const handleLogout = async () => {
     await logout();
@@ -830,6 +848,27 @@ export default function MyPage({
     }
   };
 
+  // 상대 프로필 — 친구 요청과 쪽지
+  const handleFriendAdd = async () => {
+    if (!userId) return;
+    try {
+      const result = await sendFriendRequest(userId);
+      SuccessToast(result.status === "ACCEPTED" ? "친구가 되었습니다." : "친구 요청을 보냈습니다.");
+    } catch (err) {
+      ErrorToast((err as Error).message);
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (!userId || !userProfile) return;
+    onOpenChat?.({
+      userId,
+      nickname: userProfile.nickname,
+      profileImageUrl: profileImage,
+      avatarHash: null,
+    });
+  };
+
   // userProfile이 변경될 때마다 테마 선택 상태 동기화
   useEffect(() => {
     if (userProfile?.preferredThemes) {
@@ -1033,9 +1072,30 @@ export default function MyPage({
     pendingImageFile || (profileImage && !pendingImageRemoved),
   );
 
+  const userStats = {
+    userLevel,
+    level: levelName,
+    exp,
+    expToNext: remainingCount,
+    maxExp: displayMax,
+    progress: percent,
+    stats: {
+      postCount: stats?.postCount ?? 0,
+      commentCount: stats?.commentCount ?? 0,
+    },
+  };
+
   const profileHeader = (
     <ProfileHeader
       dummyUser={{ ...dummyUser, profileLogo: isOtherUser ? dummyUser.profileLogo : profileEditImage }}
+      userStats={userStats}
+      badges={badges}
+      onViewLevel={() => setActiveModal("level")}
+      isProfilePublic={isProfilePublic}
+      isSavingVisibility={isSavingVisibility}
+      onToggleVisibility={isOtherUser ? undefined : handleToggleProfileVisibility}
+      onAddFriend={isOtherUser ? handleFriendAdd : undefined}
+      onSendMessage={isOtherUser && onOpenChat ? handleSendMessage : undefined}
       onEditThemes={() => setIsThemeStartOpen(true)}
       isOtherUser={isOtherUser}
       newNickname={newNickname}
@@ -1255,6 +1315,8 @@ export default function MyPage({
           setActiveModal(null);
         }}
         dummyUser={dummyUser}
+        userStats={userStats}
+        LEVEL_CONFIG={LEVEL_CONFIG}
         handleDeleteAccount={handleDeleteAccount}
         selectedDateEvents={
           selectedCalendarEvent ? [selectedCalendarEvent] : []

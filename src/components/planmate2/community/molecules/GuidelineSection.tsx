@@ -4,7 +4,7 @@ interface GuidelineSectionProps {
 }
 
 export const GuidelineSection = ({ type, tips }: GuidelineSectionProps) => {
-  const boardName = type === 'qna' ? '질문게시판' : '자유게시판';
+  const boardName = type === 'qna' ? '질문게시판' : type === 'mate' ? '메이트 찾기' : '자유게시판';
 
   return (
     <div className="mt-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100">

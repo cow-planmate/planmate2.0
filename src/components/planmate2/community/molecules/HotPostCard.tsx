@@ -10,13 +10,22 @@ interface HotPostCardProps {
   onNavigate: (view: any, data?: any) => void;
 }
 
-const getCategoryBadge = (type: string, isAnswered?: boolean) => {
+const getCategoryBadge = (type: string, isAnswered?: boolean, status?: string) => {
   if (type === 'qna') {
     return {
       label: isAnswered ? '답변 완료' : '답변 대기',
       className: isAnswered
         ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/15'
         : 'bg-amber-50 text-amber-700 ring-amber-600/15',
+    };
+  }
+
+  if (type === 'mate') {
+    return {
+      label: status === 'closed' ? '모집 완료' : '모집중',
+      className: status === 'closed'
+        ? 'bg-slate-100 text-slate-500 ring-slate-500/15'
+        : 'bg-purple-50 text-purple-700 ring-purple-600/15',
     };
   }
 
@@ -28,7 +37,7 @@ const getCategoryBadge = (type: string, isAnswered?: boolean) => {
 
 export const HotPostCard = ({ post, index, type, onClick, onNavigate }: HotPostCardProps) => {
   const authorNav = authorNavProps(post, onNavigate);
-  const categoryBadge = getCategoryBadge(type, post.isAnswered);
+  const categoryBadge = getCategoryBadge(type, post.isAnswered, post.status);
 
   return (
     <article
