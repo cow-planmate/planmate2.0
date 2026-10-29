@@ -151,7 +151,7 @@ export default function MyPage({
   // 커뮤니티 활동 (본인 프로필에서만 의미 있음 — me 엔드포인트)
   // 여행기(feed)는 별도 "나의 여행기" 섹션에서 다루므로 커뮤니티 게시판만 조회한다.
   // 활성 탭만 현재 페이지를 요청하고, 비활성 탭은 개수 배지용으로 1페이지만 유지한다.
-  const COMMUNITY_CATEGORIES = "free,qna,mate,recommend";
+  const COMMUNITY_CATEGORIES = "free,qna,mate";
   const { data: myCommunityPostsPage } = useMyActivity(
     "posts",
     communityTab === "my_posts" ? communityPage : 0,
