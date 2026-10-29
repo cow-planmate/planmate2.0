@@ -324,6 +324,10 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
     />
   );
 
+  /** 탈퇴한 작성자는 프로필로 보내지 않는다 (프로필 조회가 실패한다) */
+  const goToProfile = (author: { userId: string; authorDeleted?: boolean }) =>
+    author.authorDeleted ? undefined : () => onNavigate('mypage', { userId: author.userId });
+
   return (
     <div className="min-h-screen bg-[#f8f9fa] pb-24 lg:pb-8">
       {/* 썸네일 없는 헤더 — 사진 위 흰 글씨를 걷어낸 만큼 대비 걱정 없이 그냥 검은 글씨로 쓴다.
@@ -368,7 +372,8 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
           {/* 작성자 + 여행 정보를 한 줄에 — 좁은 화면에서만 자연스럽게 두 줄로 접힌다 */}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] sm:pl-[34px]">
             <div
-              className="inline-flex items-center gap-1.5"
+              className={`inline-flex items-center gap-1.5 transition-opacity ${post.authorDeleted ? '' : 'cursor-pointer hover:opacity-80'}`}
+              onClick={goToProfile(post)}
             >
               {renderAvatar(post, 'w-6 h-6 text-[11px]')}
               <span className={`font-bold ${post.authorDeleted ? 'text-[#9aa0ab] italic' : 'text-[#16181d]'}`}>{post.author}</span>
@@ -639,12 +644,15 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                   <div key={c.id} className="group">
                     {/* 상위 댓글 */}
                     <div className="flex gap-2.5">
-                      {renderAvatar(c, 'w-8 h-8 text-xs')}
+                      {renderAvatar(c, 'w-8 h-8 text-xs', goToProfile(c))}
                       <div className="flex-1">
                         <div className="bg-[#f8f9fa] rounded-xl p-3">
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-[#1a1a1a]">
+                              <span
+                                className={`font-bold text-xs text-[#1a1a1a] ${c.authorDeleted ? '' : 'cursor-pointer hover:text-[#1344FF]'}`}
+                                onClick={goToProfile(c)}
+                              >
                                 {c.author}
                               </span>
                               <LevelBadge level={c.level} />
@@ -706,12 +714,15 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                       <div className="ml-10 mt-3 space-y-3 border-l-2 border-gray-100 pl-3">
                         {repliesByParent.get(c.id)!.map((reply) => (
                           <div key={reply.id} className="flex gap-2">
-                            {renderAvatar(reply, 'w-7 h-7 text-[10px]')}
+                            {renderAvatar(reply, 'w-7 h-7 text-[10px]', goToProfile(reply))}
                             <div className="flex-1">
                               <div className="bg-[#f8f9fa] rounded-xl p-2.5">
                                 <div className="flex items-center justify-between mb-0.5">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="font-bold text-[11px] text-[#1a1a1a]">
+                                    <span
+                                      className={`font-bold text-[11px] text-[#1a1a1a] ${reply.authorDeleted ? '' : 'cursor-pointer hover:text-[#1344FF]'}`}
+                                      onClick={goToProfile(reply)}
+                                    >
                                       {reply.author}
                                     </span>
                                     <LevelBadge level={reply.level} />
