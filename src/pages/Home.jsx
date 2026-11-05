@@ -199,6 +199,7 @@ function Home({ hideNavbar = false }) {
         isOpen={isDestinationOpen}
         onClose={() => setIsDestinationOpen(false)}
         onLocationSelect={handleDestinationLocationSelect}
+        enableDetailView
         title="여행지 검색"
         placeholder="여행지를 입력해주세요"
       />

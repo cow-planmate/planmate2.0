@@ -14,12 +14,10 @@ import PlaceDetailModal from "../Place/PlaceDetailModal";
 import { PlaceActionButtons } from "../../common/PlaceActionButtons";
 import {
   BedDouble,
-  Clock3,
   Landmark,
   PenLine,
   Search,
   Sparkles,
-  StickyNote,
   Utensils,
   X,
 } from "lucide-react";
@@ -31,41 +29,36 @@ const CATEGORY_STYLES = {
     label: "관광지",
     Icon: Landmark,
     accent: "bg-emerald-500",
-    border: "border-emerald-200/90",
     icon: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-    badge: "bg-emerald-50 text-emerald-700",
+    text: "text-emerald-600",
   },
   1: {
     label: "숙소",
     Icon: BedDouble,
     accent: "bg-orange-500",
-    border: "border-orange-200/90",
     icon: "bg-orange-50 text-orange-700 ring-orange-100",
-    badge: "bg-orange-50 text-orange-700",
+    text: "text-orange-600",
   },
   2: {
     label: "식당",
     Icon: Utensils,
     accent: "bg-sky-500",
-    border: "border-sky-200/90",
     icon: "bg-sky-50 text-sky-700 ring-sky-100",
-    badge: "bg-sky-50 text-sky-700",
+    text: "text-sky-600",
   },
   3: {
     label: "직접 추가",
     Icon: Sparkles,
     accent: "bg-violet-500",
-    border: "border-violet-200/90",
     icon: "bg-violet-50 text-violet-700 ring-violet-100",
-    badge: "bg-violet-50 text-violet-700",
+    text: "text-violet-600",
   },
   4: {
     label: "검색",
     Icon: Search,
     accent: "bg-slate-500",
-    border: "border-slate-200",
     icon: "bg-slate-100 text-slate-600 ring-slate-200",
-    badge: "bg-slate-100 text-slate-600",
+    text: "text-slate-600",
   },
 };
 
@@ -77,6 +70,7 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
   const [isResizing, setIsResizing] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isPlaceDetailOpen, setIsPlaceDetailOpen] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
@@ -89,12 +83,19 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
       ? Number(place.categoryId)
       : 4;
   const memoDebounceRef = useRef(null);
+  const imageUrl = place?.photoUrl?.includes("/api/image/place/")
+    ? place.photoUrl
+    : place?.photoUrl?.replace(/^http:\/\//i, "https://");
 
   useEffect(() => {
     return () => {
       if (memoDebounceRef.current) clearTimeout(memoDebounceRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
 
   const { attributes, listeners, setNodeRef, isDragging, transform } =
     useDraggable({
@@ -191,7 +192,7 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
   const endTime = formatTime(
     item.start + Math.round(localState.height / SLOT_HEIGHT),
   );
-  const actionButtonClass = "flex size-7 items-center justify-center rounded-lg border border-slate-200/80 bg-white/90 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#1344FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1344FF]/30";
+  const actionButtonClass = `flex ${isMinimized ? "size-6" : "size-8"} items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-[#1344FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1344FF]/25`;
 
   const sendWebsocket = (block, action = "delete") => {
     if (client && client.connected) {
@@ -262,45 +263,54 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
         >
           <div
             {...listeners}
-            className={`group/schedule relative h-full w-full cursor-move select-none overflow-hidden rounded-xl border bg-white shadow-[0_3px_12px_rgba(15,23,42,0.09)] transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-px hover:shadow-[0_8px_22px_rgba(15,23,42,0.13)] ${categoryStyle.border}
-              ${isDragging ? "scale-[1.015] border-blue-300 shadow-[0_14px_30px_rgba(19,68,255,0.22)] ring-2 ring-[#1344FF]/20" : ""}`}
+            className={`group/schedule relative h-full w-full cursor-move select-none overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.05)] transition-[box-shadow,transform,border-color] duration-200 hover:border-slate-300 hover:shadow-[0_6px_18px_rgba(15,23,42,0.08)]
+              ${isDragging ? "scale-[1.01] border-blue-300 shadow-[0_14px_30px_rgba(19,68,255,0.18)] ring-2 ring-[#1344FF]/15" : ""}`}
           >
-            <span className={`absolute inset-y-0 left-0 w-1 ${categoryStyle.accent}`} />
+            <span className={`absolute inset-y-3 left-3 w-1 rounded-full ${categoryStyle.accent}`} />
 
-            <div className={`flex h-full min-w-0 items-center gap-2.5 pl-3.5 pr-[7.75rem] ${isCompact ? 'py-1.5' : 'py-3'}`}>
-              <span className={`relative flex shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ${categoryStyle.icon} ${isMinimized ? 'size-7' : 'size-9'}`}>
-                <CategoryIcon className={isMinimized ? 'size-3.5' : 'size-4'} aria-hidden="true" />
-              </span>
+            <div className={`flex h-full min-w-0 flex-col justify-center pl-7 ${isMinimized ? 'pr-[7rem]' : 'pr-[9.25rem]'} ${isCompact ? 'py-1.5' : 'py-3'}`}>
+              <div className={`flex min-w-0 items-center ${isMinimized ? 'gap-2' : 'gap-3'}`}>
+                <span className={`relative flex shrink-0 items-center justify-center overflow-hidden ring-1 ring-inset ${categoryStyle.icon} ${isMinimized ? 'size-7 rounded-lg' : isCompact ? 'size-11 rounded-xl' : 'size-14 rounded-xl'}`}>
+                  {!imageFailed && imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      draggable={false}
+                      onError={() => setImageFailed(true)}
+                    />
+                  ) : (
+                    <CategoryIcon className={isMinimized ? 'size-3.5' : 'size-5'} aria-hidden="true" />
+                  )}
+                </span>
 
-              <div className="min-w-0 flex-1 pointer-events-none">
-                <div className={`truncate font-bold tracking-[-0.015em] text-slate-900 ${isMinimized ? 'text-sm leading-7' : 'text-[15px] leading-5'}`}>
-                  {place.name}
-                </div>
+                <div className="min-w-0 flex-1 pointer-events-none">
+                  <div className={`truncate font-extrabold tracking-[-0.02em] text-slate-900 ${isMinimized ? 'text-sm leading-7' : 'text-[17px] leading-6'}`}>
+                    {place.name}
+                  </div>
 
-                {!isMinimized && (
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    {!isCompact && (
-                      <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${categoryStyle.badge}`}>
+                  {!isMinimized && (
+                    <div className="mt-1 flex min-w-0 items-center gap-1.5 text-xs font-semibold">
+                      <span className={`shrink-0 font-extrabold ${categoryStyle.text}`}>
                         {categoryStyle.label}
                       </span>
-                    )}
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold tabular-nums text-slate-500">
-                      <Clock3 className="size-3" aria-hidden="true" />
-                      {formatTime(item.start)}–{endTime}
-                    </span>
-                  </div>
-                )}
-
-                {item.memo && !isCompact && (
-                  <div className="mt-2 flex max-w-full items-start gap-1.5 rounded-lg bg-slate-50 px-2 py-1.5 text-[11px] leading-4 text-slate-600">
-                    <StickyNote className="mt-0.5 size-3 shrink-0 text-slate-400" aria-hidden="true" />
-                    <span className="line-clamp-2">{item.memo}</span>
-                  </div>
-                )}
+                      <span className="text-slate-300" aria-hidden="true">·</span>
+                      <span className="truncate tabular-nums text-slate-500">
+                        {formatTime(item.start)} - {endTime}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {item.memo && !isCompact && (
+                <p className="mt-2.5 line-clamp-2 pointer-events-none text-xs font-medium leading-5 text-slate-400">
+                  {item.memo}
+                </p>
+              )}
             </div>
 
-            <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-xl bg-white/80 p-0.5 backdrop-blur-sm">
+            <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
                 <PlaceActionButtons
                   place={place}
                   className="flex-nowrap gap-1"
