@@ -18,6 +18,7 @@ import { useSearchParams } from "react-router-dom";
 import { useApiClient } from "../../hooks/useApiClient";
 import usePlanStore from "../../store/Plan";
 import { mapPlaceSummary } from "../../utils/createUtils";
+import NoLoginSave from "../Create2/PlanInfo/NoLoginSave";
 import PlaceDetailModal from "../Create2/Place/PlaceDetailModal";
 import { TourApiAttribution } from "../common/TourApiAttribution";
 import { PlaceActionButtons } from "../common/PlaceActionButtons";
@@ -252,6 +253,11 @@ const PlanPreview = ({ plan, status = "pending", isApplying, onApply, onShowDeta
             {blocks.map((block, index) => (
               <div key={block.blockId ?? `${block.date}-${block.blockStartTime}-${index}`} className="flex min-w-0 items-center gap-2 border-b border-slate-200 py-2.5 last:border-b-0 text-[11px]">
                 <span className="w-16 flex-none font-bold tabular-nums text-slate-400">{formatBlockTime(block)}</span>
+                {block.placeThumbnailUrl ? (
+                  <img src={block.placeThumbnailUrl} alt="" loading="lazy" className="h-11 w-11 flex-none rounded-lg object-cover" />
+                ) : (
+                  <span className="flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-slate-100 text-slate-300"><MapPin className="h-4 w-4" /></span>
+                )}
                 <div className="min-w-0 flex-1"><span className="block break-words font-bold text-slate-700">{block.placeName}</span></div>
                 <PlaceActionButtons place={block} />
               </div>
@@ -286,6 +292,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   const canUseChatbot = isLoggedIn && hasSavedPlan;
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isSavingPlan, setIsSavingPlan] = useState(false);
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -486,6 +493,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
 
   return (
     <>
+      <NoLoginSave isOpen={isSavingPlan} redirectTo="create" />
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
@@ -562,6 +570,11 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                     ? "일정을 먼저 저장한 뒤 AI에게 장소 추천과 일정 수정을 요청해 보세요."
                     : "로그인하면 AI에게 장소 추천과 일정 수정을 요청할 수 있어요."}
                 </p>
+                {isLoggedIn && (
+                  <button type="button" onClick={() => setIsSavingPlan(true)} disabled={isSavingPlan} className="mt-4 rounded-xl bg-[#1344FF] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#0d34cc] disabled:opacity-70">
+                    저장하고 AI 사용하기
+                  </button>
+                )}
               </div>
             ) : (
               <>
