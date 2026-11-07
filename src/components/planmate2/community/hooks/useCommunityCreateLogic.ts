@@ -20,12 +20,15 @@ const firstImageUrl = (blocks: any[]): string | null => {
 };
 
 export const useCommunityCreateLogic = (
-  type: 'free' | 'qna',
+  type: 'free' | 'qna' | 'mate',
   onSubmit: () => void,
   /** 지정하면 수정 모드로 동작한다 (기존 글을 불러와 프리필 후 PATCH) */
   editPostId?: number | string
 ) => {
   const [title, setTitle] = useState('');
+  // 메이트 찾기 전용 — 여행 희망 지역과 모집 인원('unlimited' = 제한 없음)
+  const [region, setRegion] = useState('');
+  const [mateCount, setMateCount] = useState('2');
 
   const isEditMode = editPostId != null;
   const { data: existingPost } = usePost(isEditMode ? editPostId : undefined);
@@ -63,6 +66,8 @@ export const useCommunityCreateLogic = (
     if (!isEditMode || !existingPost || isPrefilled) return;
 
     setTitle(existingPost.title ?? '');
+    if (existingPost.region) setRegion(existingPost.region);
+    if (existingPost.maxParticipants) setMateCount(String(existingPost.maxParticipants));
 
     const blocks = existingPost.content as any[];
     if (Array.isArray(blocks) && blocks.length > 0) {
@@ -78,6 +83,12 @@ export const useCommunityCreateLogic = (
           "질문 제목에 핵심 키워드를 넣으면 답변을 더 빨리 받을 수 있어요.",
           "현재 상황(누구와, 언제, 예산 등)을 상세히 적어주세요.",
           "도움이 된 답변에는 꼭 감사의 인사를 전해주세요!"
+        ];
+      case 'mate':
+        return [
+          "성별, 연령대 등 희망하는 메이트 성향을 적어주세요.",
+          "여행 일정과 방문하고 싶은 장소를 공유하면 매칭이 빨라요.",
+          "참여 방법(댓글, 오픈채팅 등)을 명확하게 알려주세요."
         ];
       default:
         return [
@@ -100,6 +111,10 @@ export const useCommunityCreateLogic = (
       WarningToast('제목과 내용을 모두 입력해주세요.');
       return;
     }
+    if (type === 'mate' && !region.trim()) {
+      WarningToast('여행 희망 지역을 입력해주세요.');
+      return;
+    }
 
     // 검증 통과 후에만 본문의 data: 이미지를 MinIO에 업로드해 URL로 교체한다
     let uploadedUrls: string[] = [];
@@ -113,6 +128,10 @@ export const useCommunityCreateLogic = (
         content: resolved.blocks,
         contentText,
         thumbnailUrl,
+        ...(type === 'mate' && {
+          region: region.trim(),
+          maxParticipants: mateCount === 'unlimited' ? null : Number(mateCount),
+        }),
       };
 
       if (isEditMode) {
@@ -131,6 +150,10 @@ export const useCommunityCreateLogic = (
   return {
     title,
     setTitle,
+    region,
+    setRegion,
+    mateCount,
+    setMateCount,
     editor,
     handleSubmit,
     isSubmitting: createPostMutation.isPending || updatePostMutation.isPending,

@@ -1,7 +1,7 @@
 import { BoardIcon } from '../molecules/BoardIcon';
 
 interface BoardHeaderProps {
-  type: 'free' | 'qna';
+  type: 'free' | 'qna' | 'mate';
   title: string;
   description: string;
 }

@@ -65,7 +65,7 @@ export interface DayPlaces {
 export interface CommunityPostSummary {
   id: number;
   userId: string;
-  category: 'free' | 'qna' | 'feed';
+  category: 'free' | 'qna' | 'mate' | 'feed';
   title: string;
   author: string;
   /** 작성자가 올린 프로필 사진 (없으면 생략) */
