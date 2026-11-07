@@ -1,6 +1,7 @@
+import { showWriteError } from '../../../../store/SuspensionNotice';
 import { ko } from "@blocknote/core/locales";
 import { useCreateBlockNote } from "@blocknote/react";
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApiClient } from '../../../../hooks/useApiClient';
 import {
   deleteImage,
@@ -10,7 +11,11 @@ import {
 } from '../../community/api/communityApi';
 import { usePost, useCreatePost, useUpdatePost } from '../../community/hooks/queries';
 import { blocksToText } from '../../community/utils/blocksToText';
-import { fileToDataUrl, resolveContentImages } from '../../community/utils/pendingImages';
+import {
+  createPendingImageUploads,
+  fileToDataUrl,
+  resolveContentImages,
+} from '../../community/utils/pendingImages';
 import { normalizeRegion } from '../../feed/utils/region';
 import { ErrorToast, SuccessToast, WarningToast } from '../../../common/Toast';
 
@@ -59,7 +64,7 @@ export const useCreatePostLogic = (
 
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
-  const [duration, setDuration] = useState('');
+  const [duration, setDuration] = useState('0박 1일');
   const [nights, setNights] = useState(0);
   const [days, setDays] = useState(1);
   const [availableTravels, setAvailableTravels] = useState<any[]>([]);
@@ -123,11 +128,21 @@ export const useCreatePostLogic = (
     },
   ], []);
 
-  // 삽입 시엔 서버에 올리지 않고 data: URL로만 둔다 (실제 업로드는 등록 시 resolveContentImages에서).
-  // 등록하지 않고 이탈한 draft의 이미지가 MinIO에 고아로 남는 것을 방지한다.
+  // 삽입 시 시작해 둔 업로드 장부. 화면을 뜨면 등록되지 못한 것들을 정리한다.
+  const pendingUploadsRef = useRef(createPendingImageUploads(uploadImage, deleteImage));
+  useEffect(() => {
+    const pendingUploads = pendingUploadsRef.current;
+    return () => pendingUploads.discard();
+  }, []);
+
+  // 미리보기는 data: URL로 즉시 띄우고, 실제 업로드는 백그라운드로 시작해 둔다.
+  // 등록 시점에는 그 결과를 받아 쓰기만 하므로 사용자가 업로드를 기다리지 않는다.
+  // 등록되지 못한 이미지는 위 discard()가 지우므로 MinIO에 고아로 남지 않는다.
   const uploadFile = async (file: File) => {
     try {
-      return await fileToDataUrl(file);
+      const dataUrl = await fileToDataUrl(file);
+      pendingUploadsRef.current.start(dataUrl, file);
+      return dataUrl;
     } catch (error) {
       ErrorToast(`이미지를 불러오지 못했습니다: ${(error as Error).message}`);
       throw error;
@@ -135,9 +150,15 @@ export const useCreatePostLogic = (
   };
 
   const editor = useCreateBlockNote({
-    dictionary: ko,
+    dictionary: {
+      ...ko,
+      placeholders: {
+        ...ko.placeholders,
+        default: '여행에서 만난 풍경과 이야기를 적어보세요…',
+      },
+    },
     initialContent,
-    // '/이미지' 명령 및 이미지 삽입 → 커뮤니티 이미지 API (MinIO)
+    // 사진 버튼으로 삽입한 이미지는 커뮤니티 이미지 API (MinIO)에 백그라운드 업로드한다.
     uploadFile,
   });
 
@@ -323,8 +344,13 @@ export const useCreatePostLogic = (
 
     const uploadedUrls: string[] = [];
     try {
-      // 등록 시점에만 본문의 data: 이미지를 MinIO에 업로드해 URL로 교체한다
-      const resolved = await resolveContentImages(editor.document as any[], uploadImage);
+      // 본문의 data: 이미지를 공개 URL로 교체한다. 삽입 시 시작해 둔 업로드는 그대로
+      // 재사용되고, 남은 것들은 한꺼번에(병렬로) 올라간다.
+      const resolved = await resolveContentImages(
+        editor.document as any[],
+        uploadImage,
+        pendingUploadsRef.current,
+      );
       uploadedUrls.push(...resolved.uploadedUrls);
       const blocks = resolved.blocks;
       const contentText = blocksToText(blocks).trim();
@@ -387,12 +413,15 @@ export const useCreatePostLogic = (
         });
       }
 
+      // 삽입했다가 지운 이미지 등 본문에 안 실린 업로드는 여기서 정리한다
+      pendingUploadsRef.current.discard();
+
       SuccessToast(isEditMode ? '여행기가 수정되었습니다!' : '여행기가 성공적으로 작성되었습니다!');
       onSubmitCallback();
     } catch (err) {
       // 저장 실패 시 방금 올린 본문 이미지는 고아가 되므로 정리한다
       uploadedUrls.forEach((url) => deleteImage(url).catch(() => {}));
-      ErrorToast(`여행기 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(err as Error).message}`);
+      showWriteError(err, `여행기 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(err as Error).message}`);
     }
   };
 

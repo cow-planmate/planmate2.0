@@ -27,3 +27,5 @@ api.http
 *.sln
 *.sw?
 *.env
+.vercel
+.env*
