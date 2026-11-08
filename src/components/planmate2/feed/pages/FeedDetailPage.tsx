@@ -1,4 +1,5 @@
-import { ArrowLeft, BedDouble, Calendar, ChevronDown, ChevronUp, Clock, Coffee, Copy, CornerDownRight, Landmark, MapPin, Pencil, Send, Share2, ShoppingBag, ThumbsDown, ThumbsUp, Trash2, Utensils } from 'lucide-react';
+import { showWriteError } from '../../../../store/SuspensionNotice';
+import { ArrowLeft, BedDouble, Calendar, ChevronDown, ChevronUp, Clock, Coffee, Copy, CornerDownRight, ExternalLink, Landmark, MapPin, Pencil, Send, Share2, ShoppingBag, ThumbsDown, ThumbsUp, Trash2, Utensils } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CustomOverlayMap, Map as KakaoMap, Polyline } from 'react-kakao-maps-sdk';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +9,7 @@ import type { CommunityComment, ItineraryDay } from '../../community/api/communi
 import { LevelBadge } from '../../community/atoms/LevelBadge';
 import { useComments, useCreateComment, useDeleteComment, useDeletePost, useForkPost, usePost, useReactToPost, useSimilarFeedPosts } from '../../community/hooks/queries';
 import { PostContentViewer } from '../../community/organisms/PostContentViewer';
+import { ReportPostButton } from '../../community/organisms/ReportPostButton';
 import { ForkDateModal } from '../organisms/ForkDateModal';
 import { ForkResultModal } from '../organisms/ForkResultModal';
 import { UserAvatar } from '../../common/UserAvatar';
@@ -220,7 +222,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       await createComment.mutateAsync({ content: comment.trim() });
       setComment('');
     } catch (error) {
-      ErrorToast(`댓글 등록에 실패했습니다: ${(error as Error).message}`);
+      showWriteError(error, `댓글 등록에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -232,7 +234,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
       setReplyContent('');
       setReplyingTo(null);
     } catch (error) {
-      ErrorToast(`답글 등록에 실패했습니다: ${(error as Error).message}`);
+      showWriteError(error, `답글 등록에 실패했습니다: ${(error as Error).message}`);
     }
   };
 
@@ -322,6 +324,10 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
     />
   );
 
+  /** 탈퇴한 작성자는 프로필로 보내지 않는다 (프로필 조회가 실패한다) */
+  const goToProfile = (author: { userId: string; authorDeleted?: boolean }) =>
+    author.authorDeleted ? undefined : () => onNavigate('mypage', { userId: author.userId });
+
   return (
     <div className="min-h-screen bg-[#f8f9fa] pb-24 lg:pb-8">
       {/* 썸네일 없는 헤더 — 사진 위 흰 글씨를 걷어낸 만큼 대비 걱정 없이 그냥 검은 글씨로 쓴다.
@@ -343,6 +349,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
             <h1 className="flex-1 min-w-0 text-xl sm:text-[27px] font-bold text-[#16181d] leading-snug break-keep">{post.title}</h1>
 
             {/* 작성자 전용 수정/삭제 */}
+            {!isAuthor && <ReportPostButton key={post.id} postId={post.id} feed />}
             {isAuthor && (
               <div className="flex items-center gap-1.5 shrink-0 mt-0.5 sm:mt-1">
                 <button
@@ -365,7 +372,8 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
           {/* 작성자 + 여행 정보를 한 줄에 — 좁은 화면에서만 자연스럽게 두 줄로 접힌다 */}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] sm:pl-[34px]">
             <div
-              className="inline-flex items-center gap-1.5"
+              className={`inline-flex items-center gap-1.5 transition-opacity ${post.authorDeleted ? '' : 'cursor-pointer hover:opacity-80'}`}
+              onClick={goToProfile(post)}
             >
               {renderAvatar(post, 'w-6 h-6 text-[11px]')}
               <span className={`font-bold ${post.authorDeleted ? 'text-[#9aa0ab] italic' : 'text-[#16181d]'}`}>{post.author}</span>
@@ -636,12 +644,15 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                   <div key={c.id} className="group">
                     {/* 상위 댓글 */}
                     <div className="flex gap-2.5">
-                      {renderAvatar(c, 'w-8 h-8 text-xs')}
+                      {renderAvatar(c, 'w-8 h-8 text-xs', goToProfile(c))}
                       <div className="flex-1">
                         <div className="bg-[#f8f9fa] rounded-xl p-3">
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-[#1a1a1a]">
+                              <span
+                                className={`font-bold text-xs text-[#1a1a1a] ${c.authorDeleted ? '' : 'cursor-pointer hover:text-[#1344FF]'}`}
+                                onClick={goToProfile(c)}
+                              >
                                 {c.author}
                               </span>
                               <LevelBadge level={c.level} />
@@ -703,12 +714,15 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                       <div className="ml-10 mt-3 space-y-3 border-l-2 border-gray-100 pl-3">
                         {repliesByParent.get(c.id)!.map((reply) => (
                           <div key={reply.id} className="flex gap-2">
-                            {renderAvatar(reply, 'w-7 h-7 text-[10px]')}
+                            {renderAvatar(reply, 'w-7 h-7 text-[10px]', goToProfile(reply))}
                             <div className="flex-1">
                               <div className="bg-[#f8f9fa] rounded-xl p-2.5">
                                 <div className="flex items-center justify-between mb-0.5">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="font-bold text-[11px] text-[#1a1a1a]">
+                                    <span
+                                      className={`font-bold text-[11px] text-[#1a1a1a] ${reply.authorDeleted ? '' : 'cursor-pointer hover:text-[#1344FF]'}`}
+                                      onClick={goToProfile(reply)}
+                                    >
                                       {reply.author}
                                     </span>
                                     <LevelBadge level={reply.level} />

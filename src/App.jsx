@@ -13,6 +13,8 @@ import {
   fetchDestinationList,
 } from "./utils/destinationCache";
 
+import SuspensionNoticeModal from "./components/common/SuspensionNoticeModal";
+
 const queryClient = new QueryClient();
 
 function App() {
@@ -45,6 +47,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router />
       <ConfirmModal />
+      <SuspensionNoticeModal />
       <AppOrWebPrompt />
     </QueryClientProvider>
   )

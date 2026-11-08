@@ -8,7 +8,8 @@ import PostDetail from '../components/planmate2/feed/pages/FeedDetailPage';
 import MainFeed from '../components/planmate2/feed/pages/MainFeed';
 import MyPage from '../components/planmate2/mypage/pages/my-page';
 import Navbar from '../components/planmate2/navbar';
-import { ChatModal } from '../components/planmate2/social/molecules/ChatModal';
+import { ChatModal, type ChatPartner } from '../components/planmate2/social/molecules/ChatModal';
+import { useSocialEvents } from '../components/planmate2/social/hooks/queries';
 import { SocialPage } from '../components/planmate2/social/pages/SocialPage';
 import Home from './Home';
 
@@ -36,7 +37,7 @@ export default function PlanmateV2() {
     return 'feed';
   };
 
-  const ArrayBoardTypes = ['free', 'qna'] as const;
+  const ArrayBoardTypes = ['free', 'qna', 'mate'] as const;
   const getInitialBoardType = () => {
     if (category && (ArrayBoardTypes as any).includes(category)) return category as any;
     return 'free';
@@ -44,7 +45,7 @@ export default function PlanmateV2() {
 
   const [currentView, setCurrentView] = useState<'feed' | 'detail' | 'create' | 'feed-edit' | 'mypage' | 'board-list' | 'plan-maker' | 'community-create' | 'community-edit' | 'social'>(getInitialView() as any);
   const [selectedPost, setSelectedPost] = useState<any>(null);
-  const [boardType, setBoardType] = useState<'free' | 'qna'>('free');
+  const [boardType, setBoardType] = useState<'free' | 'qna' | 'mate'>('free');
   const [filterRegion, setFilterRegion] = useState<string>(region ? decodeURIComponent(region) : '전체');
   // 마이페이지로 전환할 때 currentView는 즉시 바뀌지만 useParams().userId는 navigate가 커밋된
   // 다음 렌더에야 들어온다. 그 한 프레임 동안 MyPage가 옛 userId로 마운트되어 엉뚱한 프로필이
@@ -55,9 +56,11 @@ export default function PlanmateV2() {
   const [myPageReloadKey, setMyPageReloadKey] = useState(0);
 
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-  const [selectedChatUser, setSelectedChatUser] = useState<any>(null);
+  const [selectedChatUser, setSelectedChatUser] = useState<ChatPartner | null>(null);
+  // 소셜 화면이나 쪽지 창이 열려 있을 때만 새 메시지 알림(SSE)을 받는다
+  useSocialEvents(!!localStorage.getItem('accessToken') && (currentView === 'social' || isChatModalOpen));
 
-  const handleGlobalChat = (user: any) => {
+  const handleGlobalChat = (user: ChatPartner) => {
     setSelectedChatUser(user);
     setIsChatModalOpen(true);
   };
@@ -75,12 +78,12 @@ export default function PlanmateV2() {
       if (path === '/community/create' || path.startsWith('/community/create/')) {
         setCurrentView('community-create');
         const typeFromPath = path.split('/')[3];
-        if (typeFromPath && ['free', 'qna'].includes(typeFromPath)) {
+        if (typeFromPath && ['free', 'qna', 'mate'].includes(typeFromPath)) {
           setBoardType(typeFromPath as any);
         }
       } else if (path.startsWith('/community/edit/')) {
         setCurrentView('community-edit');
-        if (category && ['free', 'qna'].includes(category)) {
+        if (category && ['free', 'qna', 'mate'].includes(category)) {
           setBoardType(category as any);
         }
       } else if (category && id) {
@@ -88,7 +91,7 @@ export default function PlanmateV2() {
         setCurrentView('detail');
         setBoardType(category as any);
       } else if (category) {
-        if (['free', 'qna'].includes(category)) {
+        if (['free', 'qna', 'mate'].includes(category)) {
           setCurrentView('board-list');
           setBoardType(category as any);
         } else {
@@ -193,8 +196,8 @@ export default function PlanmateV2() {
             onNavigate={handleViewChange}
           />
         )}
-        {/* 커뮤니티 게시글 상세 (자유/QnA) — 딥링크 안전 (URL id로 직접 조회) */}
-        {currentView === 'detail' && category && id && ['free', 'qna'].includes(category) && (
+        {/* 커뮤니티 게시글 상세 (자유/QnA/메이트) — 딥링크 안전 (URL id로 직접 조회) */}
+        {currentView === 'detail' && category && id && ['free', 'qna', 'mate'].includes(category) && (
           <CommunityPostDetail
             postId={id}
             onBack={() => handleViewChange('board-list', { boardType: category as any })}
@@ -202,7 +205,7 @@ export default function PlanmateV2() {
           />
         )}
         {/* 여행 피드 상세 — 딥링크 안전 (URL id로 직접 조회) */}
-        {currentView === 'detail' && !(category && id && ['free', 'qna'].includes(category)) && id && (
+        {currentView === 'detail' && !(category && id && ['free', 'qna', 'mate'].includes(category)) && id && (
           <PostDetail
             postId={id}
             onBack={() => navigate(-1)}
@@ -229,6 +232,7 @@ export default function PlanmateV2() {
           <MyPage
             key={activeProfileUserId ?? 'me'}
             onNavigate={handleViewChange}
+            onOpenChat={handleGlobalChat}
             userId={activeProfileUserId}
             reloadKey={myPageReloadKey}
             initialSection={

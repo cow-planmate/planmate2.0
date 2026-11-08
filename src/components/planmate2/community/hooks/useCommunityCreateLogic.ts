@@ -1,6 +1,7 @@
+import { showWriteError } from '../../../../store/SuspensionNotice';
 import { ko } from "@blocknote/core/locales";
 import { useCreateBlockNote } from "@blocknote/react";
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { deleteImage, uploadImage } from '../api/communityApi';
 import { blocksToText } from '../utils/blocksToText';
 import { fileToDataUrl, resolveContentImages } from '../utils/pendingImages';
@@ -20,12 +21,17 @@ const firstImageUrl = (blocks: any[]): string | null => {
 };
 
 export const useCommunityCreateLogic = (
-  type: 'free' | 'qna',
+  type: 'free' | 'qna' | 'mate',
   onSubmit: () => void,
   /** 지정하면 수정 모드로 동작한다 (기존 글을 불러와 프리필 후 PATCH) */
   editPostId?: number | string
 ) => {
   const [title, setTitle] = useState('');
+  // 메이트 찾기 전용 — 여행 희망 지역과 모집 인원('unlimited' = 제한 없음)
+  const [region, setRegion] = useState('');
+  const [mateCount, setMateCount] = useState('2');
+  const [isSaving, setIsSaving] = useState(false);
+  const submitLock = useRef(false);
 
   const isEditMode = editPostId != null;
   const { data: existingPost } = usePost(isEditMode ? editPostId : undefined);
@@ -51,9 +57,9 @@ export const useCommunityCreateLogic = (
   };
 
   const editor = useCreateBlockNote({
-    dictionary: ko,
+    dictionary: { ...ko, placeholders: { ...ko.placeholders, default: "이야기를 시작해 보세요…" } },
     initialContent,
-    // '/' 명령 이미지 업로드 → 커뮤니티 이미지 API (MinIO)
+    // 사진 삽입은 로컬 미리보기로 두고 발행할 때 업로드한다.
     uploadFile,
   });
 
@@ -63,6 +69,8 @@ export const useCommunityCreateLogic = (
     if (!isEditMode || !existingPost || isPrefilled) return;
 
     setTitle(existingPost.title ?? '');
+    if (existingPost.region) setRegion(existingPost.region);
+    if (existingPost.maxParticipants) setMateCount(String(existingPost.maxParticipants));
 
     const blocks = existingPost.content as any[];
     if (Array.isArray(blocks) && blocks.length > 0) {
@@ -79,9 +87,15 @@ export const useCommunityCreateLogic = (
           "현재 상황(누구와, 언제, 예산 등)을 상세히 적어주세요.",
           "도움이 된 답변에는 꼭 감사의 인사를 전해주세요!"
         ];
+      case 'mate':
+        return [
+          "성별, 연령대 등 희망하는 메이트 성향을 적어주세요.",
+          "여행 일정과 방문하고 싶은 장소를 공유하면 매칭이 빨라요.",
+          "참여 방법(댓글, 오픈채팅 등)을 명확하게 알려주세요."
+        ];
       default:
         return [
-          "'/'를 입력하여 텍스트 스타일, 목록, 이미지 등을 추가할 수 있습니다.",
+          "상단 도구로 글자 서식, 목록, 사진과 링크를 추가할 수 있습니다.",
           "여행과 관련된 즐거운 이야기를 들려주세요.",
           "서로 존중하는 따뜻한 커뮤니티를 만들어가요."
         ];
@@ -89,6 +103,7 @@ export const useCommunityCreateLogic = (
   };
 
   const handleSubmit = async () => {
+    if (submitLock.current) return;
     const rawBlocks = editor.document as any[];
     const contentText = blocksToText(rawBlocks);
     // 검증은 업로드 전에 한다 — 유효성 실패 시 이미지가 서버에 올라가 고아가 되는 것을 막는다.
@@ -100,8 +115,14 @@ export const useCommunityCreateLogic = (
       WarningToast('제목과 내용을 모두 입력해주세요.');
       return;
     }
+    if (type === 'mate' && !region.trim()) {
+      WarningToast('여행 희망 지역을 입력해주세요.');
+      return;
+    }
 
     // 검증 통과 후에만 본문의 data: 이미지를 MinIO에 업로드해 URL로 교체한다
+    submitLock.current = true;
+    setIsSaving(true);
     let uploadedUrls: string[] = [];
     try {
       const resolved = await resolveContentImages(rawBlocks, uploadImage);
@@ -113,6 +134,10 @@ export const useCommunityCreateLogic = (
         content: resolved.blocks,
         contentText,
         thumbnailUrl,
+        ...(type === 'mate' && {
+          region: region.trim(),
+          maxParticipants: mateCount === 'unlimited' ? null : Number(mateCount),
+        }),
       };
 
       if (isEditMode) {
@@ -124,16 +149,23 @@ export const useCommunityCreateLogic = (
     } catch (error) {
       // 저장 실패 시 방금 올린 이미지는 고아가 되므로 정리한다
       uploadedUrls.forEach((url) => deleteImage(url).catch(() => {}));
-      ErrorToast(`게시글 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(error as Error).message}`);
+      showWriteError(error, `게시글 ${isEditMode ? '수정' : '등록'}에 실패했습니다: ${(error as Error).message}`);
+    } finally {
+      submitLock.current = false;
+      setIsSaving(false);
     }
   };
 
   return {
     title,
     setTitle,
+    region,
+    setRegion,
+    mateCount,
+    setMateCount,
     editor,
     handleSubmit,
-    isSubmitting: createPostMutation.isPending || updatePostMutation.isPending,
+    isSubmitting: isSaving || createPostMutation.isPending || updatePostMutation.isPending,
     isEditMode,
     getTips
   };
