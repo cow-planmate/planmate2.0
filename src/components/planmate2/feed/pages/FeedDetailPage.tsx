@@ -10,6 +10,8 @@ import { LevelBadge } from '../../community/atoms/LevelBadge';
 import { useComments, useCreateComment, useDeleteComment, useDeletePost, useForkPost, usePost, useReactToPost, useSimilarFeedPosts } from '../../community/hooks/queries';
 import { PostContentViewer } from '../../community/organisms/PostContentViewer';
 import { ReportPostButton } from '../../community/organisms/ReportPostButton';
+import { SendMessageButton } from '../../social/molecules/SendMessageButton';
+import type { ChatPartner } from '../../social/molecules/ChatModal';
 import { ForkDateModal } from '../organisms/ForkDateModal';
 import { ForkResultModal } from '../organisms/ForkResultModal';
 import { UserAvatar } from '../../common/UserAvatar';
@@ -23,6 +25,7 @@ interface PostDetailProps {
   postId: number | string;
   onBack: () => void;
   onNavigate: (view: any, data?: any) => void;
+  onOpenChat?: (user: ChatPartner) => void;
 }
 
 const FALLBACK_ITEM_IMAGE = 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=400';
@@ -34,7 +37,7 @@ const FALLBACK_ITEM_IMAGE = 'https://images.unsplash.com/photo-1516483638261-f4d
 const PLACE_COLORS = ['#1344FF', '#E11D48', '#059669', '#9333EA', '#EA580C', '#0891B2', '#CA8A04', '#DB2777'];
 const placeColor = (index: number) => PLACE_COLORS[index % PLACE_COLORS.length];
 
-export default function PostDetail({ postId, onBack, onNavigate }: PostDetailProps) {
+export default function PostDetail({ postId, onBack, onNavigate, onOpenChat }: PostDetailProps) {
   useKakaoLoader();
   const [map, setMap] = useState<any>(null);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -349,7 +352,12 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
             <h1 className="flex-1 min-w-0 text-xl sm:text-[27px] font-bold text-[#16181d] leading-snug break-keep">{post.title}</h1>
 
             {/* 작성자 전용 수정/삭제 */}
-            {!isAuthor && <ReportPostButton key={post.id} postId={post.id} feed />}
+            {!isAuthor && (
+              <div className="flex items-center gap-1 shrink-0">
+                <SendMessageButton target={post} onOpenChat={onOpenChat} />
+                <ReportPostButton key={post.id} postId={post.id} feed />
+              </div>
+            )}
             {isAuthor && (
               <div className="flex items-center gap-1.5 shrink-0 mt-0.5 sm:mt-1">
                 <button
@@ -658,6 +666,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                               <LevelBadge level={c.level} />
                               <span className="text-[10px] text-[#666666]">{c.createdAt}</span>
                             </div>
+                            <SendMessageButton compact target={c} onOpenChat={onOpenChat} />
                             {myUserId === c.userId && (
                               <button
                                 onClick={() => handleCommentDelete(c.id)}
@@ -728,6 +737,7 @@ export default function PostDetail({ postId, onBack, onNavigate }: PostDetailPro
                                     <LevelBadge level={reply.level} />
                                     <span className="text-[10px] text-[#666666]">{reply.createdAt}</span>
                                   </div>
+                                  <SendMessageButton compact target={reply} onOpenChat={onOpenChat} />
                                   {myUserId === reply.userId && (
                                     <button
                                       onClick={() => handleCommentDelete(reply.id)}

@@ -3,15 +3,20 @@ import { CornerDownRight, MessageCircle, Pencil, Send, Trash2 } from 'lucide-rea
 import { useMemo, useState } from 'react';
 import type { CommunityComment } from '../api/communityApi';
 import { UserAvatar } from '../../common/UserAvatar';
+import { authorNameClass, authorNavProps } from '../../common/authorLink';
+import { SendMessageButton } from '../../social/molecules/SendMessageButton';
+import type { ChatPartner } from '../../social/molecules/ChatModal';
 import { LevelBadge } from '../atoms/LevelBadge';
 import { useComments, useCreateComment, useDeleteComment, useUpdateComment } from '../hooks/queries';
 import { ErrorToast } from '../../../common/Toast';
 
 interface CommentSectionProps {
   postId: number | string;
+  onNavigate?: (view: any, data?: any) => void;
+  onOpenChat?: (user: ChatPartner) => void;
 }
 
-export const CommentSection = ({ postId }: CommentSectionProps) => {
+export const CommentSection = ({ postId, onNavigate, onOpenChat }: CommentSectionProps) => {
   const [content, setContent] = useState('');
   const [page, setPage] = useState(0);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
@@ -93,7 +98,9 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
     }
   };
 
-  const renderCommentCard = (comment: CommunityComment, isReply: boolean) => (
+  const renderCommentCard = (comment: CommunityComment, isReply: boolean) => {
+    const authorNav = authorNavProps(comment, onNavigate);
+    return (
     <div className={`bg-white rounded-xl border border-gray-100 ${isReply ? 'p-3' : 'p-4'}`}>
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
@@ -103,11 +110,18 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
             avatarHash={comment.authorAvatarHash}
             sizeClass={isReply ? 'w-6 h-6' : 'w-7 h-7'}
             className={isReply ? 'text-[10px]' : 'text-xs'}
+            onClick={authorNav.onClick}
           />
-          <span className={`font-bold text-gray-800 whitespace-nowrap ${isReply ? 'text-[13px]' : 'text-sm'}`}>{comment.author}</span>
+          <span
+            onClick={authorNav.onClick}
+            className={`font-bold whitespace-nowrap ${isReply ? 'text-[13px]' : 'text-sm'} ${authorNav.className} ${authorNameClass(comment, `text-gray-800 ${authorNav.onClick ? 'hover:text-[#1344FF]' : ''}`)}`}
+          >
+            {comment.author}
+          </span>
           <LevelBadge level={comment.level} />
           <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">{comment.createdAt}</span>
         </div>
+        <SendMessageButton compact target={comment} onOpenChat={onOpenChat} />
         {myUserId === comment.userId && (
           <div className="flex items-center gap-2">
             <button
@@ -167,7 +181,8 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
         </button>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <section className="border-t border-[#eef0f3] bg-[#fafbfc] px-6 py-7 sm:px-9 sm:py-8">
