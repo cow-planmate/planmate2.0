@@ -2,6 +2,8 @@ import {
   ArrowLeft, CheckCircle2, Eye, MapPin, Pencil, ThumbsDown, ThumbsUp, Trash2, Users,
 } from 'lucide-react';
 import { ReportPostButton } from '../organisms/ReportPostButton';
+import { SendMessageButton } from '../../social/molecules/SendMessageButton';
+import type { ChatPartner } from '../../social/molecules/ChatModal';
 import { UserAvatar } from '../../common/UserAvatar';
 import { LevelBadge } from '../atoms/LevelBadge';
 import {
@@ -18,10 +20,11 @@ interface PostDetailPageProps {
   postId: number | string;
   onBack: () => void;
   onNavigate?: (view: any, data?: any) => void;
+  onOpenChat?: (user: ChatPartner) => void;
 }
 
 /** 자유/QnA/메이트 게시글 상세 (딥링크 안전 — id로 직접 조회) */
-export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPageProps) => {
+export const PostDetailPage = ({ postId, onBack, onNavigate, onOpenChat }: PostDetailPageProps) => {
   const { data: post, isLoading, error } = usePost(postId);
   // 하단 목록은 상세와 독립적으로 페이지를 넘긴다 (지금 글은 그대로 두고 목록만 이동)
   const [listPage, setListPage] = useState(0);
@@ -145,7 +148,12 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
               <span className="shrink-0 whitespace-nowrap">{post.createdAt}</span>
               <span className="flex shrink-0 items-center gap-1 whitespace-nowrap"><Eye className="w-4 h-4" />{post.views}</span>
             </div>
-            {!isAuthor && <ReportPostButton key={post.id} postId={post.id} />}
+            {!isAuthor && (
+              <div className="flex items-center gap-1">
+                <SendMessageButton target={post} onOpenChat={onOpenChat} />
+                <ReportPostButton key={post.id} postId={post.id} />
+              </div>
+            )}
             {isAuthor && (
               <div className="flex flex-wrap items-center gap-2">
                 {post.category === 'mate' && (
@@ -216,7 +224,7 @@ export const PostDetailPage = ({ postId, onBack, onNavigate }: PostDetailPagePro
           </button>
         </div>
 
-        <CommentSection postId={post.id} />
+        <CommentSection postId={post.id} onNavigate={onNavigate} onOpenChat={onOpenChat} />
       </article>
 
       {/* 글 아래에 게시판 목록을 그대로 붙인다 — 목록으로 나갔다 들어오는 왕복 없이

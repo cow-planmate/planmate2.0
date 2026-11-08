@@ -9,7 +9,7 @@ import { exportBlock } from "../../../utils/createUtils";
 import { clearTempPlan } from "../../../utils/tempPlanStorage";
 import { saveRecentPlan } from "../../../utils/recentPlanSession";
 
-export default function NoLoginSave({ isOpen }) {
+export default function NoLoginSave({ isOpen, redirectTo = "complete" }) {
   const BASE_URL = import.meta.env.VITE_API_URL;
   const { isAuthenticated, post } = useApiClient();
   const { destinationId, adultCount, childCount, planName } =
@@ -72,7 +72,12 @@ export default function NoLoginSave({ isOpen }) {
           clearTempPlan();
           saveRecentPlan({ planId: res.planId, planName });
           console.log(res.message);
-          navigate(`/complete?id=${res.planId}`);
+          if (redirectTo === "create") {
+            // 같은 /create 경로라 SPA 이동으로는 Create2가 다시 마운트되지 않아 서버 일정으로 초기화되지 않는다
+            window.location.replace(`/create?id=${res.planId}`);
+          } else {
+            navigate(`/${redirectTo}?id=${res.planId}`);
+          }
         } catch (err) {
           console.error("요청에 실패했습니다.", err);
         }
@@ -80,7 +85,7 @@ export default function NoLoginSave({ isOpen }) {
     };
 
     savePlan();
-  }, [BASE_URL, adultCount, childCount, destinationId, isAuthenticated, isOpen, items, navigate, planName, post, timetables]);
+  }, [BASE_URL, adultCount, childCount, destinationId, isAuthenticated, isOpen, items, navigate, planName, post, redirectTo, timetables]);
 
   if (!isOpen) return null;
 
