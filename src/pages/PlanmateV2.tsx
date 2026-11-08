@@ -202,6 +202,7 @@ export default function PlanmateV2() {
             postId={id}
             onBack={() => handleViewChange('board-list', { boardType: category as any })}
             onNavigate={handleViewChange}
+            onOpenChat={handleGlobalChat}
           />
         )}
         {/* 여행 피드 상세 — 딥링크 안전 (URL id로 직접 조회) */}
@@ -210,6 +211,7 @@ export default function PlanmateV2() {
             postId={id}
             onBack={() => navigate(-1)}
             onNavigate={handleViewChange}
+            onOpenChat={handleGlobalChat}
           />
         )}
         {currentView === 'create' && (
