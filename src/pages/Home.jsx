@@ -54,6 +54,8 @@ function Home({ hideNavbar = false }) {
     return `${start} ~ ${end}`;
   };
 
+
+  
   const handleDepartureLocationSelect = (location) => {
     setDepartureLocation(location);
     setPlanField("departure", location?.name ?? "");

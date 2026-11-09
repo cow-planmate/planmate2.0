@@ -520,30 +520,30 @@ function App() {
         enabled={isAuthenticated()}
       />
       <CreateTutorial />
-      <ChatBot planId={id} />
-      <div
-        className="
-          min-[1464px]:w-[1400px] min-[1464px]:px-0
-          md:px-8 md:py-6 py-3
-          mx-auto
-          md:h-[calc(100vh-134px)]
-          h-[calc(100vh-112px)]
-        "
+      <DndContext
+        sensors={sensors}
+        modifiers={[restrictScheduledItemToVerticalAxis]}
+        autoScroll={{
+          activator: AutoScrollActivator.DraggableRect,
+          layoutShiftCompensation: false,
+        }}
       >
-        <div className="flex md:flex-row flex-col md:space-x-6 space-y-4 md:space-y-0 h-full">
-          <DaySelector />
-          <DndContext
-            sensors={sensors}
-            modifiers={[restrictScheduledItemToVerticalAxis]}
-            autoScroll={{
-              activator: AutoScrollActivator.DraggableRect,
-              layoutShiftCompensation: false,
-            }}
-          >
+        <ChatBot planId={id} enableScheduleDrag />
+        <div
+          className="
+            min-[1464px]:w-[1400px] min-[1464px]:px-0
+            md:px-8 md:py-6 py-3
+            mx-auto
+            md:h-[calc(100vh-134px)]
+            h-[calc(100vh-112px)]
+          "
+        >
+          <div className="flex md:flex-row flex-col md:space-x-6 space-y-4 md:space-y-0 h-full">
+            <DaySelector />
             <Main />
-          </DndContext>
+          </div>
         </div>
-      </div>
+      </DndContext>
     </div>
   );
 }
