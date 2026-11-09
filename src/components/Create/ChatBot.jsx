@@ -164,7 +164,76 @@ const InlineMarkdown = ({ text }) => {
   });
 };
 
-const SuggestedPlaces = ({ places, onShowDetail }) => {
+const DraggableSuggestedPlace = ({ place, enabled, onShowDetail }) => {
+  const draggableId = useId();
+  const draggablePlace = useMemo(() => mapPlaceSummary(place), [place]);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `chatbot-place-${draggableId}`,
+    data: {
+      type: "chatbot",
+      place: draggablePlace,
+      duration: 4,
+      originalId: place?.contentId ?? place?.title,
+    },
+    disabled: !enabled,
+  });
+
+  return (
+    <article
+      ref={setNodeRef}
+      {...(enabled ? listeners : {})}
+      {...(enabled ? attributes : {})}
+      className={`relative w-[178px] flex-none overflow-hidden rounded-xl border border-slate-200 bg-white ${
+        enabled ? "cursor-grab select-none active:cursor-grabbing" : ""
+      } ${isDragging ? "opacity-40 ring-2 ring-blue-300" : ""}`}
+      title={enabled ? "시간표로 드래그하여 1시간 일정으로 추가" : undefined}
+    >
+      {enabled ? (
+        <span className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-[#1344FF] shadow-sm ring-1 ring-slate-200">
+          <GripVertical className="h-4 w-4" aria-hidden="true" />
+        </span>
+      ) : null}
+      {place.thumbnailUrl ? (
+        <img
+          src={place.thumbnailUrl}
+          alt=""
+          draggable={false}
+          className="h-20 w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-20 items-center justify-center bg-slate-100 text-slate-300">
+          <MapPin className="h-6 w-6" />
+        </div>
+      )}
+      <div className="p-2.5">
+        <span className="text-[10px] font-bold text-[#1344FF]">
+          {CATEGORY_LABELS[place.category] ?? place.category ?? "여행 장소"}
+        </span>
+        <h4 className="mt-0.5 truncate text-xs font-extrabold text-slate-900">
+          <InlineMarkdown text={place.title} />
+        </h4>
+        {getOverviewText(place.overview) ? (
+          <p className="mt-2 line-clamp-2 text-[10px] font-medium leading-4 text-slate-500">
+            {getOverviewText(place.overview)}
+          </p>
+        ) : null}
+        {compactPlaceFacts(place).length ? (
+          <ul className="mt-2 space-y-1 text-[10px] font-medium leading-4 text-slate-500">
+            {compactPlaceFacts(place).map((fact) => <li key={fact} className="truncate">• {fact}</li>)}
+          </ul>
+        ) : null}
+        <PlaceActionButtons
+          place={place}
+          onShowDetail={place.contentId != null ? () => onShowDetail(place) : undefined}
+          className="mt-2"
+          labelButtons
+        />
+      </div>
+    </article>
+  );
+};
+
+const SuggestedPlaces = ({ places, onShowDetail, enableScheduleDrag = false }) => {
   if (!places.length) return null;
 
   return (
@@ -175,47 +244,21 @@ const SuggestedPlaces = ({ places, onShowDetail }) => {
         </span>
         <div>
           <h3 className="text-xs font-extrabold text-slate-900">추천 장소</h3>
-          <p className="text-[10px] font-medium text-slate-400">이어서 조건을 바꿔 물어볼 수 있어요</p>
+          <p className="text-[10px] font-medium text-slate-400">
+            {enableScheduleDrag
+              ? "카드를 시간표로 끌면 1시간 일정으로 추가돼요"
+              : "이어서 조건을 바꿔 물어볼 수 있어요"}
+          </p>
         </div>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {places.map((place) => (
-          <article
+          <DraggableSuggestedPlace
             key={`${place.contentId}-${place.title}`}
-            className="w-[178px] flex-none overflow-hidden rounded-xl border border-slate-200 bg-white"
-          >
-            {place.thumbnailUrl ? (
-              <img src={place.thumbnailUrl} alt="" className="h-20 w-full object-cover" />
-            ) : (
-              <div className="flex h-20 items-center justify-center bg-slate-100 text-slate-300">
-                <MapPin className="h-6 w-6" />
-              </div>
-            )}
-            <div className="p-2.5">
-              <span className="text-[10px] font-bold text-[#1344FF]">
-                {CATEGORY_LABELS[place.category] ?? place.category ?? "여행 장소"}
-              </span>
-              <h4 className="mt-0.5 truncate text-xs font-extrabold text-slate-900">
-                <InlineMarkdown text={place.title} />
-              </h4>
-              {getOverviewText(place.overview) ? (
-                <p className="mt-2 line-clamp-2 text-[10px] font-medium leading-4 text-slate-500">
-                  {getOverviewText(place.overview)}
-                </p>
-              ) : null}
-              {compactPlaceFacts(place).length ? (
-                <ul className="mt-2 space-y-1 text-[10px] font-medium leading-4 text-slate-500">
-                  {compactPlaceFacts(place).map((fact) => <li key={fact} className="truncate">• {fact}</li>)}
-                </ul>
-              ) : null}
-              <PlaceActionButtons
-                place={place}
-                onShowDetail={place.contentId != null ? () => onShowDetail(place) : undefined}
-                className="mt-2"
-                labelButtons
-              />
-            </div>
-          </article>
+            place={place}
+            enabled={enableScheduleDrag}
+            onShowDetail={onShowDetail}
+          />
         ))}
       </div>
       <TourApiAttribution className="mt-3 border-t border-slate-100 pt-2.5" />
@@ -704,7 +747,11 @@ const ChatBot = ({ planId: explicitPlanId, enableScheduleDrag = false }) => {
                       </div>
                       {message.role === "assistant" ? (
                         <div className="mt-3">
-                          <SuggestedPlaces places={message.suggestedPlaces ?? []} onShowDetail={setDetailPlace} />
+                          <SuggestedPlaces
+                            places={message.suggestedPlaces ?? []}
+                            onShowDetail={setDetailPlace}
+                            enableScheduleDrag={enableScheduleDrag}
+                          />
                           <PlanPreview
                             plan={message.suggestedPlan}
                             status={message.planStatus ?? "pending"}
