@@ -19,6 +19,7 @@ export default function Theme({
 }) {
   const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
+  const [selectionNotice, setSelectionNotice] = useState("");
   const [allSelectedKeywords, setAllSelectedKeywords] = useState({});
   const [keywordsByStep, setKeywordsByStep] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -109,6 +110,11 @@ export default function Theme({
   if (!isOpen) return null;
 
   const toggleKeyword = (index) => {
+    if (!selectedKeywords.includes(index) && selectedKeywords.length >= 5) {
+      setSelectionNotice("취향은 최대 5개까지 선택할 수 있어요. 기존 선택을 해제한 뒤 선택해 주세요.");
+      return;
+    }
+    setSelectionNotice("");
     setSelectedKeywords((prev) =>
       prev.includes(index)
         ? prev.filter((i) => i !== index)
@@ -147,17 +153,12 @@ export default function Theme({
     if (categories.length === 0) return;
 
     const currentCategoryId = categories[currentStep].id;
-    setAllSelectedKeywords((prev) => ({
-      ...prev,
-      [currentCategoryId]: [],
-    }));
-
     if (currentStep < categories.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       const final = {
         ...allSelectedKeywords,
-        [currentCategoryId]: [],
+        [currentCategoryId]: allSelectedKeywords[currentCategoryId] || [],
       };
       onComplete(final);
     }
@@ -203,7 +204,7 @@ export default function Theme({
                     : "로딩 중..."}
                 </h1>
                 <p className="text-xs text-gray-400 mt-0.5 font-medium">
-                  최대 5개까지 선택 가능
+                  최대 5개까지 선택 가능 · {selectedKeywords.length}/5
                 </p>
               </div>
             </div>
@@ -241,6 +242,7 @@ export default function Theme({
                 return (
                   <button
                     key={keyword.preferredThemeId}
+                    aria-pressed={selectedKeywords.includes(index)}
                     onClick={() => toggleKeyword(index)}
                     className={`
                       relative group py-4 px-3 rounded-xl text-sm font-bold transition-all duration-200 border-2
@@ -272,6 +274,7 @@ export default function Theme({
           </div>
         </div>
 
+        <p role="status" className="px-6 text-sm text-amber-700">{selectionNotice}</p>
         {/* Footer */}
         <div className="p-6 bg-gray-50 flex items-center justify-between border-t border-gray-100">
           <button

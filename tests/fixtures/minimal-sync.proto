@@ -1,0 +1,12 @@
+syntax = "proto3";
+package qa.sync;
+enum SyncAction { SYNC_ACTION_UNSPECIFIED = 0; SYNC_ACTION_UPDATE = 1; SYNC_ACTION_UNDO = 2; SYNC_ACTION_REDO = 3; }
+message Plan { optional string plan_id = 1; optional string plan_name = 2; }
+message PlanList { repeated Plan items = 1; }
+message SyncRequest { string event_id = 1; SyncAction action = 2; oneof payload { PlanList plans = 10; } }
+message SyncEvent { string event_id = 1; SyncAction action = 2; bool is_undo_redo = 3; oneof payload { PlanList plans = 10; } }
+message Hello { string schema_hash = 1; }
+message Join { string room_id = 1; string schema_hash = 2; }
+message PresenceEvent { repeated string users = 1; }
+message ClientFrame { oneof frame { Join join = 1; SyncRequest sync = 2; } }
+message ServerFrame { oneof frame { Hello hello = 1; SyncEvent sync = 2; PresenceEvent presence = 3; } }

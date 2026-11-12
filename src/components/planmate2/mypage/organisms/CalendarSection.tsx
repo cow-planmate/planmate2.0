@@ -27,7 +27,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   onEventClick,
 }) => {
   return (
-    <div className={`flex flex-col rounded-[28px] bg-white p-4 ring-1 ring-slate-200/70 ${compact ? "h-[390px] sm:p-4" : "h-[500px] sm:p-6"}`}>
+    <div className={`flex flex-col rounded-[28px] bg-white p-4 ring-1 ring-slate-200/70 ${compact ? "min-h-[390px] sm:p-4" : "min-h-[500px] sm:p-6"}`}>
       <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-2">
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eef3ff] text-[#1344FF]"><CalendarDays className="h-5 w-5" /></span>
@@ -50,7 +50,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
               onChange={(e) => onSetDate(new Date(parseInt(e.target.value), currentMonth, 1))}
               className="appearance-none bg-white border-2 border-gray-100 text-[#1a1a1a] text-sm font-bold py-1.5 pl-3 pr-8 rounded-xl cursor-pointer hover:border-[#1344FF] focus:outline-none focus:border-[#1344FF] transition-all"
             >
-              {[2023, 2024, 2025, 2026].map(year => (
+              {Array.from({ length: 21 }, (_, index) => currentYear - 10 + index).map(year => (
                 <option key={year} value={year}>{year}년</option>
               ))}
             </select>
@@ -100,17 +100,17 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="grid grid-cols-7 min-h-full">
+        <div className="flex-1">
+          <div className="grid grid-cols-7 min-h-full auto-rows-auto">
             {gridCells.map((cell, idx) => {
               const events = getEventsForDate(cell.date);
-              const isToday = cell.day === new Date().getDate() && cell.isCurrentMonth && currentMonth === new Date().getMonth();
+              const isToday = cell.day === new Date().getDate() && cell.isCurrentMonth && currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear();
               
               return (
                 <div 
                   key={idx} 
                   className={`
-                    border-r border-b border-gray-100 p-1 relative transition-colors flex flex-col min-h-[60px] h-full
+                    border-r border-b border-gray-100 p-1 relative transition-colors flex flex-col min-w-0 min-h-[72px]
                     ${!cell.isCurrentMonth ? 'bg-gray-50/50 text-gray-400' : 'bg-white text-gray-900'}
                     ${isToday ? 'bg-blue-50/30' : ''}
                   `}
@@ -121,12 +121,12 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     {cell.day}
                   </span>
                   
-                  <div className="flex-1 flex flex-col gap-0.5 mt-0.5 -mx-1.5 pb-1">
+                  <div className="flex-1 flex flex-col gap-0.5 mt-0.5 -mx-1 pb-1">
                     {(() => {
                       const maxLane = events.length > 0 ? Math.max(...events.map(e => e.lane || 0)) : -1;
                       return Array.from({ length: maxLane + 1 }).map((_, laneIdx) => {
                         const event = events.find(e => e.lane === laneIdx);
-                        if (!event) return <div key={laneIdx} className="h-4" />;
+                        if (!event) return <div key={laneIdx} className="h-5 shrink-0" />;
                         
                         const isStart = new Date(event.startDate).toDateString() === cell.date.toDateString();
                         const isEnd = new Date(event.endDate).toDateString() === cell.date.toDateString();
@@ -144,7 +144,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                               onEventClick(event);
                             }}
                             className={`
-                              text-[8px] h-4 flex items-center px-1 truncate relative z-10 cursor-pointer
+                              text-[11px] h-5 shrink-0 flex items-center px-1 truncate relative z-10 cursor-pointer
                               transition-colors
                               ${event.status === '완료' 
                                 ? 'bg-gray-200 text-gray-700 font-bold' 

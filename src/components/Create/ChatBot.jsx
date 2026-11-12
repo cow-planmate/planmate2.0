@@ -17,6 +17,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApiClient } from "../../hooks/useApiClient";
 import usePlanStore from "../../store/Plan";
+import useSocketStore from "../../store/Socket";
 import { mapPlaceSummary } from "../../utils/createUtils";
 import NoLoginSave from "../Create2/PlanInfo/NoLoginSave";
 import PlaceDetailModal from "../Create2/Place/PlaceDetailModal";
@@ -47,8 +48,8 @@ const CATEGORY_LABELS = {
 const newMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 const getErrorMessage = (error, mode) => {
-  if (error?.code === "CHATBOT_003" || error?.status === 409) {
-    return "반영 세션이 만료됐어요. 페이지를 새로고침한 뒤 다시 시도해 주세요.";
+  if (error?.code === "CHATBOT_003") {
+    return "실시간 편집 연결을 확인하지 못했어요. 연결이 복구되면 같은 제안을 다시 반영해 주세요.";
   }
   if (error?.status === 403) return "이 일정을 편집할 권한이 있는 멤버만 AI 도우미를 사용할 수 있어요.";
   if (error?.status === 404) return "AI 도우미 API가 아직 연결되지 않았어요. 잠시 후 다시 시도해 주세요.";
@@ -293,12 +294,26 @@ const ChatBot = ({ planId: explicitPlanId }) => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [isSavingPlan, setIsSavingPlan] = useState(false);
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const isConnected = useSocketStore((state) => state.isConnected);
+  const conversationKey = isLoggedIn && localStorage.getItem("userId") && hasSavedPlan
+    ? `planmate:chat:${localStorage.getItem("userId")}:${planId}` : null;
+  const [restoredConversation] = useState(() => {
+    try {
+      const stored = conversationKey ? JSON.parse(sessionStorage.getItem(conversationKey)) : null;
+      return stored && Array.isArray(stored.messages) ? stored : null;
+    } catch { return null; }
+  });
+  const [messages, setMessages] = useState(restoredConversation?.messages ?? [WELCOME_MESSAGE]);
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
-  const [pendingPlan, setPendingPlan] = useState(null);
-  const [shownPlaces, setShownPlaces] = useState([]);
+  const [pendingPlan, setPendingPlan] = useState(() => restoredConversation?.messages?.find((message) => message.id === restoredConversation.pendingMessageId)?.suggestedPlan ?? null);
+  const [shownPlaces, setShownPlaces] = useState(restoredConversation?.shownPlaces ?? []);
+  useEffect(() => {
+    if (!conversationKey) return;
+    try { sessionStorage.setItem(conversationKey, JSON.stringify({ messages, shownPlaces, pendingMessageId: messages.find((message) => message.suggestedPlan === pendingPlan)?.id ?? null })); }
+    catch { /* Storage may be full or disabled; the active conversation remains usable. */ }
+  }, [conversationKey, messages, shownPlaces, pendingPlan]);
   const [detailPlace, setDetailPlace] = useState(null);
   const [detailPlan, setDetailPlan] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -362,15 +377,6 @@ const ChatBot = ({ planId: explicitPlanId }) => {
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    setMessages([WELCOME_MESSAGE]);
-    setInputMessage("");
-    setPendingPlan(null);
-    setShownPlaces([]);
-    setDetailPlace(null);
-    setDetailPlan(null);
-    setNotice(null);
-  }, [planId]);
 
   const appendAssistantMessage = (text, attachments = {}) => {
     setMessages((current) => [
@@ -428,6 +434,10 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   const applyPendingPlan = async (requestedPlan = pendingPlan) => {
     if (!requestedPlan || applyInFlightRef.current || !canUseChatbot) return;
 
+    if (!isConnected) {
+      setNotice({ type: "error", text: "실시간 편집 연결을 복구하고 있어요. 잠시 후 같은 제안을 다시 반영해 주세요." });
+      return;
+    }
     const planToApply = requestedPlan;
     applyInFlightRef.current = true;
     setNotice(null);
@@ -652,7 +662,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                         <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
                           <LoaderCircle className="h-4 w-4 animate-spin text-[#1344FF]" /> 일정을 살펴보고 있어요
                         </div>
-                        <p className="mt-1 text-[10px] font-medium text-slate-400">내용에 따라 최대 40초 정도 걸릴 수 있어요.</p>
+                        <p className="mt-1 text-[10px] font-medium text-slate-400">내용에 따라 1분 이상 걸릴 수 있어요. 응답을 기다려 주세요.</p>
                       </div>
                     </div>
                   )}
@@ -713,4 +723,12 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   );
 };
 
-export default ChatBot;
+// A fresh component owns each account/plan conversation; restoring one cannot
+// overwrite the cache for another identity during effect processing.
+export default function ChatBotConversation(props) {
+  const [searchParams] = useSearchParams();
+  const storePlanId = usePlanStore((state) => state.planId);
+  const planId = props.planId ?? searchParams.get("id") ?? storePlanId;
+  const userId = localStorage.getItem("userId") || "guest";
+  return <ChatBot key={`${userId}:${planId}`} {...props} />;
+}
