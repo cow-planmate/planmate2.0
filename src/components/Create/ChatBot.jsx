@@ -511,7 +511,7 @@ const ChatBot = ({ planId: explicitPlanId, inlineOnMobile = false }) => {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className={`${inlineOnMobile ? "relative h-11 w-11 md:fixed md:h-14 md:w-14" : "fixed bottom-20 right-4 h-14 w-14"} z-[45] flex items-center justify-center rounded-full text-white shadow-[0_14px_34px_rgba(19,68,255,0.34)] transition hover:-translate-y-0.5 md:bottom-6 md:right-6 ${isOpen ? "bg-slate-800 hover:bg-slate-700" : "bg-[#1344FF] hover:bg-[#0d34cc]"}`}
+        className={`${inlineOnMobile && !isOpen ? "relative h-11 w-11 md:fixed md:h-14 md:w-14" : "fixed bottom-20 right-4 h-14 w-14"} z-[45] flex items-center justify-center rounded-full text-white shadow-[0_14px_34px_rgba(19,68,255,0.34)] transition hover:-translate-y-0.5 md:bottom-6 md:right-6 ${isOpen ? "bg-slate-800 hover:bg-slate-700" : "bg-[#1344FF] hover:bg-[#0d34cc]"}`}
         aria-label={isOpen ? "AI 여행 도우미 닫기" : "AI 여행 도우미 열기"}
         aria-expanded={isOpen}
       >
