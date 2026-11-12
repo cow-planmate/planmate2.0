@@ -13,6 +13,16 @@ export const getAccessToken = (): string | null => localStorage.getItem('accessT
 
 export const getRefreshToken = (): string | null => localStorage.getItem('refreshToken');
 
+export const getAuthenticatedUserId = (): string | null => {
+  try {
+    const payload = getAccessToken()?.split('.')[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const claims = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')));
+    return typeof claims.sub === 'string' && claims.sub ? claims.sub : null;
+  } catch { return null; }
+};
+
 export const setTokens = (accessToken: string, refreshToken: string): void => {
   if (accessToken && refreshToken) {
     localStorage.setItem('accessToken', accessToken);
@@ -56,6 +66,7 @@ export const refreshTokens = async (): Promise<string> => {
 
     const res = await fetch(`${MAIN_BASE_URL}/api/auth/token`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
     });

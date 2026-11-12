@@ -269,7 +269,7 @@ async function sha256Prefix(text) {
  * 그대로 엔티티 집합이다. 서버에 엔티티가 추가돼도 프론트 코드는 바뀌지 않는다.
  */
 async function loadSchema(baseUrl) {
-  const response = await fetch(`${baseUrl}/ws/schema.proto`);
+  const response = await fetch(`${baseUrl}/ws/schema.proto`, { credentials: "include" });
   if (!response.ok) {
     throw new Error(`스키마 응답 ${response.status}`);
   }

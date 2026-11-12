@@ -25,7 +25,7 @@ test('raw adapter authenticates, joins and edits using binary protobuf, then rec
     receive(frame) { this.onmessage({ data: ServerFrame.encode(ServerFrame.fromObject(frame)).finish() }); }
   }
   globalThis.WebSocket = FakeWebSocket;
-  globalThis.fetch = async (url) => { requests.push(url); return new Response(text); };
+  globalThis.fetch = async (url, options) => { requests.push({ url, options }); return new Response(text); };
   t.mock.timers.enable({ apis: ['setTimeout'] });
   let connected = 0;
   let disconnected = 0;
@@ -38,7 +38,7 @@ test('raw adapter authenticates, joins and edits using binary protobuf, then rec
     while (!sockets.length && Date.now() < deadline) await new Promise(setImmediate);
     assert.equal(sockets.length, 1);
     const socket = sockets[0];
-    assert.deepEqual(requests, ['https://api.example.test/ws/schema.proto']);
+    assert.deepEqual(requests, [{ url: 'https://api.example.test/ws/schema.proto', options: { credentials: 'include' } }]);
     assert.equal(socket.url, 'wss://api.example.test/ws/v2');
     assert.deepEqual(socket.protocols, ['sharedsync.v1', 'bearer.dummy-token']);
     assert(!socket.url.includes('dummy-token'));

@@ -788,7 +788,10 @@ export default function SegmentInfoPanel({
               {sortedSchedule.map((item, i) => {
                 const next = sortedSchedule[i + 1];
                 const transit = segmentData.transit?.[i];
-                const activeMode = segmentModes[i] ?? "transit";
+                const transitUnavailable = !isLoading && !(transit?.available && transit.routes?.length);
+                const defaultMode = transitUnavailable && segmentData.driving?.durations?.[i]?.[i + 1] != null
+                  ? "driving" : "transit";
+                const activeMode = segmentModes[i] ?? defaultMode;
 
                 return (
                   <div key={item.id} className="relative grid grid-cols-[24px_minmax(0,1fr)] gap-x-3">
@@ -832,6 +835,9 @@ export default function SegmentInfoPanel({
                             className="overflow-hidden rounded-xl border border-slate-200/80 bg-white"
                             aria-label={`${item.place.name}에서 ${next.place.name}까지 이동 정보`}
                           >
+                            {transitUnavailable && segmentModes[i] == null && defaultMode === "driving" ? (
+                              <p role="status" className="border-b border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-900">대중교통 정보를 불러오지 못해 자동차 경로를 표시합니다.</p>
+                            ) : null}
                             <div className="flex border-b border-slate-100 px-1" role="tablist" aria-label={`${i + 1}구간 이동 수단 선택`}>
                               {[
                                 { key: "transit", label: "대중교통", icon: faBus },

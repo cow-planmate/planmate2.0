@@ -291,7 +291,7 @@ export default function Main() {
       {/* Mobile Bottom Tab */}
       {isMobile && (
         <nav
-          className="fixed left-0 right-0 bottom-0 z-40 bg-white border-t h-16 flex"
+          className="relative z-40 flex h-16 shrink-0 border-t bg-white"
           data-tutorial="mobile-navigation"
         >
           <button onClick={() => setActiveTab('timetable')} className={`flex-1 flex flex-col items-center justify-center ${activeTab === 'timetable' ? 'text-main' : 'text-gray-400'}`}>

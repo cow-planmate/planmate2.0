@@ -536,43 +536,42 @@ function App() {
   }
 
   return (
-    <div className="font-pretendard h-screen">
+    <div className="font-pretendard flex h-dvh flex-col overflow-hidden">
       <div>
         <Navbar currentView="schedule-editor" onNavigate={handleNavbarNavigate} />
       </div>
       {id && !isConnected ? (
         <div role="status" className="flex flex-wrap items-center justify-center gap-3 bg-amber-50 px-4 py-2 text-sm text-amber-900">
-          <span>실시간 연결을 복구하고 있어요. 연결될 때까지 일정 편집을 잠시 멈춥니다.</span>
+          <span>실시간 연결을 복구하고 있어요. 날짜별 일정은 확인할 수 있으며, 변경은 연결 복구 후 가능합니다.</span>
           <button type="button" className="rounded-lg border border-amber-300 px-3 py-1 font-semibold" onClick={() => initSyncClient(id)}>다시 연결</button>
         </div>
       ) : null}
       <div inert={Boolean(id && !isConnected)}>
         <PlanInfo id={id} isOwner={isOwner} />
       </div>
-      <ChecklistSheet
-        planId={checklistPlanId}
-        enabled={isAuthenticated()}
-      />
-      <CreateTutorial />
-      <ChatBot planId={id} />
+      <div className="flex shrink-0 items-center justify-end gap-2 px-3 py-2 md:contents" data-editor-tools>
+        <CreateTutorial inlineOnMobile />
+        <ChecklistSheet planId={checklistPlanId} enabled={isAuthenticated()} variant="toolbar" />
+        <ChatBot planId={id} inlineOnMobile />
+      </div>
       <div
-        inert={Boolean(id && !isConnected)}
         className="
           min-[1464px]:w-[1400px] min-[1464px]:px-0
           md:px-8 md:py-6 py-3
           mx-auto
-          md:h-[calc(100vh-134px)]
-          h-[calc(100vh-112px)]
+          flex-1 min-h-0 w-full
         "
       >
         <div className="flex md:flex-row flex-col md:space-x-6 space-y-4 md:space-y-0 h-full">
-          <DaySelector />
+          <DaySelector readOnly={Boolean(id && !isConnected)} />
+          <div className="flex min-h-0 min-w-0 flex-1" inert={Boolean(id && !isConnected)}>
           <DndContext
             sensors={sensors}
             autoScroll={{ layoutShiftCompensation: false }}
           >
             <Main />
           </DndContext>
+          </div>
         </div>
       </div>
     </div>

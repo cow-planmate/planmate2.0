@@ -30,10 +30,10 @@ export const SidebarItem = ({
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
-      {...attributes}
+      {...(isMobile ? {} : listeners)}
+      {...(isMobile ? {} : attributes)}
       data-tutorial-place-card
-      className={`px-5 py-3 md:py-5 bg-white hover:shadow-md flex items-center cursor-grab active:cursor-grabbing select-none
+      className={`px-5 py-3 md:py-5 bg-white hover:shadow-md flex items-center ${isMobile ? "cursor-default" : "cursor-grab active:cursor-grabbing"} select-none
         ${isDragging ? "opacity-40 ring-2 ring-blue-400" : ""}`}
     >
       <div className="size-10 md:size-12 bg-gray-300 rounded-lg mr-4 flex items-center justify-center">

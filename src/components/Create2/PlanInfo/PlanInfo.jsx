@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import usePlanStore from "../../../store/Plan";
 import useUserStore from "../../../store/Users";
@@ -40,10 +40,7 @@ export default function PlanInfo({ id, isOwner }) {
   const flexCenter = "flex items-center";
   const infoButton = "rounded-lg py-1 px-2 hover:bg-gray-100";
 
-  const spanRef = useRef(null);
-  const inputRef = useRef(null);
   const [localName, setLocalName] = useState(planName);
-  const [inputWidth, setInputWidth] = useState('auto');
 
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isUsersOpen, setIsUsersOpen] = useState(false);
@@ -145,12 +142,6 @@ export default function PlanInfo({ id, isOwner }) {
     setLocalName(planName);
   }, [planName]);
 
-  useEffect(() => {
-    if (spanRef.current) {
-      const spanWidth = spanRef.current.getBoundingClientRect().width;
-      setInputWidth(`${Math.max(spanWidth, 8)}px`);
-    }
-  }, [localName]);
 
   return (
     <div className={`mx-auto min-[1464px]:w-[1416px] min-[1464px]:px-0 md:px-6 md:pt-6 p-3 pb-0 ${flexCenter} flex-wrap gap-y-2 sm:flex-nowrap justify-between w-full`}>
@@ -158,18 +149,13 @@ export default function PlanInfo({ id, isOwner }) {
         className={`${flexCenter} sm:space-x-3 space-x-1 min-w-0 w-full sm:w-auto sm:flex-1`}
         data-tutorial="plan-controls"
       >
-        <div className="min-w-0 flex-1 sm:flex-initial">
+        <div className="min-w-0 flex-1">
           <input
-            ref={inputRef}
             type="text"
-            className={`${infoButton} box-border text-lg font-semibold max-w-full`}
+            aria-label="일정 제목"
+            className={`${infoButton} box-border w-full min-w-0 text-lg font-semibold`}
             onChange={(e) => setLocalName(e.target.value)}
             onBlur={() => setPlanField("planName", localName)}
-            style={{
-              width: inputWidth,
-              minWidth: '8px',
-              maxWidth: '100%'
-            }}
             value={localName}
           />
         </div>
@@ -280,13 +266,6 @@ export default function PlanInfo({ id, isOwner }) {
           }
         </div>
       </div>
-
-      <span
-        ref={spanRef}
-        className="invisible absolute whitespace-pre text-lg font-semibold"
-      >
-        {localName}
-      </span>
 
       {isInfoOpen && <PlanInfoModal setIsInfoOpen={setIsInfoOpen} />}
 

@@ -7,7 +7,7 @@ import { usePlanChecklists } from "./usePlanChecklists";
 interface ChecklistSheetProps {
   planId?: string | null;
   enabled?: boolean;
-  variant?: "floating" | "summary";
+  variant?: "floating" | "summary" | "toolbar";
   className?: string;
 }
 
@@ -33,9 +33,9 @@ export const ChecklistSheet = ({
 
   return (
     <>
-      {variant === "floating" ? (
+      {variant !== "summary" ? (
         <div
-          className={`group fixed bottom-20 left-4 z-30 md:bottom-6 md:left-6 ${className}`}
+          className={`group z-30 ${variant === "toolbar" ? "relative md:fixed md:bottom-6 md:left-6" : "fixed bottom-20 left-4 md:bottom-6 md:left-6"} ${className}`}
         >
           <div className="pointer-events-none absolute bottom-full left-0 mb-3 hidden w-64 translate-y-2 rounded-2xl border border-gray-100 bg-white p-4 opacity-0 shadow-[0_14px_35px_rgba(15,23,42,0.16)] transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 md:bottom-[calc(100%+64px)] md:block">
             <div className="mb-3 flex items-center justify-between">
