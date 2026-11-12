@@ -184,9 +184,8 @@ export const initStompClient = (id) => {
 
   const SERVER_URL = `${BASE_URL}/ws?token=${encodeURIComponent(token)}`;
 
-  const socket = new SockJS(SERVER_URL);
   client = new Client({
-    webSocketFactory: () => socket,
+    webSocketFactory: () => new SockJS(SERVER_URL),
     reconnectDelay: 3000,
     connectHeaders: {
       Authorization: `Bearer ${token}`,
@@ -205,10 +204,9 @@ export const initStompClient = (id) => {
       useSocketStore.getState().setDisconnected();
     },
 
-    // onWebSocketClose: () => {
-    //   console.log("🔌 WebSocket 연결 종료");
-    //   client.deactivate();
-    // },
+    onWebSocketClose: () => {
+      useSocketStore.getState().setDisconnected();
+    },
   });
 
   client.activate();

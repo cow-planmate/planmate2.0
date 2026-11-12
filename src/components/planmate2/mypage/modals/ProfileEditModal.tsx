@@ -140,7 +140,9 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               isValid={nicknameValid}
               value={newNickname}
               onChange={(e) => setNewNickname(e.target.value)}
-              placeholder="새 닉네임을 입력하세요"
+              minLength={2}
+              maxLength={20}
+              placeholder="닉네임 2~20자"
             />
             <Button 
               variant="secondary" 

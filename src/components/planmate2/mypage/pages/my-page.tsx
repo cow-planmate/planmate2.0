@@ -1,3 +1,4 @@
+import { clearRecentPlan } from "../../../../utils/recentPlanSession";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarRange, Lock, NotebookPen, UserRound } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -452,8 +453,9 @@ export default function MyPage({
   };
 
   const handleCheckNickname = async () => {
-    if (!newNickname || newNickname.trim() === "") {
-      setNicknameMessage("닉네임을 입력해주세요.");
+    if (!newNickname || newNickname.length < 2 || newNickname.length > 20 || !newNickname.trim()) {
+      setNicknameMessage("닉네임은 2~20자로 입력해 주세요.");
+      setIsNicknameVerified(false);
       setNicknameValid(false);
       return;
     }
@@ -489,6 +491,11 @@ export default function MyPage({
   };
 
   const handleProfileSubmit = async () => {
+    if (newNickname !== userProfile?.nickname && (!newNickname.trim() || newNickname.length < 2 || newNickname.length > 20)) {
+      setNicknameMessage("닉네임은 2~20자로 입력해 주세요.");
+      setNicknameValid(false);
+      return;
+    }
     const hasImageChange = Boolean(pendingImageFile) || pendingImageRemoved;
     try {
       setIsSavingProfile(true);
@@ -633,6 +640,8 @@ export default function MyPage({
         await del(`${BASE_URL}/api/plan/${planId}/editor/me`);
       }
 
+      clearRecentPlan(planId);
+
       // 로컬 상태 업데이트
       if (isOwner) {
         setMyPlans((prev) => prev.filter((p: any) => p.planId !== planId));
@@ -683,6 +692,7 @@ export default function MyPage({
         // fetch option에 body를 실어보내야 함.
         // @ts-ignore
         await del(`${BASE_URL}/api/plan`, { planIds: ownedToDelete });
+        ownedToDelete.forEach((id) => clearRecentPlan(id));
         setMyPlans((prev) =>
           prev.filter((p: any) => !ownedToDelete.includes(p.planId)),
         );
@@ -691,9 +701,11 @@ export default function MyPage({
       // 2. 공유받은 일정 개별 나가기 (백엔드 벌크가 없으므로 루프)
       if (sharedToLeave.length > 0) {
         await Promise.all(
-          sharedToLeave.map((id) =>
-            del(`${BASE_URL}/api/plan/${id}/editor/me`),
-          ),
+          sharedToLeave.map(async (id) => {
+            await del(`${BASE_URL}/api/plan/${id}/editor/me`);
+            clearRecentPlan(id);
+            setEditablePlans((plans) => plans.filter((plan) => plan.planId !== id));
+          }),
         );
         setEditablePlans((prev) =>
           prev.filter((p: any) => !sharedToLeave.includes(p.planId)),

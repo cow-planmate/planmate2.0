@@ -248,12 +248,12 @@ export const ResizableScheduledItem = ({ item, onResizeEnd }) => {
             {...listeners}
             className={`w-full h-full ${tripColor1[categoryId]} border-l-4 ${tripColor3[categoryId]} rounded ring-1 ring-inset ring-slate-900/15 shadow-sm overflow-hidden select-none ${tripColor2[categoryId]} transition-colors cursor-move
               ${isDragging ? "shadow-xl ring-2 ring-blue-300" : ""}
-              ${isMinimized ? "flex flex-col items-start justify-center px-5" : "p-5"}`}
+              ${isMinimized ? "flex flex-col items-start justify-center px-2 sm:px-5" : "p-2 sm:p-5"}`}
           >
-            <div className="w-full flex items-center gap-2 min-w-0">
-              <div className="flex-1 min-w-0">
+            <div className="w-full flex flex-wrap sm:flex-nowrap items-center gap-2 min-w-0">
+              <div className="w-full sm:w-auto sm:flex-1 min-w-0">
                 <div
-                  className={`font-bold text-lg ${tripColor5[categoryId]} truncate pointer-events-none`}
+                  className={`font-bold text-sm sm:text-lg ${tripColor5[categoryId]} line-clamp-2 break-words pointer-events-none`}
                 >
                   {place.name}
                 </div>

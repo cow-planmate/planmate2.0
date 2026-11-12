@@ -125,6 +125,13 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
 
   return (
     <div className="min-h-[calc(100vh-70px)] bg-[#f4f5f7] px-3 py-6 sm:px-6 sm:py-10">
+      <button
+        type="button"
+        onClick={handleWrite}
+        className="mb-4 ml-auto flex w-fit min-h-14 xl:mb-0 xl:fixed xl:bottom-8 xl:right-8 xl:z-40 items-center gap-2 rounded-full bg-[#1344FF] px-6 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(19,68,255,0.28)] transition-transform hover:-translate-y-0.5 hover:bg-[#0d34cc] sm:bottom-8 sm:right-8"
+      >
+        <Plus className="h-5 w-5" /> 여행기 쓰기
+      </button>
       <div className="mx-auto grid max-w-[1450px] grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-10">
         <section className="min-w-0 overflow-hidden rounded-[18px] border border-[#d9dce2] bg-white">
           <div className="px-4 pt-4 sm:px-6 sm:pt-5">
@@ -235,13 +242,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
         </aside>
       </div>
 
-      <button
-        type="button"
-        onClick={handleWrite}
-        className="fixed bottom-6 right-4 z-40 flex min-h-14 items-center gap-2 rounded-full bg-[#1344FF] px-6 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(19,68,255,0.28)] transition-transform hover:-translate-y-0.5 hover:bg-[#0d34cc] sm:bottom-8 sm:right-8"
-      >
-        <Plus className="h-5 w-5" /> 여행기 쓰기
-      </button>
+
     </div>
   );
 };

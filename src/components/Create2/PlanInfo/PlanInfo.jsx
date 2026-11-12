@@ -153,16 +153,16 @@ export default function PlanInfo({ id, isOwner }) {
   }, [localName]);
 
   return (
-    <div className={`mx-auto min-[1464px]:w-[1416px] min-[1464px]:px-0 md:px-6 md:pt-6 p-3 pb-0 ${flexCenter} justify-between w-full`}>
+    <div className={`mx-auto min-[1464px]:w-[1416px] min-[1464px]:px-0 md:px-6 md:pt-6 p-3 pb-0 ${flexCenter} flex-wrap gap-y-2 sm:flex-nowrap justify-between w-full`}>
       <div
-        className={`${flexCenter} sm:space-x-3 space-x-1 min-w-0 flex-1`}
+        className={`${flexCenter} sm:space-x-3 space-x-1 min-w-0 w-full sm:w-auto sm:flex-1`}
         data-tutorial="plan-controls"
       >
-        <div className="min-w-0 flex-shrink">
+        <div className="min-w-0 flex-1 sm:flex-initial">
           <input
             ref={inputRef}
             type="text"
-            className={`${infoButton} box-content text-lg font-semibold max-w-full`}
+            className={`${infoButton} box-border text-lg font-semibold max-w-full`}
             onChange={(e) => setLocalName(e.target.value)}
             onBlur={() => setPlanField("planName", localName)}
             style={{
@@ -199,7 +199,7 @@ export default function PlanInfo({ id, isOwner }) {
           <div className="text-sm"><FontAwesomeIcon icon={faInfo} /></div>
         </button>
       </div>
-      <div className={`${flexCenter} mx-2 sm:w-auto`}>
+      <div className={`${flexCenter} ml-auto sm:mx-2 sm:w-auto shrink-0`}>
         <div
           className={`space-x-1 sm:space-x-3 ${flexCenter}`}
           data-tutorial="plan-actions"
