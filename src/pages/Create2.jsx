@@ -16,8 +16,8 @@ import {
 } from "../utils/tempPlanStorage"; // Import util
 import { clearRecentPlan, saveRecentPlan } from "../utils/recentPlanSession";
 import {
-  disconnectStompClient,
-  initStompClient,
+  disconnectSyncClient,
+  initSyncClient,
   sendRedo,
   sendUndo,
 } from "../websocket/client";
@@ -257,10 +257,10 @@ function App() {
 
   useEffect(() => {
     if (id && hasPlanAccess && isAuthenticated() && planId && planId !== -1) {
-      initStompClient(id);
+      initSyncClient(id);
 
       return () => {
-        disconnectStompClient();
+        disconnectSyncClient();
       };
     }
   }, [hasPlanAccess, id, planId, isAuthenticated]);
@@ -510,7 +510,7 @@ function App() {
           <div role="alert" className="flex h-[calc(100vh-69px)] flex-col items-center justify-center gap-4 px-6 text-center">
             <p>실시간 편집 서버에 연결하지 못했습니다.</p>
             <button className="rounded-lg border px-4 py-2" onClick={() => navigate("/mypage")}>내 일정으로</button>
-            <button className="rounded-lg bg-main px-4 py-2 text-white" onClick={() => { setConnectionTimedOut(false); setConnectionRetry((value) => value + 1); initStompClient(id); }}>다시 연결</button>
+            <button className="rounded-lg bg-main px-4 py-2 text-white" onClick={() => { setConnectionTimedOut(false); setConnectionRetry((value) => value + 1); initSyncClient(id); }}>다시 연결</button>
           </div>
         ) : placeLoadError ? (
           <div
@@ -543,7 +543,7 @@ function App() {
       {id && !isConnected ? (
         <div role="status" className="flex flex-wrap items-center justify-center gap-3 bg-amber-50 px-4 py-2 text-sm text-amber-900">
           <span>실시간 연결을 복구하고 있어요. 연결될 때까지 일정 편집을 잠시 멈춥니다.</span>
-          <button type="button" className="rounded-lg border border-amber-300 px-3 py-1 font-semibold" onClick={() => initStompClient(id)}>다시 연결</button>
+          <button type="button" className="rounded-lg border border-amber-300 px-3 py-1 font-semibold" onClick={() => initSyncClient(id)}>다시 연결</button>
         </div>
       ) : null}
       <div inert={Boolean(id && !isConnected)}>
