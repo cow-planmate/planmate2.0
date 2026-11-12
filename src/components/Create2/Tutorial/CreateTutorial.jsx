@@ -178,7 +178,7 @@ const scrollTargetIntoViewIfNeeded = (element) => {
   }
 };
 
-export default function CreateTutorial() {
+export default function CreateTutorial({ inlineOnMobile = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showNudge, setShowNudge] = useState(readNudgePreference);
   const [stepIndex, setStepIndex] = useState(0);
@@ -527,9 +527,9 @@ export default function CreateTutorial() {
   return (
     <>
       {!isOpen && (
-        <div className="fixed bottom-[140px] left-4 z-30 flex flex-col items-start gap-3 md:bottom-[84px] md:left-6">
+        <div className={`${inlineOnMobile ? "relative md:fixed" : "fixed bottom-[140px] left-4"} z-30 flex flex-col items-start gap-3 md:bottom-[84px] md:left-6`}>
           {showNudge && (
-            <div className="relative w-[min(290px,calc(100vw-2rem))] rounded-2xl border border-blue-100 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.16)]">
+            <div className={`${inlineOnMobile ? "hidden md:block" : ""} relative w-[min(290px,calc(100vw-2rem))] rounded-2xl border border-blue-100 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.16)]`}>
               <button
                 type="button"
                 onClick={dismissNudge}

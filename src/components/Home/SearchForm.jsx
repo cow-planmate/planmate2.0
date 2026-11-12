@@ -136,6 +136,9 @@ function SearchForm({
               {isSubmitting ? "일정을 만드는 중..." : "나만의 일정 만들기"}
               {!isSubmitting && <FontAwesomeIcon icon={faArrowRight} />}
             </button>
+            <p className="mt-3 text-xs leading-5 text-gray-500">
+              선택한 날짜의 빈 시간표가 열립니다. 추천 장소를 직접 추가하거나 AI 도우미에게 일정 구성을 요청해 보세요.
+            </p>
           </div>
 
           <div className="relative order-1 min-h-[280px] overflow-hidden sm:min-h-[320px] md:order-2 md:min-h-[calc(100vh-4rem)]">

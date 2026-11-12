@@ -4,7 +4,7 @@ import { faGear } from "@fortawesome/free-solid-svg-icons";
 import DaySelectorModal from "./DaySelectorModal";
 import { useState } from "react";
 
-export default function DaySelector() {
+export default function DaySelector({ readOnly = false }) {
   const { timetables, selectedDay, setSelectedDay } = useTimetableStore();
 
   const formatDate = (dateString) => {
@@ -53,6 +53,7 @@ export default function DaySelector() {
 
       {/* 캘린더 버튼 */}
       <button
+        disabled={readOnly}
         onClick={() => setIsModalOpen(true)}
         data-tutorial="day-settings-button"
         aria-label="일정 날짜와 시간 설정"
@@ -69,7 +70,7 @@ export default function DaySelector() {
         <FontAwesomeIcon icon={faGear} />
       </button>
 
-      {isModalOpen && <DaySelectorModal setIsModalOpen={setIsModalOpen} />}
+      {isModalOpen && !readOnly && <DaySelectorModal setIsModalOpen={setIsModalOpen} />}
     </div>
   )
 }

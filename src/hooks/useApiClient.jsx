@@ -65,6 +65,7 @@ export const useApiClient = () => {
 
     try {
       const config = {
+        credentials: "include",
         ...options,
         headers: {
           ...getAuthHeaders(),
@@ -86,8 +87,9 @@ export const useApiClient = () => {
 
       // 🔥 서버 5xx 에러
       if (response.status >= 500) {
-        setServerDown();
-        throw new Error("서버 오류가 발생했습니다.");
+        const serverError = await createApiError(response, "서버 오류가 발생했습니다.");
+        if (!serverError.code?.startsWith("CHATBOT_")) setServerDown();
+        throw serverError;
       }
 
       // 인증 에러 처리
@@ -102,6 +104,7 @@ export const useApiClient = () => {
         }
 
         const retryConfig = {
+          credentials: "include",
           ...options,
           headers: {
             ...getAuthHeaders(),
@@ -113,8 +116,9 @@ export const useApiClient = () => {
 
         // 🔥 재시도 중 서버 다운
         if (retryResponse.status >= 500) {
-          setServerDown();
-          throw new Error("서버 오류가 발생했습니다.");
+          const serverError = await createApiError(retryResponse, "서버 오류가 발생했습니다.");
+          if (!serverError.code?.startsWith("CHATBOT_")) setServerDown();
+          throw serverError;
         }
 
         if (retryResponse.ok) {

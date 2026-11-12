@@ -28,9 +28,6 @@ const TimetableGrid = React.forwardRef(({ items, preview, onResizeEnd, showTimet
         destinationId={destinationId}
       />
       <div className="h-full flex flex-col overflow-hidden relative py-4 px-5 overflow-y-auto overflow-x-hidden">
-        <div className="md:hidden block py-1">
-          <div className="h-10"></div>
-        </div>
         <div
           ref={combinedRef}
           className="flex-1 relative"

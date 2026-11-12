@@ -18,6 +18,7 @@ import { useSearchParams } from "react-router-dom";
 import { useApiClient } from "../../hooks/useApiClient";
 import usePlanStore from "../../store/Plan";
 import useSocketStore from "../../store/Socket";
+import { getAuthenticatedUserId } from "../../shared/auth/tokenStore";
 import { mapPlaceSummary } from "../../utils/createUtils";
 import NoLoginSave from "../Create2/PlanInfo/NoLoginSave";
 import PlaceDetailModal from "../Create2/Place/PlaceDetailModal";
@@ -48,6 +49,8 @@ const CATEGORY_LABELS = {
 const newMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 const getErrorMessage = (error, mode) => {
+  if (error?.code === "CHATBOT_001") return "AI 응답이 지연되거나 일시적으로 중단됐어요. 대화와 제안은 유지되니 잠시 후 다시 요청해 주세요.";
+  if (error?.code === "CHATBOT_002") return "AI 연결 설정을 확인해야 해요. 잠시 후 다시 이용해 주세요.";
   if (error?.code === "CHATBOT_003") {
     return "실시간 편집 연결을 확인하지 못했어요. 연결이 복구되면 같은 제안을 다시 반영해 주세요.";
   }
@@ -283,7 +286,7 @@ const PlanPreview = ({ plan, status = "pending", isApplying, onApply, onShowDeta
   );
 };
 
-const ChatBot = ({ planId: explicitPlanId }) => {
+const ChatBot = ({ planId: explicitPlanId, inlineOnMobile = false }) => {
   const [searchParams] = useSearchParams();
   const storePlanId = usePlanStore((state) => state.planId);
   const planId = explicitPlanId ?? searchParams.get("id") ?? storePlanId;
@@ -295,8 +298,9 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSavingPlan, setIsSavingPlan] = useState(false);
   const isConnected = useSocketStore((state) => state.isConnected);
-  const conversationKey = isLoggedIn && localStorage.getItem("userId") && hasSavedPlan
-    ? `planmate:chat:${localStorage.getItem("userId")}:${planId}` : null;
+  const userId = getAuthenticatedUserId();
+  const conversationKey = isLoggedIn && userId && hasSavedPlan
+    ? `planmate:chat:${userId}:${planId}` : null;
   const [restoredConversation] = useState(() => {
     try {
       const stored = conversationKey ? JSON.parse(sessionStorage.getItem(conversationKey)) : null;
@@ -507,7 +511,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className={`fixed bottom-20 right-4 z-[45] flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_14px_34px_rgba(19,68,255,0.34)] transition hover:-translate-y-0.5 md:bottom-6 md:right-6 ${isOpen ? "bg-slate-800 hover:bg-slate-700" : "bg-[#1344FF] hover:bg-[#0d34cc]"}`}
+        className={`${inlineOnMobile ? "relative h-11 w-11 md:fixed md:h-14 md:w-14" : "fixed bottom-20 right-4 h-14 w-14"} z-[45] flex items-center justify-center rounded-full text-white shadow-[0_14px_34px_rgba(19,68,255,0.34)] transition hover:-translate-y-0.5 md:bottom-6 md:right-6 ${isOpen ? "bg-slate-800 hover:bg-slate-700" : "bg-[#1344FF] hover:bg-[#0d34cc]"}`}
         aria-label={isOpen ? "AI 여행 도우미 닫기" : "AI 여행 도우미 열기"}
         aria-expanded={isOpen}
       >
@@ -729,6 +733,6 @@ export default function ChatBotConversation(props) {
   const [searchParams] = useSearchParams();
   const storePlanId = usePlanStore((state) => state.planId);
   const planId = props.planId ?? searchParams.get("id") ?? storePlanId;
-  const userId = localStorage.getItem("userId") || "guest";
+  const userId = getAuthenticatedUserId() || "guest";
   return <ChatBot key={`${userId}:${planId}`} {...props} />;
 }
