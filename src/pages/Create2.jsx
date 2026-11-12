@@ -540,7 +540,15 @@ function App() {
       <div>
         <Navbar currentView="schedule-editor" onNavigate={handleNavbarNavigate} />
       </div>
-      <PlanInfo id={id} isOwner={isOwner} />
+      {id && !isConnected ? (
+        <div role="status" className="flex flex-wrap items-center justify-center gap-3 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          <span>실시간 연결을 복구하고 있어요. 연결될 때까지 일정 편집을 잠시 멈춥니다.</span>
+          <button type="button" className="rounded-lg border border-amber-300 px-3 py-1 font-semibold" onClick={() => initStompClient(id)}>다시 연결</button>
+        </div>
+      ) : null}
+      <div inert={Boolean(id && !isConnected)}>
+        <PlanInfo id={id} isOwner={isOwner} />
+      </div>
       <ChecklistSheet
         planId={checklistPlanId}
         enabled={isAuthenticated()}
@@ -548,6 +556,7 @@ function App() {
       <CreateTutorial />
       <ChatBot planId={id} />
       <div
+        inert={Boolean(id && !isConnected)}
         className="
           min-[1464px]:w-[1400px] min-[1464px]:px-0
           md:px-8 md:py-6 py-3
