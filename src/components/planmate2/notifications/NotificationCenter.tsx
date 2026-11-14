@@ -1,6 +1,6 @@
 import { Bell, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useApiClient } from '../../../hooks/useApiClient';
 import { getAccessToken, getAuthenticatedUserId, initializeAuth } from '../../../shared/auth/tokenStore';
@@ -21,7 +21,9 @@ interface Invitation {
   senderNickname: string;
   planName: string;
   type?: 'INVITE' | 'REQUEST';
+  planId: string;
 }
+interface RequestState { collaborationRequestId: number; status: 'PENDING' | 'ACCEPTED' | 'REJECTED'; type: 'INVITE' | 'REQUEST'; planId: string }
 interface Page { items: Notification[]; nextCursor: string | null }
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -36,8 +38,9 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
   const key = ['notification-center', userId];
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const busyRef = useRef(false);
+  const [tab, setTab] = useState<'alarms' | 'requests'>('alarms');
+  const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  const busyRef = useRef(new Set<string>());
   const rootRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -65,6 +68,28 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
     },
     refetchInterval: 60_000,
   });
+  const items = [...new Map((notifications.data?.pages.flatMap(page => page.items) ?? []).map(item => [item.id, item])).values()];
+  const invitations = pending.data ?? [];
+  const requestIds = [...new Set(items.map(item => item.action?.parameters?.collaborationRequestId)
+    .filter((id): id is string => !!id && /^\d+$/.test(id)))].sort();
+  const statuses = useQuery({
+    queryKey: [...key, 'statuses', requestIds],
+    enabled: requestIds.length > 0,
+    queryFn: async ({ signal }): Promise<RequestState[]> => {
+      const batches = [];
+      for (let i = 0; i < requestIds.length; i += 100) {
+        batches.push(apiRequest(`${BASE_URL}/api/collaboration-requests/statuses?ids=${requestIds.slice(i, i + 100).join(',')}`, { signal }));
+      }
+      return (await Promise.all(batches)).flat();
+    },
+    refetchInterval: 60_000,
+  });
+  const stateFor = (item: Notification): RequestState | undefined => {
+    const id = item.action?.parameters?.collaborationRequestId;
+    const waiting = invitations.find(invitation => String(invitation.collaborationRequestId) === id);
+    if (waiting) return { ...waiting, status: 'PENDING', type: waiting.type ?? 'INVITE' };
+    return statuses.data?.find(state => String(state.collaborationRequestId) === id);
+  };
   useEffect(() => {
     let stopped = false;
     let source: EventSource | null = null;
@@ -119,41 +144,74 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
     setOpen(!open);
     if (!open) { onOpen(); void refresh(); }
   };
-  const run = async (action: () => Promise<void>) => {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
+  const run = async (id: string, action: () => Promise<void>) => {
+    if (busyRef.current.has(id)) return;
+    busyRef.current.add(id);
+    setBusyIds(new Set(busyRef.current));
     try { await action(); }
     catch (error) { ErrorToast(error instanceof Error ? error.message : '알람 처리에 실패했습니다.'); }
-    finally { busyRef.current = false; setBusy(false); }
+    finally { busyRef.current.delete(id); setBusyIds(new Set(busyRef.current)); }
   };
-  const items = [...new Map((notifications.data?.pages.flatMap(page => page.items) ?? []).map(item => [item.id, item])).values()];
-  const invitations = pending.data ?? [];
   const isRequest = (item: Notification) => item.type.endsWith('PLAN_INVITED') || item.type.endsWith('PLAN_EDIT_ACCESS_REQUESTED');
-  const history = items.filter(item => !isRequest(item) || !invitations.some(invitation =>
-    String(invitation.collaborationRequestId) === item.action?.parameters?.collaborationRequestId));
-  const respond = (invitation: Invitation, accepted: boolean) => run(async () => {
-    await post(`${BASE_URL}/api/collaboration-requests/${invitation.collaborationRequestId}/${accepted ? 'accept' : 'reject'}`);
-    SuccessToast(`요청을 ${accepted ? '수락' : '거절'}했습니다.`);
-    // 협업 처리 성공과 알람 읽음 처리는 별개다. 읽음 실패 시에도 처리된 요청은 갱신한다.
+  const updateItems = (update: (items: Notification[]) => Notification[]) => {
+    client.setQueryData<InfiniteData<Page>>([...key, 'list'], old => old && ({
+      ...old, pages: old.pages.map(page => ({ ...page, items: update(page.items) })),
+    }));
+  };
+  const markRead = async (item: Notification) => {
+    if (item.readAt || busyRef.current.has(`read:${item.id}`)) return;
+    busyRef.current.add(`read:${item.id}`);
     try {
-      const matching = items.filter(item => isRequest(item) && String(invitation.collaborationRequestId) === item.action?.parameters?.collaborationRequestId);
-      await Promise.all(matching.filter(item => !item.readAt).map(item => post(`${BASE_URL}/api/notifications/${item.id}/read`)));
-    } finally {
-      await refresh();
-      if (accepted) await onInvitationAccept?.();
-    }
-  });
-  const openItem = (item: Notification) => run(async () => {
-    if (!item.readAt) {
       await post(`${BASE_URL}/api/notifications/${item.id}/read`);
-      await refresh();
+      await client.cancelQueries({ queryKey: [...key, 'list'] });
+      updateItems(items => items.map(current => current.id === item.id ? { ...current, readAt: new Date().toISOString() } : current));
+      void client.invalidateQueries({ queryKey: [...key, 'unread'] });
+    } finally { busyRef.current.delete(`read:${item.id}`); }
+  };
+  const dismiss = (item: Notification) => run(`alarm:${item.id}`, async () => {
+    await apiRequest(`${BASE_URL}/api/notifications/${item.id}`, { method: 'DELETE' });
+    await client.cancelQueries({ queryKey: [...key, 'list'] });
+    updateItems(items => items.filter(current => current.id !== item.id));
+    void client.invalidateQueries({ queryKey: [...key, 'unread'] });
+    if (stateFor(item)?.status === 'PENDING') SuccessToast('알람을 삭제했습니다. 요청은 ‘응답할 요청’에 남아 있습니다.');
+  });
+  const respond = (invitation: Invitation, accepted: boolean) => run(`request:${invitation.collaborationRequestId}`, async () => {
+    try {
+      await post(`${BASE_URL}/api/collaboration-requests/${invitation.collaborationRequestId}/${accepted ? 'accept' : 'reject'}`);
+    } catch (error) {
+      void refresh(); // 다른 기기에서 이미 응답했을 수 있다.
+      throw error;
     }
+    await client.cancelQueries({ queryKey: [...key, 'pending'] });
+    client.setQueryData<Invitation[]>([...key, 'pending'], old => old?.filter(item => item.collaborationRequestId !== invitation.collaborationRequestId));
+    await client.cancelQueries({ queryKey: [...key, 'statuses'] });
+    client.setQueriesData<RequestState[]>({ queryKey: [...key, 'statuses'] }, old => {
+      const next = { collaborationRequestId: invitation.collaborationRequestId, status: accepted ? 'ACCEPTED' as const : 'REJECTED' as const, type: invitation.type ?? 'INVITE' as const, planId: invitation.planId };
+      return [...(old ?? []).filter(item => item.collaborationRequestId !== next.collaborationRequestId), next];
+    });
+    SuccessToast(`요청을 ${accepted ? '수락' : '거절'}했습니다.`);
+    const matching = items.filter(item => isRequest(item) && String(invitation.collaborationRequestId) === item.action?.parameters?.collaborationRequestId);
+    void Promise.all(matching.map(markRead)).catch(() => ErrorToast('요청은 처리됐지만 알람 읽음 표시에 실패했습니다.'));
+    void refresh();
+    if (accepted) await onInvitationAccept?.();
+  });
+  const openItem = (item: Notification) => run(`alarm:${item.id}`, async () => {
+    // 읽음 저장 장애가 콘텐츠 열기를 막지 않게 별도로 처리한다.
+    void markRead(item).catch(() => ErrorToast('알람 읽음 표시에 실패했습니다. 다시 눌러 재시도할 수 있습니다.'));
     const params = item.action?.parameters ?? {};
     let path: string | null = null;
     switch (item.action?.route) {
+      case 'COLLABORATION_REQUESTS': {
+        const state = stateFor(item);
+        if (!state) {
+          ErrorToast(statuses.isError ? '요청 상태를 확인하지 못했습니다. 다시 시도해 주세요.' : statuses.isFetching ? '요청 상태를 확인 중입니다. 잠시 후 다시 눌러 주세요.' : '종료되었거나 더 이상 확인할 수 없는 요청입니다.');
+          return;
+        }
+        if (state.status === 'PENDING') { setTab('requests'); return; }
+        path = state.status === 'REJECTED' && state.type === 'INVITE' ? '/mypage?section=trips' : `/create?id=${encodeURIComponent(state.planId)}`;
+        break;
+      }
       case 'PLAN_DETAIL':
-        // 거절된 요청은 일정 접근 권한이 없을 수 있다.
         path = item.type.endsWith('PLAN_REQUEST_REJECTED') ? '/mypage?section=trips'
           : params.planId ? `/create?id=${encodeURIComponent(params.planId)}` : '/mypage?section=trips';
         break;
@@ -161,21 +219,44 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
       case 'FEED_POST': if (params.feedId) path = `/travel/${encodeURIComponent(params.feedId)}`; break;
       case 'COMMUNITY_POST':
         if (params.postId) {
-          const post = await fetchPost(params.postId);
-          path = `/community/${encodeURIComponent(post.category)}/${encodeURIComponent(params.postId)}`;
+          try {
+            const post = await fetchPost(params.postId);
+            path = `/community/${encodeURIComponent(post.category)}/${encodeURIComponent(params.postId)}`;
+          } catch { ErrorToast('삭제되었거나 접근할 수 없는 게시글입니다.'); return; }
         }
         break;
       case 'COMMUNITY_BADGES': path = '/mypage?section=community'; break;
     }
     if (path) { close(); navigate(path); }
+    else ErrorToast('연결된 화면을 열 수 없는 알람입니다.');
   });
-  const hasBadge = (unread.data?.count ?? 0) > 0 || invitations.length > 0;
+  const readAll = () => run('read-all', async () => {
+    await post(`${BASE_URL}/api/notifications/read-all`);
+    await client.cancelQueries({ queryKey: key });
+    updateItems(items => items.map(item => ({ ...item, readAt: item.readAt ?? new Date().toISOString() })));
+    client.setQueryData([...key, 'unread'], { count: 0 });
+    void refresh();
+  });
+  const statusLabel = (item: Notification) => {
+    if (!isRequest(item)) return null;
+    const state = stateFor(item);
+    if (state) return { PENDING: '응답 대기', ACCEPTED: '수락 완료', REJECTED: '거절됨' }[state.status];
+    return statuses.isError ? '상태 확인 실패' : statuses.isPending ? '상태 확인 중' : '확인할 수 없는 요청';
+  };
+  const requestActions = (invitation: Invitation) => {
+    const busy = busyIds.has(`request:${invitation.collaborationRequestId}`);
+    return <div className="mt-3 flex gap-2" aria-busy={busy}>
+      <button type="button" disabled={busy} onClick={() => void respond(invitation, true)} className="flex-1 rounded-lg bg-[#1344FF] py-2 text-xs font-bold text-white disabled:opacity-50">{busy ? '처리 중…' : '수락'}</button>
+      <button type="button" disabled={busy} onClick={() => void respond(invitation, false)} className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-bold text-gray-600 disabled:opacity-50">거절</button>
+    </div>;
+  };
   return (
     <div ref={rootRef} className="ml-auto md:ml-0">
-      <button ref={bellRef} type="button" aria-label="알람 보기" aria-expanded={open} aria-controls="notification-center"
+      <button ref={bellRef} type="button" aria-label={`알람 보기${(unread.data?.count ?? 0) > 0 ? `, 읽지 않은 알람 ${unread.data?.count}개` : ''}${invitations.length ? `, 응답할 요청 ${invitations.length}개` : ''}`} aria-expanded={open} aria-controls="notification-center"
         onClick={toggle} className={`relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-gray-50 ${open ? 'text-[#1344FF] bg-gray-100' : 'text-gray-600'}`}>
         <Bell className="h-5 w-5 md:h-6 md:w-6" />
-        {hasBadge && <span aria-label="확인할 알람 있음" className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-red-500" />}
+        {(unread.data?.count ?? 0) > 0 && <span aria-label="읽지 않은 알람 있음" className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-red-500" />}
+        {invitations.length > 0 && <span aria-label={`응답할 요청 ${invitations.length}개`} className="absolute -bottom-0.5 -right-0.5 min-w-4 rounded-full bg-amber-100 px-1 text-[10px] font-bold text-amber-800">{invitations.length}</span>}
       </button>
       {toast && !open && <button type="button" role="status" onClick={toggle}
         className="absolute right-4 top-[70px] z-30 rounded-xl border border-blue-100 bg-white px-4 py-3 text-sm shadow-lg">새로운 알람이 도착했어요</button>}
@@ -184,32 +265,49 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
         <div className="mb-3 flex items-center justify-between border-b border-gray-100 pb-3">
           <h3 className="text-lg font-bold text-gray-900">알람</h3>
           <div className="flex items-center gap-3">
-            <button type="button" disabled={busy || !(unread.data?.count)} className="text-xs text-[#1344FF] disabled:text-gray-400"
-              onClick={() => void run(async () => { await post(`${BASE_URL}/api/notifications/read-all`); await refresh(); })}>모두 읽음</button>
+            <button type="button" disabled={busyIds.has('read-all') || !(unread.data?.count)} className="text-xs text-[#1344FF] disabled:text-gray-400"
+              onClick={() => void readAll()}>{busyIds.has('read-all') ? '처리 중…' : '모두 읽음'}</button>
             <button type="button" aria-label="알람 닫기" onClick={close} className="p-1 text-gray-500"><X className="h-4 w-4" /></button>
           </div>
         </div>
-        <div className="max-h-[min(28rem,70dvh)] space-y-3 overflow-y-auto" aria-busy={notifications.isPending || pending.isPending}>
-          {(notifications.isError || pending.isError || unread.isError) && <div role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-600">
-            {notifications.isError ? '알람 목록' : pending.isError ? '초대·권한 요청 목록' : '읽지 않은 알람 수'}을 불러오지 못했습니다.
+        <div className="mb-3 flex gap-2" role="group" aria-label="알람 목록 선택">
+          <button type="button" aria-pressed={tab === 'alarms'} onClick={() => setTab('alarms')} className={`rounded-lg px-3 py-2 text-xs font-bold ${tab === 'alarms' ? 'bg-blue-50 text-[#1344FF]' : 'text-gray-500'}`}>전체 알람</button>
+          <button type="button" aria-pressed={tab === 'requests'} onClick={() => setTab('requests')} className={`rounded-lg px-3 py-2 text-xs font-bold ${tab === 'requests' ? 'bg-blue-50 text-[#1344FF]' : 'text-gray-500'}`}>응답할 요청 {invitations.length}</button>
+        </div>
+        <div className="max-h-[min(28rem,65dvh)] space-y-3 overflow-y-auto">
+          {(notifications.isError || pending.isError || unread.isError || (requestIds.length > 0 && statuses.isError)) && <div role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-600">
+            {notifications.isError ? '알람 목록' : pending.isError ? '초대·권한 요청 목록' : unread.isError ? '읽지 않은 알람 수' : '요청 처리 상태'}을 불러오지 못했습니다.
             <button type="button" className="ml-2 underline" onClick={() => void refresh()}>다시 시도</button>
           </div>}
-          {invitations.map(invitation => <div key={invitation.collaborationRequestId} className="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
-            <p className="mb-3 text-sm leading-relaxed text-gray-700"><strong>{invitation.senderNickname}</strong>님이 <strong>'{invitation.planName}'</strong> {invitation.type === 'REQUEST' ? '일정의 편집 권한을 요청했습니다.' : '일정 편집 초대를 보냈습니다.'}</p>
-            <div className="flex gap-2">
-              <button type="button" disabled={busy} onClick={() => void respond(invitation, true)} className="flex-1 rounded-lg bg-[#1344FF] py-2 text-xs font-bold text-white disabled:opacity-50">수락</button>
-              <button type="button" disabled={busy} onClick={() => void respond(invitation, false)} className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-xs font-bold text-gray-600 disabled:opacity-50">거절</button>
-            </div>
-          </div>)}
-          {history.map(item => <button type="button" key={item.id} disabled={busy} onClick={() => void openItem(item)}
-            className={`block w-full rounded-xl border p-3 text-left disabled:opacity-50 ${item.readAt ? 'border-gray-100 bg-gray-50' : 'border-blue-100 bg-blue-50/50'}`}>
-            <span className="flex items-center gap-2 text-sm font-bold text-gray-900">{!item.readAt && <span aria-label="읽지 않음" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#1344FF]" />}{item.title}</span>
-            <span className="mt-1 block text-sm leading-relaxed text-gray-600">{item.body}</span>
-            <time dateTime={item.createdAt} className="mt-2 block text-xs text-gray-400">{new Date(item.createdAt).toLocaleString('ko-KR')}</time>
-          </button>)}
-          {(notifications.isPending || pending.isPending) && <p className="py-6 text-center text-sm text-gray-400">알람을 불러오는 중입니다.</p>}
-          {!notifications.isPending && !pending.isPending && !notifications.isError && !pending.isError && !items.length && !invitations.length && <p className="py-8 text-center text-sm text-gray-400">새로운 알람이 없습니다.</p>}
-          {notifications.hasNextPage && <button type="button" disabled={notifications.isFetchingNextPage} onClick={() => void notifications.fetchNextPage()} className="w-full rounded-lg py-2 text-sm text-[#1344FF] disabled:opacity-50">{notifications.isFetchingNextPage ? '불러오는 중…' : '이전 알람 더 보기'}</button>}
+          {tab === 'requests' ? <>
+            <p className="text-xs leading-relaxed text-gray-500">알람을 삭제해도 요청은 남습니다. 수락 또는 거절로 응답해 주세요.</p>
+            {invitations.map(invitation => <div key={invitation.collaborationRequestId} className="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
+              <span className="text-xs font-bold text-[#1344FF]">응답 대기</span>
+              <p className="mt-1 text-sm leading-relaxed text-gray-700"><strong>{invitation.senderNickname}</strong>님이 <strong>'{invitation.planName}'</strong> {invitation.type === 'REQUEST' ? '일정의 편집 권한을 요청했습니다.' : '일정 편집 초대를 보냈습니다.'}</p>
+              {requestActions(invitation)}
+            </div>)}
+            {pending.isPending && <p className="py-6 text-center text-sm text-gray-400">요청을 불러오는 중입니다.</p>}
+            {!pending.isPending && !pending.isError && !invitations.length && <p className="py-8 text-center text-sm text-gray-400">응답할 요청이 없습니다.</p>}
+          </> : <>
+            {items.map(item => {
+              const invitation = isRequest(item) ? invitations.find(invitation => String(invitation.collaborationRequestId) === item.action?.parameters?.collaborationRequestId) : undefined;
+              const label = statusLabel(item);
+              const busy = busyIds.has(`alarm:${item.id}`);
+              return <div key={item.id} className={`relative rounded-xl border ${item.readAt ? 'border-gray-100 bg-gray-50' : 'border-blue-100 bg-blue-50/50'}`} aria-busy={busy}>
+                <button type="button" disabled={busy} onClick={() => void openItem(item)} className="block w-full rounded-xl p-3 pr-10 text-left disabled:opacity-50">
+                  <span className="flex items-center gap-2 text-sm font-bold text-gray-900">{!item.readAt && <span aria-label="읽지 않음" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#1344FF]" />}{item.title}</span>
+                  {label && <span className="mt-1 inline-block rounded bg-white px-1.5 py-0.5 text-xs font-semibold text-gray-500">{label}</span>}
+                  <span className="mt-1 block text-sm leading-relaxed text-gray-600">{item.body}</span>
+                  <time dateTime={item.createdAt} className="mt-2 block text-xs text-gray-400">{new Date(item.createdAt).toLocaleString('ko-KR')}</time>
+                </button>
+                <button type="button" disabled={busy} aria-label={`${item.title} 알람 삭제`} title="알람만 삭제" onClick={() => void dismiss(item)} className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50"><X className="h-4 w-4" /></button>
+                {invitation && <div className="px-3 pb-3">{requestActions(invitation)}</div>}
+              </div>;
+            })}
+            {notifications.isPending && <p className="py-6 text-center text-sm text-gray-400">알람을 불러오는 중입니다.</p>}
+            {!notifications.isPending && !notifications.isError && !items.length && <p className="py-8 text-center text-sm text-gray-400">알람이 없습니다.</p>}
+            {notifications.hasNextPage && <button type="button" disabled={notifications.isFetchingNextPage} onClick={() => void notifications.fetchNextPage()} className="w-full rounded-lg py-2 text-sm text-[#1344FF] disabled:opacity-50">{notifications.isFetchingNextPage ? '불러오는 중…' : '이전 알람 더 보기'}</button>}
+          </>}
         </div>
       </div>}
     </div>
