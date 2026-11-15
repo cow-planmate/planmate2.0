@@ -1,6 +1,7 @@
 import { showWriteError } from '../../../../store/SuspensionNotice';
 import { CornerDownRight, MessageCircle, Pencil, Send, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import type { CommunityComment } from '../api/communityApi';
 import { UserAvatar } from '../../common/UserAvatar';
 import { authorNameClass, authorNavProps } from '../../common/authorLink';
@@ -29,6 +30,11 @@ export const CommentSection = ({ postId, onNavigate, onOpenChat }: CommentSectio
   const updateComment = useUpdateComment(postId);
   const deleteComment = useDeleteComment(postId);
 
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!/^#comment-\d+$/.test(hash)) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [hash, commentsPage]);
   const myUserId = localStorage.getItem('userId');
   const isLoggedIn = !!localStorage.getItem('accessToken');
 
@@ -101,7 +107,7 @@ export const CommentSection = ({ postId, onNavigate, onOpenChat }: CommentSectio
   const renderCommentCard = (comment: CommunityComment, isReply: boolean) => {
     const authorNav = authorNavProps(comment, onNavigate);
     return (
-    <div className={`bg-white rounded-xl border border-gray-100 ${isReply ? 'p-3' : 'p-4'}`}>
+    <div id={`comment-${comment.id}`} className={`target:ring-2 target:ring-blue-500 scroll-mt-24 bg-white rounded-xl border border-gray-100 ${isReply ? 'p-3' : 'p-4'}`}>
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
           <UserAvatar
@@ -208,7 +214,7 @@ export const CommentSection = ({ postId, onNavigate, onOpenChat }: CommentSectio
             className="flex min-h-12 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#1344FF] px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
           >
             <Send className="w-4 h-4" />
-            등록
+            {createComment.isPending ? '등록 중…' : '등록'}
           </button>
         </div>
       ) : (
@@ -248,7 +254,7 @@ export const CommentSection = ({ postId, onNavigate, onOpenChat }: CommentSectio
                     disabled={createComment.isPending || !replyContent.trim()}
                     className="px-3 py-2 rounded-xl bg-[#1344FF] text-white text-xs font-bold disabled:opacity-40 hover:bg-blue-700 transition-colors"
                   >
-                    등록
+                    {createComment.isPending ? '등록 중…' : '등록'}
                   </button>
                 </div>
               )}

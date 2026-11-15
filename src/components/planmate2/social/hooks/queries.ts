@@ -1,8 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { initializeAuth } from '../../../../shared/auth/tokenStore';
+import { ErrorToast } from '../../../common/Toast';
 import {
   acceptFriendRequest,
   fetchChatRooms,
+  fetchSentFriendRequests,
+  readFriendRequestAlarm,
   fetchFriends,
   fetchMessages,
   fetchReceivedFriendRequests,
@@ -33,6 +37,8 @@ export const useFriendRequests = (enabled = true) =>
 export const useChatRooms = (enabled = true) =>
   useQuery({ queryKey: KEYS.rooms, queryFn: fetchChatRooms, enabled });
 
+export const useSentFriendRequests = (enabled = true) => useQuery({ queryKey: ['social', 'sent-requests'], queryFn: fetchSentFriendRequests, enabled });
+
 export const useUserSearch = (q: string) =>
   useQuery({ queryKey: KEYS.search(q), queryFn: () => searchUsers(q), enabled: q.trim().length > 0 });
 
@@ -45,7 +51,10 @@ export const useSendFriendRequest = () => {
   return useMutation({
     mutationFn: sendFriendRequest,
     // 상대가 먼저 보낸 요청이 있으면 서버가 바로 수락 처리하므로 친구 목록도 다시 받는다
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['social'] }),
+    onSuccess: async (result) => {
+      if (result.status === 'ACCEPTED') await readFriendRequestAlarm(result.id).catch(() => ErrorToast('친구가 되었지만 알람 읽음 저장에 실패했습니다.'));
+      await Promise.all([qc.invalidateQueries({ queryKey: ['social'] }), qc.invalidateQueries({ queryKey: ['notification-center'] })]);
+    },
   });
 };
 
@@ -54,7 +63,9 @@ export const useRespondFriendRequest = () => {
   return useMutation({
     mutationFn: ({ id, accept }: { id: number; accept: boolean }) =>
       accept ? acceptFriendRequest(id) : rejectFriendRequest(id),
-    onSuccess: () => {
+    onSuccess: async (_, { id }) => {
+      await readFriendRequestAlarm(id).catch(() => ErrorToast('요청은 처리됐지만 알람 읽음 저장에 실패했습니다.'));
+      qc.invalidateQueries({ queryKey: ['notification-center'] });
       qc.invalidateQueries({ queryKey: KEYS.requests });
       qc.invalidateQueries({ queryKey: KEYS.friends });
     },
@@ -80,25 +91,43 @@ export const useSendMessage = (roomId: number | undefined) => {
   });
 };
 
-/** Social SSE를 열어 새 메시지·친구 요청이 오면 해당 목록을 다시 받는다 */
+/** Reconnect with a fresh token and reload missed events after every connection. */
 export const useSocialEvents = (enabled: boolean) => {
   const qc = useQueryClient();
   useEffect(() => {
     if (!enabled) return;
-    const events = openSocialEvents();
-    if (!events) return;
-    const onMessage = (e: MessageEvent) => {
-      const message = JSON.parse(e.data) as ChatMessage;
-      qc.invalidateQueries({ queryKey: KEYS.messages(message.roomId) });
-      qc.invalidateQueries({ queryKey: KEYS.rooms });
+    let stopped = false;
+    let events: EventSource | null = null;
+    let retry: ReturnType<typeof setTimeout>;
+    const refresh = () => {
+      void qc.invalidateQueries({ queryKey: ['social'] });
+      void qc.invalidateQueries({ queryKey: ['notification-center'] });
     };
-    const onNotification = () => {
-      qc.invalidateQueries({ queryKey: KEYS.requests });
-      qc.invalidateQueries({ queryKey: KEYS.friends });
+    const connect = async () => {
+      await initializeAuth();
+      if (stopped) return;
+      events = openSocialEvents();
+      if (!events) return;
+      events.addEventListener('connected', refresh);
+      const onMessage = (e: MessageEvent) => {
+        try {
+          const message = JSON.parse(e.data) as ChatMessage;
+          if (message.roomId == null) return;
+          void qc.invalidateQueries({ queryKey: KEYS.messages(message.roomId) });
+          void qc.invalidateQueries({ queryKey: KEYS.rooms });
+        } catch { refresh(); }
+      };
+      events.addEventListener('chat-message', onMessage);
+      events.addEventListener('chat-message-deleted', onMessage);
+      events.addEventListener('notification', refresh);
+      events.onerror = () => {
+        events?.close();
+        if (!stopped) retry = setTimeout(() => { void connect(); }, 3000);
+      };
     };
-    events.addEventListener('chat-message', onMessage);
-    events.addEventListener('chat-message-deleted', onMessage);
-    events.addEventListener('notification', onNotification);
-    return () => events.close();
+    const resume = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', resume);
+    void connect();
+    return () => { stopped = true; clearTimeout(retry); events?.close(); document.removeEventListener('visibilitychange', resume); };
   }, [enabled, qc]);
 };

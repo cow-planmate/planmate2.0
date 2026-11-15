@@ -57,8 +57,8 @@ export default function PlanmateV2() {
 
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [selectedChatUser, setSelectedChatUser] = useState<ChatPartner | null>(null);
-  // 소셜 화면이나 쪽지 창이 열려 있을 때만 새 메시지 알림(SSE)을 받는다
-  useSocialEvents(!!localStorage.getItem('accessToken') && (currentView === 'social' || isChatModalOpen));
+  // 로그인한 동안 다른 화면에서도 채팅·친구 이벤트를 받는다
+  useSocialEvents(!!localStorage.getItem('accessToken'));
 
   const handleGlobalChat = (user: ChatPartner) => {
     setSelectedChatUser(user);

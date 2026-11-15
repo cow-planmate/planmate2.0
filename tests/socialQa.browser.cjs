@@ -1,0 +1,64 @@
+// Run with Vite serving frontend and Playwright installed. HTTP and SSE use local fixtures.
+const {chromium}=require(process.env.PLANMATE_PLAYWRIGHT_MODULE || 'playwright');
+(async()=>{
+const browser=await chromium.launch({executablePath:process.env.PLANMATE_QA_CHROME || '/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+const page=await browser.newPage({viewport:{width:360,height:640}});
+page.setDefaultTimeout(10000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto('http://localhost:5173/tests/fixtures/social-qa.html');
+await page.getByRole('button',{name:'알람 보기',exact:false}).waitFor();
+await page.getByRole('button',{name:'알람 보기',exact:false}).click();
+await page.getByRole('button',{name:'응답할 요청 1',exact:true}).click();
+await page.getByRole('dialog',{name:'알람',exact:true}).getByRole('button',{name:'수락',exact:true}).click();
+console.log('accept clicked');
+await page.getByRole('button',{name:'응답할 요청 0',exact:true}).waitFor();
+await page.getByRole('button',{name:'전체 알람',exact:true}).click();
+await page.getByText('수락 완료',{exact:true}).waitFor();
+if(await page.getByLabel('읽지 않음',{exact:true}).count())throw Error('processed request is unread');
+await page.getByRole('button',{name:'알람 닫기',exact:true}).click();
+console.log('friend assertions passed');
+await page.getByRole('button',{name:'테스트 대화 열기',exact:true}).click();
+await page.getByRole('textbox',{name:'메시지 입력'}).fill('모바일 메시지');
+await page.getByRole('button',{name:'보내기',exact:true}).click({trial:true});
+const box=await page.getByRole('button',{name:'보내기',exact:true}).boundingBox();
+if(!box||box.x<0||box.x+box.width>360)throw Error('send button overflows '+JSON.stringify(box));
+await page.getByRole('button',{name:'보내기',exact:true}).click();
+console.log('send clicked');
+await page.getByText('모바일 메시지',{exact:true}).waitFor();
+await page.evaluate(()=>{window.qa.messages.unshift({id:99,roomId:42,senderId:'other',content:'상대 실시간 메시지',createdAt:new Date().toISOString()});window.qaEvents.sources.find(s=>s.url.includes('/social/')&&!s.closed).dispatchEvent(new MessageEvent('chat-message',{data:JSON.stringify({roomId:42})}));});
+await page.getByText('상대 실시간 메시지',{exact:true}).waitFor();
+await page.evaluate(()=>{window.qa.messages.unshift({id:100,roomId:42,senderId:'other',content:'연결 끊김 중 메시지',createdAt:new Date().toISOString()});window.qaEvents.sources.find(s=>s.url.includes('/social/')&&!s.closed).onerror();});
+console.log('reconnect triggered');
+await page.getByText('연결 끊김 중 메시지',{exact:true}).waitFor({timeout:12000});
+await page.screenshot({path:'/tmp/planmate-social-qa-chat-360.png'});
+await page.getByRole('button',{name:'닫기',exact:true}).click();
+// A message notification should open its target conversation.
+await page.evaluate(()=>{window.qa.alarms.push({id:2,title:'새 메시지',body:'메시지가 도착했습니다.',type:'NOTIFICATION_TYPE_CHAT_MESSAGE_RECEIVED',createdAt:new Date().toISOString(),readAt:null,action:{route:'SOCIAL_CHAT_ROOM',parameters:{roomId:'42'}}});window.qaClient.invalidateQueries({queryKey:['notification-center']});});
+await page.getByRole('button',{name:'알람 보기',exact:false}).click();
+await page.getByRole('button',{name:'새 메시지 메시지가 도착했습니다.',exact:false}).click();
+await page.getByRole('dialog',{name:'친구테스트님과의 대화',exact:true}).waitFor();
+await page.getByRole('button',{name:'닫기',exact:true}).click();
+// Initial dashboard loading must not claim there are no friends.
+await page.goto('http://localhost:5173/tests/fixtures/social-qa.html?delay=1');
+await page.getByText('친구를 불러오는 중…',{exact:true}).waitFor();
+if(await page.getByText('아직 친구가 없어요',{exact:true}).count())throw Error('false empty state');
+await page.evaluate(()=>window.qa.delay=false);
+await page.getByRole('button',{name:'친구 추가',exact:true}).click();
+await page.getByRole('textbox',{name:'닉네임으로 사용자 찾기'}).fill('친구');
+await page.getByRole('button',{name:'친구 요청',exact:true}).waitFor();
+// Pending outgoing request survives query refresh and is shown without duplicate action.
+await page.evaluate(()=>{window.qa.status='REJECTED';window.qa.sent=[];window.qaClient.invalidateQueries({queryKey:['social']});});
+await page.getByRole('button',{name:'친구 요청',exact:true}).click();
+await page.getByText('요청됨',{exact:true}).waitFor();
+await page.goto('http://localhost:5173/tests/fixtures/social-qa.html?edit=1');
+await page.getByText('본인이 작성한 게시글만 수정할 수 있습니다.',{exact:true}).waitFor();
+if(await page.getByText('타인 제목 노출 금지',{exact:true}).count())throw Error('unauthorized title visible');
+if(await page.getByRole('textbox').count())throw Error('unauthorized edit form visible');
+await page.goto('http://localhost:5173/tests/fixtures/social-qa.html?missing=1');
+await page.getByText('게시글 없음',{exact:true}).waitFor();
+await page.waitForTimeout(1500);
+const missingRequests=await page.evaluate(()=>window.qa.calls.filter(x=>x.path==='/api/feed/posts/60').length);
+if(missingRequests!==1)throw Error('404 retried '+missingRequests+' times');
+if(errors.length)throw Error('browser errors: '+errors.join('\n'));
+console.log(JSON.stringify({passed:['friend request count','inline accept','processed status and read','360px send','send persistence','live message event','reconnect missed messages','dashboard loading','outgoing pending state','chat notification opens room','unauthorized edit blocked','404 without retries'],sendButton:box,errors},null,2));
+await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});
