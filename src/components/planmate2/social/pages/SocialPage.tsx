@@ -1,5 +1,6 @@
 import { Bell, Check, Loader2, MessageCircle, Search, UserPlus, Users, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApiClient } from '../../../../hooks/useApiClient';
 import { UserAvatar } from '../../common/UserAvatar';
 import { ErrorToast, SuccessToast } from '../../../common/Toast';
@@ -8,6 +9,7 @@ import {
   useChatRooms,
   useFriendRequests,
   useFriends,
+  useSentFriendRequests,
   useRemoveFriend,
   useRespondFriendRequest,
   useSendFriendRequest,
@@ -30,10 +32,21 @@ export const SocialPage: React.FC<SocialPageProps> = ({ onOpenChat, onNavigate }
   const [findInput, setFindInput] = useState('');
   const [findQuery, setFindQuery] = useState('');
 
-  const { data: friendsPage } = useFriends(loggedIn);
-  const { data: requestsPage } = useFriendRequests(loggedIn);
-  const { data: roomsPage } = useChatRooms(loggedIn);
+  const { data: friendsPage, isPending: friendsLoading, isError: friendsError } = useFriends(loggedIn);
+  const { data: requestsPage, isPending: requestsLoading, isError: requestsError } = useFriendRequests(loggedIn);
+  const { data: roomsPage, isPending: roomsLoading, isFetching: roomsFetching, isError: roomsError } = useChatRooms(loggedIn);
   const { data: foundPage, isFetching: isSearching } = useUserSearch(findQuery);
+  const { data: sentRequests } = useSentFriendRequests(loggedIn);
+  const sentIds = new Set((sentRequests ?? []).map(request => request.addresseeId));
+  const [params, setParams] = useSearchParams();
+  const roomParam = params.get('roomId');
+  useEffect(() => {
+    if (!roomParam || !roomsPage || roomsFetching) return;
+    const room = roomsPage.items.find(room => String(room.roomId) === roomParam);
+    if (room) onOpenChat(room.partner);
+    else ErrorToast('대화방을 찾을 수 없습니다.');
+    setParams(previous => { const next = new URLSearchParams(previous); next.delete('roomId'); return next; }, { replace: true });
+  }, [roomParam, roomsPage, roomsFetching, onOpenChat, setParams]);
   const sendRequest = useSendFriendRequest();
   const respond = useRespondFriendRequest();
   const remove = useRemoveFriend();
@@ -94,6 +107,9 @@ export const SocialPage: React.FC<SocialPageProps> = ({ onOpenChat, onNavigate }
     );
   }
 
+  const loadingStats = [friendsLoading, roomsLoading, requestsLoading, roomsLoading];
+  const errors = friendsError || requestsError || roomsError;
+  const statErrors = [friendsError, roomsError, requestsError, roomsError];
   const stats = [
     { label: '내 친구', value: friends.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: '대화방', value: rooms.length, icon: MessageCircle, color: 'text-purple-600', bg: 'bg-purple-50' },
@@ -158,6 +174,8 @@ export const SocialPage: React.FC<SocialPageProps> = ({ onOpenChat, onNavigate }
                     </button>
                     {friendIds.has(user.userId) ? (
                       <span className="shrink-0 text-xs font-bold text-gray-400">친구</span>
+                    ) : sentIds.has(user.userId) ? (
+                      <span className="shrink-0 text-xs font-bold text-amber-600">요청됨</span>
                     ) : (
                       <button
                         onClick={() => handleSendRequest(user)}
@@ -176,13 +194,13 @@ export const SocialPage: React.FC<SocialPageProps> = ({ onOpenChat, onNavigate }
 
         {/* Status Dashboard */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          {stats.map((stat) => (
+          {stats.map((stat, index) => (
             <div key={stat.label} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
               <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4`}>
                 <stat.icon className="w-6 h-6" />
               </div>
               <p className="text-sm font-bold text-gray-400 mb-1">{stat.label}</p>
-              <p className="text-2xl font-black text-gray-900 tracking-tight">{stat.value}</p>
+              <p className="text-2xl font-black text-gray-900 tracking-tight">{loadingStats[index] ? <span role="status" className="animate-pulse text-sm text-gray-400">불러오는 중…</span> : statErrors[index] ? '—' : stat.value}</p>
             </div>
           ))}
         </div>
@@ -224,9 +242,10 @@ export const SocialPage: React.FC<SocialPageProps> = ({ onOpenChat, onNavigate }
           </div>
         )}
 
+        {errors && <p role="alert" className="mb-4 text-red-600">소셜 정보를 불러오지 못했습니다. 새로고침해 주세요.</p>}
         {/* Main Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          <FriendSection
+          {friendsLoading ? <p role="status" className="p-6">친구를 불러오는 중…</p> : friendsError ? null : <FriendSection
             friends={filteredFriends}
             onOpenChat={onOpenChat}
             onNavigate={onNavigate}
@@ -234,8 +253,8 @@ export const SocialPage: React.FC<SocialPageProps> = ({ onOpenChat, onNavigate }
             onFindFriends={() => setIsFinding(true)}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-          />
-          <ChatSection chatRooms={rooms} onOpenChat={onOpenChat} />
+          />}
+          {roomsLoading ? <p role="status" className="p-6">대화방을 불러오는 중…</p> : roomsError ? null : <ChatSection chatRooms={rooms} onOpenChat={onOpenChat} />}
         </div>
 
         {/* 메이트 찾기 게시판으로 */}

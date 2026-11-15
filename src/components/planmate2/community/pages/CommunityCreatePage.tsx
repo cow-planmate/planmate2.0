@@ -12,7 +12,11 @@ interface CommunityCreatePageProps {
 }
 
 export const CommunityCreatePage = ({ type, onBack, onSubmit, editPostId }: CommunityCreatePageProps) => {
-  const { title, setTitle, region, setRegion, mateCount, setMateCount, editor, handleSubmit, isSubmitting, isEditMode } = useCommunityCreateLogic(type, onSubmit, editPostId);
+  const { title, setTitle, region, setRegion, mateCount, setMateCount, editor, handleSubmit, isSubmitting, isEditMode, canEdit, editLoading, editError } = useCommunityCreateLogic(type, onSubmit, editPostId);
+  if (isEditMode && (editLoading || editError || !canEdit)) return <div className="p-10 text-center" role="status">
+    <p>{editLoading ? '게시글을 불러오는 중…' : editError ? '게시글을 찾을 수 없거나 접근할 수 없습니다.' : '본인이 작성한 게시글만 수정할 수 있습니다.'}</p>
+    <button className="mt-4 text-blue-600" onClick={onBack}>돌아가기</button>
+  </div>;
   const boardName = type === 'qna' ? '질문게시판' : type === 'mate' ? '메이트 찾기' : '자유게시판';
   return (
     <div className="min-h-screen bg-[#f8f9fb] px-4 py-6 sm:px-6 sm:py-9">

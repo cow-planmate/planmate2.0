@@ -209,7 +209,7 @@ export const PostDetailPage = ({ postId, onBack, onNavigate, onOpenChat }: PostD
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#1344FF] hover:text-[#1344FF]'
             }`}
           >
-            <ThumbsUp className="w-4 h-4 shrink-0" />좋아요 {post.likes}
+            <ThumbsUp className="w-4 h-4 shrink-0" />{react.isPending ? '반영 중…' : '좋아요'} {post.likes}
           </button>
           <button
             onClick={() => handleReact('dislike')}
