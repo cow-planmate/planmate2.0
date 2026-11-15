@@ -195,11 +195,21 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
     return () => { cancelled = true; };
   }, [processedFriendIds.join(','), friendStates.dataUpdatedAt, client, userId]);
   const dismiss = (item: Notification) => run(`alarm:${item.id}`, async () => {
-    await apiRequest(`${BASE_URL}/api/notifications/${item.id}`, { method: 'DELETE' });
     await client.cancelQueries({ queryKey: [...key, 'list'] });
     updateItems(items => items.filter(current => current.id !== item.id));
-    void client.invalidateQueries({ queryKey: [...key, 'unread'] });
-    if (stateFor(item)?.status === 'PENDING') SuccessToast('알람을 삭제했습니다. 요청은 ‘응답할 요청’에 남아 있습니다.');
+    if (!item.readAt) {
+      await client.cancelQueries({ queryKey: [...key, 'unread'] });
+      client.setQueryData<{ count: number }>([...key, 'unread'], old => old ? { count: Math.max(0, old.count - 1) } : old);
+    }
+    try {
+      await apiRequest(`${BASE_URL}/api/notifications/${item.id}`, { method: 'DELETE' });
+      void client.invalidateQueries({ queryKey: [...key, 'unread'] });
+      if (stateFor(item)?.status === 'PENDING') SuccessToast('알람을 삭제했습니다. 요청은 ‘응답할 요청’에 남아 있습니다.');
+    } catch (error) {
+      void client.invalidateQueries({ queryKey: [...key, 'list'] });
+      void client.invalidateQueries({ queryKey: [...key, 'unread'] });
+      throw error;
+    }
   });
   const respond = (invitation: Invitation, accepted: boolean) => run(`request:${invitation.collaborationRequestId}`, async () => {
     try {
