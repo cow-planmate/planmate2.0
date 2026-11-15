@@ -1,3 +1,5 @@
+import { fetchFriendRequestStatuses, readFriendRequestAlarm, type FriendRequestItem } from '../social/api/socialApi';
+import { useFriendRequests, useRespondFriendRequest } from '../social/hooks/queries';
 import { Bell, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
@@ -58,6 +60,9 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
     queryFn: ({ signal }): Promise<{ count: number }> => apiRequest(`${BASE_URL}/api/notifications/unread-count`, { signal }),
     refetchInterval: 60_000,
   });
+  const friendRequests = useFriendRequests();
+  const friendRespond = useRespondFriendRequest();
+  const friends = friendRequests.data?.items ?? [];
   const pending = useQuery({
     queryKey: [...key, 'pending'],
     queryFn: async ({ signal }): Promise<Invitation[]> => {
@@ -84,6 +89,17 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
     },
     refetchInterval: 60_000,
   });
+  const friendIds = [...new Set(items.filter(item => item.type.endsWith('FRIEND_REQUESTED'))
+    .map(item => item.action?.parameters?.friendRequestId).filter((id): id is string => !!id && /^\d+$/.test(id)))].sort();
+  const friendStates = useQuery({
+    queryKey: [...key, 'friend-statuses', friendIds], enabled: friendIds.length > 0,
+    queryFn: async () => {
+      const batches = [];
+      for (let i = 0; i < friendIds.length; i += 100) batches.push(fetchFriendRequestStatuses(friendIds.slice(i, i + 100)));
+      return (await Promise.all(batches)).flat();
+    }, refetchInterval: 60_000,
+  });
+  const requestCount = invitations.length + friends.length;
   const stateFor = (item: Notification): RequestState | undefined => {
     const id = item.action?.parameters?.collaborationRequestId;
     const waiting = invitations.find(invitation => String(invitation.collaborationRequestId) === id);
@@ -138,7 +154,7 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
       document.removeEventListener('keydown', escape);
     };
   }, [open]);
-  const refresh = () => client.invalidateQueries({ queryKey: key });
+  const refresh = () => Promise.all([client.invalidateQueries({ queryKey: key }), client.invalidateQueries({ queryKey: ['social', 'friend-requests'] })]);
   const toggle = () => {
     setToast(false);
     setOpen(!open);
@@ -168,6 +184,16 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
       void client.invalidateQueries({ queryKey: [...key, 'unread'] });
     } finally { busyRef.current.delete(`read:${item.id}`); }
   };
+  const processedFriendIds = (friendStates.data ?? []).filter(state => state.status !== 'PENDING'
+    && items.some(item => !item.readAt && item.type.endsWith('FRIEND_REQUESTED') && item.action?.parameters?.friendRequestId === String(state.id))).map(state => state.id);
+  useEffect(() => {
+    if (!processedFriendIds.length) return;
+    let cancelled = false;
+    void Promise.all(processedFriendIds.map(readFriendRequestAlarm)).then(() => {
+      if (!cancelled) void refresh();
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [processedFriendIds.join(','), friendStates.dataUpdatedAt, client, userId]);
   const dismiss = (item: Notification) => run(`alarm:${item.id}`, async () => {
     await apiRequest(`${BASE_URL}/api/notifications/${item.id}`, { method: 'DELETE' });
     await client.cancelQueries({ queryKey: [...key, 'list'] });
@@ -215,7 +241,8 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
         path = item.type.endsWith('PLAN_REQUEST_REJECTED') ? '/mypage?section=trips'
           : params.planId ? `/create?id=${encodeURIComponent(params.planId)}` : '/mypage?section=trips';
         break;
-      case 'SOCIAL_FRIEND_REQUESTS': case 'SOCIAL_CHAT_ROOM': case 'CHAT_ROOM': path = '/social'; break;
+      case 'SOCIAL_FRIEND_REQUESTS': path = '/social'; break;
+      case 'SOCIAL_CHAT_ROOM': case 'CHAT_ROOM': path = params.roomId ? `/social?roomId=${encodeURIComponent(params.roomId)}` : '/social'; break;
       case 'FEED_POST': if (params.feedId) path = `/travel/${encodeURIComponent(params.feedId)}`; break;
       case 'COMMUNITY_POST':
         if (params.postId) {
@@ -227,7 +254,7 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
         break;
       case 'COMMUNITY_BADGES': path = '/mypage?section=community'; break;
     }
-    if (path) { close(); navigate(path); }
+    if (path) { if (params.commentId && /^\d+$/.test(params.commentId)) path += `#comment-${params.commentId}`; close(); navigate(path); }
     else ErrorToast('연결된 화면을 열 수 없는 알람입니다.');
   });
   const readAll = () => run('read-all', async () => {
@@ -238,10 +265,26 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
     void refresh();
   });
   const statusLabel = (item: Notification) => {
+    if (item.type.endsWith('FRIEND_REQUESTED')) {
+      const state = friendStates.data?.find(state => String(state.id) === item.action?.parameters?.friendRequestId);
+      return state ? { PENDING: '응답 대기', ACCEPTED: '수락 완료', REJECTED: '거절됨', CANCELED: '취소됨' }[state.status] : null;
+    }
     if (!isRequest(item)) return null;
     const state = stateFor(item);
     if (state) return { PENDING: '응답 대기', ACCEPTED: '수락 완료', REJECTED: '거절됨' }[state.status];
     return statuses.isError ? '상태 확인 실패' : statuses.isPending ? '상태 확인 중' : '확인할 수 없는 요청';
+  };
+  const friendActions = (request: FriendRequestItem) => {
+    const busy = busyIds.has(`friend:${request.id}`);
+    return <div className="mt-3 flex gap-2" aria-busy={busy}>
+      {[true, false].map(accept => <button key={String(accept)} type="button" disabled={busy}
+        className="flex-1 rounded-lg border bg-white py-2 text-xs font-bold text-blue-600 disabled:opacity-50"
+        onClick={() => void run(`friend:${request.id}`, async () => {
+          await friendRespond.mutateAsync({ id: request.id, accept });
+          SuccessToast(`친구 요청을 ${accept ? '수락' : '거절'}했습니다.`);
+          void refresh();
+        })}>{busy ? '처리 중…' : accept ? '수락' : '거절'}</button>)}
+    </div>;
   };
   const requestActions = (invitation: Invitation) => {
     const busy = busyIds.has(`request:${invitation.collaborationRequestId}`);
@@ -252,11 +295,11 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
   };
   return (
     <div ref={rootRef} className="ml-auto md:ml-0">
-      <button ref={bellRef} type="button" aria-label={`알람 보기${(unread.data?.count ?? 0) > 0 ? `, 읽지 않은 알람 ${unread.data?.count}개` : ''}${invitations.length ? `, 응답할 요청 ${invitations.length}개` : ''}`} aria-expanded={open} aria-controls="notification-center"
+      <button ref={bellRef} type="button" aria-label={`알람 보기${(unread.data?.count ?? 0) > 0 ? `, 읽지 않은 알람 ${unread.data?.count}개` : ''}${requestCount ? `, 응답할 요청 ${requestCount}개` : ''}`} aria-expanded={open} aria-controls="notification-center"
         onClick={toggle} className={`relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-gray-50 ${open ? 'text-[#1344FF] bg-gray-100' : 'text-gray-600'}`}>
         <Bell className="h-5 w-5 md:h-6 md:w-6" />
         {(unread.data?.count ?? 0) > 0 && <span aria-label="읽지 않은 알람 있음" className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-red-500" />}
-        {invitations.length > 0 && <span aria-label={`응답할 요청 ${invitations.length}개`} className="absolute -bottom-0.5 -right-0.5 min-w-4 rounded-full bg-amber-100 px-1 text-[10px] font-bold text-amber-800">{invitations.length}</span>}
+        {requestCount > 0 && <span aria-label={`응답할 요청 ${requestCount}개`} className="absolute -bottom-0.5 -right-0.5 min-w-4 rounded-full bg-amber-100 px-1 text-[10px] font-bold text-amber-800">{requestCount}</span>}
       </button>
       {toast && !open && <button type="button" role="status" onClick={toggle}
         className="absolute right-4 top-[70px] z-30 rounded-xl border border-blue-100 bg-white px-4 py-3 text-sm shadow-lg">새로운 알람이 도착했어요</button>}
@@ -272,22 +315,26 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
         </div>
         <div className="mb-3 flex gap-2" role="group" aria-label="알람 목록 선택">
           <button type="button" aria-pressed={tab === 'alarms'} onClick={() => setTab('alarms')} className={`rounded-lg px-3 py-2 text-xs font-bold ${tab === 'alarms' ? 'bg-blue-50 text-[#1344FF]' : 'text-gray-500'}`}>전체 알람</button>
-          <button type="button" aria-pressed={tab === 'requests'} onClick={() => setTab('requests')} className={`rounded-lg px-3 py-2 text-xs font-bold ${tab === 'requests' ? 'bg-blue-50 text-[#1344FF]' : 'text-gray-500'}`}>응답할 요청 {invitations.length}</button>
+          <button type="button" aria-pressed={tab === 'requests'} onClick={() => setTab('requests')} className={`rounded-lg px-3 py-2 text-xs font-bold ${tab === 'requests' ? 'bg-blue-50 text-[#1344FF]' : 'text-gray-500'}`}>응답할 요청 {requestCount}</button>
         </div>
         <div className="max-h-[min(28rem,65dvh)] space-y-3 overflow-y-auto">
-          {(notifications.isError || pending.isError || unread.isError || (requestIds.length > 0 && statuses.isError)) && <div role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-600">
-            {notifications.isError ? '알람 목록' : pending.isError ? '초대·권한 요청 목록' : unread.isError ? '읽지 않은 알람 수' : '요청 처리 상태'}을 불러오지 못했습니다.
+          {(notifications.isError || pending.isError || friendRequests.isError || friendStates.isError || unread.isError || (requestIds.length > 0 && statuses.isError)) && <div role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-600">
+            {notifications.isError ? '알람 목록' : pending.isError ? '초대·권한 요청 목록' : friendRequests.isError || friendStates.isError ? '친구 요청 상태' : unread.isError ? '읽지 않은 알람 수' : '요청 처리 상태'}을 불러오지 못했습니다.
             <button type="button" className="ml-2 underline" onClick={() => void refresh()}>다시 시도</button>
           </div>}
           {tab === 'requests' ? <>
             <p className="text-xs leading-relaxed text-gray-500">알람을 삭제해도 요청은 남습니다. 수락 또는 거절로 응답해 주세요.</p>
+            {friends.map(request => <div key={`friend:${request.id}`} className="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
+              <p className="text-sm"><strong>{request.requester.nickname}</strong>님에게서 친구 요청이 도착했습니다.</p>
+              {friendActions(request)}
+            </div>)}
             {invitations.map(invitation => <div key={invitation.collaborationRequestId} className="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
               <span className="text-xs font-bold text-[#1344FF]">응답 대기</span>
               <p className="mt-1 text-sm leading-relaxed text-gray-700"><strong>{invitation.senderNickname}</strong>님이 <strong>'{invitation.planName}'</strong> {invitation.type === 'REQUEST' ? '일정의 편집 권한을 요청했습니다.' : '일정 편집 초대를 보냈습니다.'}</p>
               {requestActions(invitation)}
             </div>)}
-            {pending.isPending && <p className="py-6 text-center text-sm text-gray-400">요청을 불러오는 중입니다.</p>}
-            {!pending.isPending && !pending.isError && !invitations.length && <p className="py-8 text-center text-sm text-gray-400">응답할 요청이 없습니다.</p>}
+            {(pending.isPending || friendRequests.isPending) && <p className="py-6 text-center text-sm text-gray-400">요청을 불러오는 중입니다.</p>}
+            {!pending.isPending && !friendRequests.isPending && !pending.isError && !friendRequests.isError && !requestCount && <p className="py-8 text-center text-sm text-gray-400">응답할 요청이 없습니다.</p>}
           </> : <>
             {items.map(item => {
               const invitation = isRequest(item) ? invitations.find(invitation => String(invitation.collaborationRequestId) === item.action?.parameters?.collaborationRequestId) : undefined;
@@ -301,6 +348,7 @@ export default function NotificationCenter({ onInvitationAccept, onOpen }: {
                   <time dateTime={item.createdAt} className="mt-2 block text-xs text-gray-400">{new Date(item.createdAt).toLocaleString('ko-KR')}</time>
                 </button>
                 <button type="button" disabled={busy} aria-label={`${item.title} 알람 삭제`} title="알람만 삭제" onClick={() => void dismiss(item)} className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50"><X className="h-4 w-4" /></button>
+                {item.type.endsWith('FRIEND_REQUESTED') && friends.filter(request => String(request.id) === item.action?.parameters?.friendRequestId).map(request => <div key={request.id} className="px-3 pb-3">{friendActions(request)}</div>)}
                 {invitation && <div className="px-3 pb-3">{requestActions(invitation)}</div>}
               </div>;
             })}

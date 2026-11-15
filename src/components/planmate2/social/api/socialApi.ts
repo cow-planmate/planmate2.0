@@ -70,6 +70,10 @@ const request = async <T>(path: string, options: RequestInit = {}, retried = fal
 };
 
 // ── 친구 ─────────────────────────────────────────────────────────────────
+export interface FriendRequestState { id: number; requesterId: string; addresseeId: string; status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELED' }
+export const fetchSentFriendRequests = () => request<FriendRequestState[]>('/api/social/friend-requests/sent');
+export const fetchFriendRequestStatuses = (ids: string[]) => request<FriendRequestState[]>(`/api/social/friend-requests/statuses?ids=${ids.join(',')}`);
+export const readFriendRequestAlarm = (id: number) => request<void>('/api/notifications/read-friend-request', { method: 'POST', body: JSON.stringify({ requestId: id }) });
 export const fetchFriends = () => request<Items<SocialUser>>('/api/social/friends');
 
 export const searchUsers = (q: string) =>
@@ -79,7 +83,7 @@ export const fetchReceivedFriendRequests = () => request<Items<FriendRequestItem
 
 export const sendFriendRequest = (addresseeId: string) =>
   // 상대가 먼저 보낸 요청이 있으면 서버가 바로 수락하고 status ACCEPTED 를 돌려준다
-  request<{ status: string }>('/api/social/friend-requests', { method: 'POST', body: JSON.stringify({ addresseeId }) });
+  request<{ id: number; status: string }>('/api/social/friend-requests', { method: 'POST', body: JSON.stringify({ addresseeId }) });
 
 export const acceptFriendRequest = (id: number) =>
   request(`/api/social/friend-requests/${id}/accept`, { method: 'POST' });
