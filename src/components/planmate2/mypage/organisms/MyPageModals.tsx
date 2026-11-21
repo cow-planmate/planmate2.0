@@ -1,6 +1,7 @@
 import React from 'react';
 import DeleteAccountModal from '../modals/DeleteAccountModal';
 import EventDetailModal from '../modals/EventDetailModal';
+import LevelInfoModal from '../modals/LevelInfoModal';
 import PasswordChangeModal from '../modals/PasswordChangeModal';
 import ProfileEditModal from '../modals/ProfileEditModal';
 import type { Gender } from '../types';
@@ -32,6 +33,10 @@ interface MyPageModalsProps {
   onCloseProfileEdit?: () => void;
   dummyUser: any;
   onOpenThemeEditor: () => void;
+
+  // Level Modal
+  userStats: any;
+  LEVEL_CONFIG: any;
 
   // Delete Modal
   handleDeleteAccount: () => void;
@@ -72,6 +77,8 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
   canRemoveProfileImage,
   onCloseProfileEdit,
   dummyUser,
+  userStats,
+  LEVEL_CONFIG,
   onNavigateDetail,
   onOpenThemeEditor,
   handleDeleteAccount,
@@ -128,6 +135,13 @@ export const MyPageModals: React.FC<MyPageModalsProps> = ({
         confirmPassword={confirmPassword}
         setConfirmPassword={setConfirmPassword}
         handlePasswordUpdate={handlePasswordUpdate}
+      />
+
+      <LevelInfoModal
+        isOpen={activeModal === 'level'}
+        onClose={() => setActiveModal(null)}
+        userStats={userStats}
+        LEVEL_CONFIG={LEVEL_CONFIG}
       />
 
       <DeleteAccountModal

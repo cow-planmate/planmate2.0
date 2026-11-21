@@ -1,5 +1,6 @@
 // 목표: 최대한 간결하고 작동 잘 되게
 import {
+  AutoScrollActivator,
   DndContext,
   MouseSensor,
   TouchSensor,
@@ -44,6 +45,15 @@ import {
 import { ErrorToast, SuccessToast } from "../components/common/Toast";
 import { resolvePlanOwnership } from "../utils/planOwnership";
 import { ChecklistSheet } from "../components/checklist/ChecklistSheet";
+
+const restrictScheduledItemToVerticalAxis = ({ transform, active }) => {
+  if (active?.data.current?.type !== "schedule") return transform;
+
+  return {
+    ...transform,
+    x: 0,
+  };
+};
 
 function App() {
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -510,26 +520,30 @@ function App() {
         enabled={isAuthenticated()}
       />
       <CreateTutorial />
-      <ChatBot planId={id} />
-      <div
-        className="
-          min-[1464px]:w-[1400px] min-[1464px]:px-0
-          md:px-8 md:py-6 py-3
-          mx-auto
-          md:h-[calc(100vh-134px)]
-          h-[calc(100vh-112px)]
-        "
+      <DndContext
+        sensors={sensors}
+        modifiers={[restrictScheduledItemToVerticalAxis]}
+        autoScroll={{
+          activator: AutoScrollActivator.DraggableRect,
+          layoutShiftCompensation: false,
+        }}
       >
-        <div className="flex md:flex-row flex-col md:space-x-6 space-y-4 md:space-y-0 h-full">
-          <DaySelector />
-          <DndContext
-            sensors={sensors}
-            autoScroll={{ layoutShiftCompensation: false }}
-          >
+        <ChatBot planId={id} enableScheduleDrag />
+        <div
+          className="
+            min-[1464px]:w-[1400px] min-[1464px]:px-0
+            md:px-8 md:py-6 py-3
+            mx-auto
+            md:h-[calc(100vh-134px)]
+            h-[calc(100vh-112px)]
+          "
+        >
+          <div className="flex md:flex-row flex-col md:space-x-6 space-y-4 md:space-y-0 h-full">
+            <DaySelector />
             <Main />
-          </DndContext>
+          </div>
         </div>
-      </div>
+      </DndContext>
     </div>
   );
 }

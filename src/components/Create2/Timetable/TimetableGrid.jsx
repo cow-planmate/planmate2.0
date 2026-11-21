@@ -19,7 +19,7 @@ const TimetableGrid = React.forwardRef(({ items, preview, onResizeEnd, showTimet
 
   return (
     <div
-      className={`flex-1 md:w-[36%] md:flex-initial flex flex-col md:border md:border-gray-300 rounded-lg transition-all duration-300 ${showTimetable ? 'opacity-100 z-10' : 'opacity-0 absolute inset-0 -z-10'}`}
+      className={`flex-1 md:w-[41%] md:flex-initial flex flex-col md:border md:border-gray-300 rounded-lg transition-all duration-300 ${showTimetable ? 'opacity-100 z-10' : 'opacity-0 absolute inset-0 -z-10'}`}
       data-tutorial="timetable"
     >
       <Weather

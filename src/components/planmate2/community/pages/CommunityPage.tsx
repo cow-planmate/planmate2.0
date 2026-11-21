@@ -9,7 +9,7 @@ import { PostListTable } from '../organisms/PostListTable';
 import { WarningToast } from '../../../common/Toast';
 
 interface CommunityPageProps {
-  type: 'free' | 'qna';
+  type: 'free' | 'qna' | 'mate';
   onNavigate: (view: any, data?: any) => void;
 }
 
@@ -53,6 +53,7 @@ export const CommunityPage = ({ type, onNavigate }: CommunityPageProps) => {
     switch (type) {
       case 'free': return '자유게시판';
       case 'qna': return '질문게시판';
+      case 'mate': return '메이트 찾기';
       default: return '게시판';
     }
   };

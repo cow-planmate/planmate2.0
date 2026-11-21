@@ -7,6 +7,7 @@ export const NavigationTabs = ({ currentType, onNavigate }: NavigationTabsProps)
   const tabs = [
     { id: 'free', label: '자유게시판' },
     { id: 'qna', label: '질문게시판' },
+    { id: 'mate', label: '메이트 찾기' },
   ];
 
   return (

@@ -1,4 +1,4 @@
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, Users } from 'lucide-react';
 import { authorNameClass, authorNavProps } from '../../common/authorLink';
 import { UserAvatar } from '../../common/UserAvatar';
 
@@ -17,6 +17,14 @@ const StatusBadge = ({ post, type }: { post: any; type: string }) => {
     return post.isAnswered
       ? <span className="shrink-0 px-1.5 py-0.5 bg-green-50 text-green-700 text-[11px] rounded font-bold">답변완료</span>
       : <span className="shrink-0 px-1.5 py-0.5 bg-gray-50 text-gray-600 text-[11px] rounded font-bold">답변대기</span>;
+  }
+  if (type === 'mate') {
+    return (
+      <span className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-bold ${post.status === 'closed' ? 'bg-gray-100 text-gray-500' : 'bg-blue-50 text-[#1344FF]'}`}>
+        <Users className="w-2.5 h-2.5" />
+        {post.status === 'closed' ? '모집완료' : `${post.participants ?? 0}/${post.maxParticipants ?? '∞'}`}
+      </span>
+    );
   }
   return null;
 };

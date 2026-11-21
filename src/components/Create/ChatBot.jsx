@@ -4,6 +4,7 @@ import {
   Check,
   ChevronRight,
   Clock3,
+  GripVertical,
   Info,
   LoaderCircle,
   MapPin,
@@ -13,11 +14,13 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDraggable } from "@dnd-kit/core";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApiClient } from "../../hooks/useApiClient";
 import usePlanStore from "../../store/Plan";
-import { mapPlaceSummary } from "../../utils/createUtils";
+import { getBlockCategoryId, mapPlaceSummary } from "../../utils/createUtils";
+import NoLoginSave from "../Create2/PlanInfo/NoLoginSave";
 import PlaceDetailModal from "../Create2/Place/PlaceDetailModal";
 import { TourApiAttribution } from "../common/TourApiAttribution";
 import { PlaceActionButtons } from "../common/PlaceActionButtons";
@@ -65,6 +68,32 @@ const formatBlockTime = (block) => {
   const end = block?.blockEndTime?.slice?.(0, 5);
   return start && end ? `${start}–${end}` : start ?? "시간 미정";
 };
+
+const timeToMinutes = (time) => {
+  if (typeof time !== "string") return null;
+  const [hour, minute] = time.split(":").map(Number);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+  return hour * 60 + minute;
+};
+
+const getBlockDuration = (block) => {
+  const start = timeToMinutes(block?.blockStartTime);
+  const end = timeToMinutes(block?.blockEndTime);
+  if (start == null || end == null || end <= start) return 4;
+  return Math.max(1, Math.ceil((end - start) / 15));
+};
+
+const getDraggablePlace = (block) => ({
+  placeId: block?.placeId ?? block?.contentId ?? null,
+  categoryId: getBlockCategoryId(block),
+  name: block?.placeName ?? block?.title ?? "장소",
+  formatted_address: block?.placeAddress ?? block?.addr1 ?? null,
+  photoUrl: block?.placeThumbnailUrl ?? block?.thumbnailUrl ?? null,
+  xLocation: block?.longitude ?? block?.lng ?? block?.xLocation ?? null,
+  yLocation: block?.latitude ?? block?.lat ?? block?.yLocation ?? null,
+  contentTypeId: block?.placeContentTypeId ?? block?.contentTypeId ?? null,
+  copyrightDivCd: block?.placeCopyrightDivCd ?? block?.copyrightDivCd ?? null,
+});
 
 const formatPreviewDate = (date) => {
   if (!date) return "날짜 미정";
@@ -135,7 +164,76 @@ const InlineMarkdown = ({ text }) => {
   });
 };
 
-const SuggestedPlaces = ({ places, onShowDetail }) => {
+const DraggableSuggestedPlace = ({ place, enabled, onShowDetail }) => {
+  const draggableId = useId();
+  const draggablePlace = useMemo(() => mapPlaceSummary(place), [place]);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `chatbot-place-${draggableId}`,
+    data: {
+      type: "chatbot",
+      place: draggablePlace,
+      duration: 4,
+      originalId: place?.contentId ?? place?.title,
+    },
+    disabled: !enabled,
+  });
+
+  return (
+    <article
+      ref={setNodeRef}
+      {...(enabled ? listeners : {})}
+      {...(enabled ? attributes : {})}
+      className={`relative w-[178px] flex-none overflow-hidden rounded-xl border border-slate-200 bg-white ${
+        enabled ? "cursor-grab select-none active:cursor-grabbing" : ""
+      } ${isDragging ? "opacity-40 ring-2 ring-blue-300" : ""}`}
+      title={enabled ? "시간표로 드래그하여 1시간 일정으로 추가" : undefined}
+    >
+      {enabled ? (
+        <span className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-[#1344FF] shadow-sm ring-1 ring-slate-200">
+          <GripVertical className="h-4 w-4" aria-hidden="true" />
+        </span>
+      ) : null}
+      {place.thumbnailUrl ? (
+        <img
+          src={place.thumbnailUrl}
+          alt=""
+          draggable={false}
+          className="h-20 w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-20 items-center justify-center bg-slate-100 text-slate-300">
+          <MapPin className="h-6 w-6" />
+        </div>
+      )}
+      <div className="p-2.5">
+        <span className="text-[10px] font-bold text-[#1344FF]">
+          {CATEGORY_LABELS[place.category] ?? place.category ?? "여행 장소"}
+        </span>
+        <h4 className="mt-0.5 truncate text-xs font-extrabold text-slate-900">
+          <InlineMarkdown text={place.title} />
+        </h4>
+        {getOverviewText(place.overview) ? (
+          <p className="mt-2 line-clamp-2 text-[10px] font-medium leading-4 text-slate-500">
+            {getOverviewText(place.overview)}
+          </p>
+        ) : null}
+        {compactPlaceFacts(place).length ? (
+          <ul className="mt-2 space-y-1 text-[10px] font-medium leading-4 text-slate-500">
+            {compactPlaceFacts(place).map((fact) => <li key={fact} className="truncate">• {fact}</li>)}
+          </ul>
+        ) : null}
+        <PlaceActionButtons
+          place={place}
+          onShowDetail={place.contentId != null ? () => onShowDetail(place) : undefined}
+          className="mt-2"
+          labelButtons
+        />
+      </div>
+    </article>
+  );
+};
+
+const SuggestedPlaces = ({ places, onShowDetail, enableScheduleDrag = false }) => {
   if (!places.length) return null;
 
   return (
@@ -146,47 +244,21 @@ const SuggestedPlaces = ({ places, onShowDetail }) => {
         </span>
         <div>
           <h3 className="text-xs font-extrabold text-slate-900">추천 장소</h3>
-          <p className="text-[10px] font-medium text-slate-400">이어서 조건을 바꿔 물어볼 수 있어요</p>
+          <p className="text-[10px] font-medium text-slate-400">
+            {enableScheduleDrag
+              ? "카드를 시간표로 끌면 1시간 일정으로 추가돼요"
+              : "이어서 조건을 바꿔 물어볼 수 있어요"}
+          </p>
         </div>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {places.map((place) => (
-          <article
+          <DraggableSuggestedPlace
             key={`${place.contentId}-${place.title}`}
-            className="w-[178px] flex-none overflow-hidden rounded-xl border border-slate-200 bg-white"
-          >
-            {place.thumbnailUrl ? (
-              <img src={place.thumbnailUrl} alt="" className="h-20 w-full object-cover" />
-            ) : (
-              <div className="flex h-20 items-center justify-center bg-slate-100 text-slate-300">
-                <MapPin className="h-6 w-6" />
-              </div>
-            )}
-            <div className="p-2.5">
-              <span className="text-[10px] font-bold text-[#1344FF]">
-                {CATEGORY_LABELS[place.category] ?? place.category ?? "여행 장소"}
-              </span>
-              <h4 className="mt-0.5 truncate text-xs font-extrabold text-slate-900">
-                <InlineMarkdown text={place.title} />
-              </h4>
-              {getOverviewText(place.overview) ? (
-                <p className="mt-2 line-clamp-2 text-[10px] font-medium leading-4 text-slate-500">
-                  {getOverviewText(place.overview)}
-                </p>
-              ) : null}
-              {compactPlaceFacts(place).length ? (
-                <ul className="mt-2 space-y-1 text-[10px] font-medium leading-4 text-slate-500">
-                  {compactPlaceFacts(place).map((fact) => <li key={fact} className="truncate">• {fact}</li>)}
-                </ul>
-              ) : null}
-              <PlaceActionButtons
-                place={place}
-                onShowDetail={place.contentId != null ? () => onShowDetail(place) : undefined}
-                className="mt-2"
-                labelButtons
-              />
-            </div>
-          </article>
+            place={place}
+            enabled={enableScheduleDrag}
+            onShowDetail={onShowDetail}
+          />
         ))}
       </div>
       <TourApiAttribution className="mt-3 border-t border-slate-100 pt-2.5" />
@@ -194,7 +266,66 @@ const SuggestedPlaces = ({ places, onShowDetail }) => {
   );
 };
 
-const PlanPreview = ({ plan, status = "pending", isApplying, onApply, onShowDetail }) => {
+const DraggablePlanBlock = ({ block, index, enabled }) => {
+  const draggableId = useId();
+  const duration = useMemo(() => getBlockDuration(block), [block]);
+  const place = useMemo(() => getDraggablePlace(block), [block]);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `chatbot-${draggableId}`,
+    data: {
+      type: "chatbot",
+      place,
+      duration,
+      originalId: block?.blockId ?? `${block?.placeName}-${index}`,
+    },
+    disabled: !enabled,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...(enabled ? listeners : {})}
+      {...(enabled ? attributes : {})}
+      className={`flex min-w-0 items-center gap-2 border-b border-slate-200 py-2.5 text-[11px] last:border-b-0 ${
+        enabled ? "cursor-grab select-none active:cursor-grabbing" : ""
+      } ${isDragging ? "opacity-40 ring-2 ring-inset ring-blue-300" : ""}`}
+      title={enabled ? "시간표로 드래그하여 추가" : undefined}
+    >
+      {enabled ? (
+        <GripVertical className="h-4 w-4 flex-none text-slate-300" aria-hidden="true" />
+      ) : null}
+      <span className="w-16 flex-none font-bold tabular-nums text-slate-400">
+        {formatBlockTime(block)}
+      </span>
+      {block.placeThumbnailUrl ? (
+        <img
+          src={block.placeThumbnailUrl}
+          alt=""
+          loading="lazy"
+          draggable={false}
+          className="h-11 w-11 flex-none rounded-lg object-cover"
+        />
+      ) : (
+        <span className="flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-slate-100 text-slate-300">
+          <MapPin className="h-4 w-4" />
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <span className="block break-words font-bold text-slate-700">{block.placeName}</span>
+      </div>
+      <PlaceActionButtons place={block} />
+    </div>
+  );
+};
+
+const PlanPreview = ({
+  plan,
+  status = "pending",
+  isApplying,
+  onApply,
+  onShowDetail,
+  enableScheduleDrag = false,
+}) => {
   const timetables = useMemo(() => getPlanTimetables(plan), [plan]);
   const [selectedDay, setSelectedDay] = useState(0);
   const timetable = timetables[selectedDay] ?? timetables[0];
@@ -247,14 +378,22 @@ const PlanPreview = ({ plan, status = "pending", isApplying, onApply, onShowDeta
           <MapPin className="h-3.5 w-3.5 text-[#1344FF]" /> {blocks.length}개 장소
         </div>
 
+        {enableScheduleDrag && status !== "applied" && blocks.length > 0 ? (
+          <p className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-[#1344FF]">
+            <GripVertical className="h-3 w-3" aria-hidden="true" />
+            블록을 현재 선택한 날짜의 원하는 시간으로 끌어다 놓으세요.
+          </p>
+        ) : null}
+
         {blocks.length > 0 && (
           <div className="mt-3 border-t border-slate-200">
             {blocks.map((block, index) => (
-              <div key={block.blockId ?? `${block.date}-${block.blockStartTime}-${index}`} className="flex min-w-0 items-center gap-2 border-b border-slate-200 py-2.5 last:border-b-0 text-[11px]">
-                <span className="w-16 flex-none font-bold tabular-nums text-slate-400">{formatBlockTime(block)}</span>
-                <div className="min-w-0 flex-1"><span className="block break-words font-bold text-slate-700">{block.placeName}</span></div>
-                <PlaceActionButtons place={block} />
-              </div>
+              <DraggablePlanBlock
+                key={block.blockId ?? `${block.date}-${block.blockStartTime}-${index}`}
+                block={block}
+                index={index}
+                enabled={enableScheduleDrag && status !== "applied"}
+              />
             ))}
           </div>
         )}
@@ -276,7 +415,7 @@ const PlanPreview = ({ plan, status = "pending", isApplying, onApply, onShowDeta
   );
 };
 
-const ChatBot = ({ planId: explicitPlanId }) => {
+const ChatBot = ({ planId: explicitPlanId, enableScheduleDrag = false }) => {
   const [searchParams] = useSearchParams();
   const storePlanId = usePlanStore((state) => state.planId);
   const planId = explicitPlanId ?? searchParams.get("id") ?? storePlanId;
@@ -286,6 +425,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
   const canUseChatbot = isLoggedIn && hasSavedPlan;
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isSavingPlan, setIsSavingPlan] = useState(false);
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -486,6 +626,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
 
   return (
     <>
+      <NoLoginSave isOpen={isSavingPlan} redirectTo="create" />
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
@@ -562,6 +703,11 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                     ? "일정을 먼저 저장한 뒤 AI에게 장소 추천과 일정 수정을 요청해 보세요."
                     : "로그인하면 AI에게 장소 추천과 일정 수정을 요청할 수 있어요."}
                 </p>
+                {isLoggedIn && (
+                  <button type="button" onClick={() => setIsSavingPlan(true)} disabled={isSavingPlan} className="mt-4 rounded-xl bg-[#1344FF] px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#0d34cc] disabled:opacity-70">
+                    저장하고 AI 사용하기
+                  </button>
+                )}
               </div>
             ) : (
               <>
@@ -601,7 +747,11 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                       </div>
                       {message.role === "assistant" ? (
                         <div className="mt-3">
-                          <SuggestedPlaces places={message.suggestedPlaces ?? []} onShowDetail={setDetailPlace} />
+                          <SuggestedPlaces
+                            places={message.suggestedPlaces ?? []}
+                            onShowDetail={setDetailPlace}
+                            enableScheduleDrag={enableScheduleDrag}
+                          />
                           <PlanPreview
                             plan={message.suggestedPlan}
                             status={message.planStatus ?? "pending"}
@@ -611,6 +761,7 @@ const ChatBot = ({ planId: explicitPlanId }) => {
                               plan: message.suggestedPlan,
                               status: message.planStatus ?? "pending",
                             })}
+                            enableScheduleDrag={enableScheduleDrag}
                           />
                         </div>
                       ) : null}

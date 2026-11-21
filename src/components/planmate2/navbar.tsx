@@ -4,7 +4,9 @@ import {
   LogIn,
   LogOut,
   Menu,
+  MessageSquareText,
   User,
+  Users,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -29,6 +31,8 @@ import PasswordFind from "../auth/PasswordFind";
 import Theme from "../auth/Theme";
 // @ts-ignore
 import Themestart from "../auth/Themestart";
+// @ts-ignore
+import FeedbackModal from "../common/Feedback";
 // @ts-ignore
 import { ErrorToast, SuccessToast } from "../common/Toast";
 
@@ -63,6 +67,7 @@ export default function Navbar({
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [recentPlan, setRecentPlan] = useState(() => getRecentPlan());
 
   const isScheduleEditor = currentView === "schedule-editor";
@@ -77,6 +82,12 @@ export default function Navbar({
     setIsProfileMenuOpen(false);
     setIsMobileMenuOpen(false);
     navigate(`/mypage?section=${section}`);
+  };
+
+  const handleFeedbackOpen = () => {
+    setIsProfileMenuOpen(false);
+    setIsMobileMenuOpen(false);
+    setIsFeedbackOpen(true);
   };
 
   // 인증 관련 상태
@@ -268,6 +279,9 @@ export default function Navbar({
             onClick={() => onNavigate("plan-maker")}
           >
             <Logo className="h-6 w-auto" />
+            <span className="ml-1.5 self-start text-[10px] font-bold leading-none tracking-wide text-[#1344FF]">
+              test
+            </span>
           </div>
 
           {/* 데스크톱 메뉴 */}
@@ -517,16 +531,36 @@ export default function Navbar({
                         ))}
                       </div>
                       <div className="border-t border-slate-100 pt-1.5">
-                      <button
-                        onClick={() => {
-                          handleLogout();
-                          setIsProfileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        로그아웃
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onNavigate("social");
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#1344FF]"
+                        >
+                          <Users className="h-4 w-4" />
+                          소셜
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleFeedbackOpen}
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#1344FF]"
+                        >
+                          <MessageSquareText className="h-4 w-4" />
+                          피드백 보내기
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleLogout();
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          로그아웃
+                        </button>
                       </div>
                     </div>
                   </>
@@ -662,6 +696,25 @@ export default function Navbar({
                       <button
                         type="button"
                         onClick={() => {
+                          onNavigate("social");
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#1344FF]"
+                      >
+                        <Users className="h-4 w-4" />
+                        소셜
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleFeedbackOpen}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#1344FF]"
+                      >
+                        <MessageSquareText className="h-4 w-4" />
+                        피드백 보내기
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
                           handleLogout();
                           setIsMobileMenuOpen(false);
                         }}
@@ -734,6 +787,10 @@ export default function Navbar({
         onClose={() => setIsThemestartOpen(false)}
         onThemeOpen={() => setIsThemeOpen(true)}
         selectedThemeKeywords={selectedThemeKeywords}
+      />
+      <FeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
       />
     </nav>
   );

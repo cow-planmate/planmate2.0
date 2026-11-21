@@ -1,0 +1,23 @@
+.blog-editor .bn-editor {
+  padding-inline: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.9;
+  color: #29303b;
+}
+.blog-editor .bn-block-content[data-content-type="paragraph"] {
+  padding-block: 6px;
+}
+.blog-editor .bn-block-content[data-content-type="heading"] {
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+.blog-editor .bn-block-content[data-content-type="quote"] {
+  border-left: 3px solid #1344ff;
+  padding-left: 18px;
+  color: #687080;
+}
+.blog-editor .bn-visual-media {
+  border-radius: 12px;
+}

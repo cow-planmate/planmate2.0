@@ -72,6 +72,8 @@ function App() {
     });
   };
 
+
+  
   const onTouchMove = (e) => {
     setTouchEndPos({
       x: e.targetTouches[0].clientX,

@@ -8,6 +8,12 @@ import Maintenance from "./pages/Maintenance";
 import ConfirmModal from "./components/common/ConfirmModal";
 import AppOrWebPrompt from "./components/common/AppOrWebPrompt";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  destinationQueryKeys,
+  fetchDestinationList,
+} from "./utils/destinationCache";
+
+import SuspensionNoticeModal from "./components/common/SuspensionNoticeModal";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +27,18 @@ function App() {
     }
   }, [isServerDown]);
 
+  useEffect(() => {
+    if (isMaintenance) return;
+
+    // 기본 여행지 목록은 앱 최초 진입 시 로컬 캐시를 사용해 ETag로 한 번만 재검증합니다.
+    void queryClient.prefetchQuery({
+      queryKey: destinationQueryKeys.featured,
+      queryFn: fetchDestinationList,
+      staleTime: 0,
+      gcTime: Infinity,
+    });
+  }, [isMaintenance]);
+
   if (isMaintenance) {
     return <Maintenance />;
   }
@@ -29,6 +47,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router />
       <ConfirmModal />
+      <SuspensionNoticeModal />
       <AppOrWebPrompt />
     </QueryClientProvider>
   )

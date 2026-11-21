@@ -144,11 +144,16 @@ export default function Main() {
       if (newStart + duration > TOTAL_SLOTS) newStart = TOTAL_SLOTS - duration;
 
       const itemId = type === 'schedule' ? active.id : null;
-      if (checkOverlap(newStart, duration, items[getTimeTableId(timetables, selectedDay)], itemId)) return;
+      if (checkOverlap(newStart, duration, items[getTimeTableId(timetables, selectedDay)], itemId)) {
+        if (type === 'chatbot') {
+          WarningToast('이미 일정이 있는 시간입니다. 다른 시간에 놓아 주세요.');
+        }
+        return;
+      }
 
       const timeTableId = getTimeTableId(timetables, selectedDay);
 
-      if (type === 'sidebar') {
+      if (type === 'sidebar' || type === 'chatbot') {
         const blockId = getNextId(timeTableId, newStart);
         addItemFromDrag({
           timetables,

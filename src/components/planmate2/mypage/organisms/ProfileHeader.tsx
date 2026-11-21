@@ -3,7 +3,9 @@ import {
   CalendarDays,
   Camera,
   Check,
+  Globe,
   Loader2,
+  Lock,
   Mail,
   MessageSquare,
   ShieldCheck,
@@ -16,10 +18,20 @@ import {
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import { PrivacyPolicyModal } from "../../../common/PrivacyPolicyModal";
+import type { UserBadges } from "../../community/api/communityApi";
+import { ProfileActivityCard } from "./ProfileActivityCard";
 import type { Gender } from "../types";
 
 interface ProfileHeaderProps {
   dummyUser: any;
+  /** 활동 레벨·경험치 (비공개 프로필이면 생략) */
+  userStats?: any;
+  badges?: UserBadges;
+  onViewLevel?: () => void;
+  /** 프로필 공개 범위 — 본인만 변경할 수 있다 */
+  isProfilePublic?: boolean;
+  isSavingVisibility?: boolean;
+  onToggleVisibility?: (nextPublic: boolean) => void;
   onEditThemes?: () => void;
   onAddFriend?: () => void;
   onSendMessage?: () => void;
@@ -66,6 +78,12 @@ const normalizeThemes = (themes: any): Array<{ preferredThemeName: string; categ
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   dummyUser,
+  userStats,
+  badges,
+  onViewLevel = () => {},
+  isProfilePublic = true,
+  isSavingVisibility = false,
+  onToggleVisibility,
   onEditThemes,
   onAddFriend,
   onSendMessage,
@@ -101,9 +119,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const totalThemes = Array.from(themesByCategory.values()).reduce((count, themes) => count + themes.length, 0);
   const nicknameChanged = newNickname !== dummyUser.nickName;
   const saveDisabled = isSaving || (nicknameChanged && !isNicknameVerified);
+  const activityCard = userStats ? (
+    <ProfileActivityCard userStats={userStats} badges={badges} isOtherUser={isOtherUser} onViewLevel={onViewLevel} />
+  ) : null;
 
   if (isOtherUser) {
     return (
+      <>
       <section className="rounded-[28px] bg-white p-6 ring-1 ring-slate-200/70 sm:p-8" aria-label="프로필 정보">
         <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
           {dummyUser.profileLogo ? (
@@ -123,6 +145,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           ) : null}
         </div>
       </section>
+      {activityCard ? <div className="px-3 pb-3 sm:px-6 sm:pb-6">{activityCard}</div> : null}
+      </>
     );
   }
 
@@ -148,7 +172,22 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <p className="mt-1.5 max-w-[300px] break-keep text-xs leading-5 text-slate-500">프로필 사진과 기본 정보를 관리해요.</p>
               </div>
             </div>
-            <span className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-600 sm:flex"><Check className="h-3.5 w-3.5" />로그인 계정</span>
+            <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+              {onToggleVisibility ? (
+                <button
+                  type="button"
+                  onClick={() => onToggleVisibility(!isProfilePublic)}
+                  disabled={isSavingVisibility}
+                  aria-pressed={isProfilePublic}
+                  title="다른 사용자가 내 프로필을 볼 수 있는지 정해요"
+                  className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 transition hover:ring-[#1344FF]/40 disabled:opacity-50"
+                >
+                  {isProfilePublic ? <Globe className="h-3.5 w-3.5 text-[#1344FF]" /> : <Lock className="h-3.5 w-3.5" />}
+                  {isProfilePublic ? "프로필 공개" : "프로필 비공개"}
+                </button>
+              ) : null}
+              <span className="hidden items-center gap-1.5 whitespace-nowrap rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-600 sm:flex"><Check className="h-3.5 w-3.5" />로그인 계정</span>
+            </div>
         </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -216,6 +255,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
     </section>
+    {activityCard ? <div className="mt-5">{activityCard}</div> : null}
     <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
     </>
   );

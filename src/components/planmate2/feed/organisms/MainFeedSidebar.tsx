@@ -1,6 +1,7 @@
 import React from 'react';
 import { CustomOverlayMap, Map } from "react-kakao-maps-sdk";
 import type { RegionMarker } from '../hooks/useRegionMarkers';
+import { UserLevelCard } from './UserLevelCard';
 
 interface MainFeedSidebarProps {
   mapState: { center: { lat: number; lng: number }; level: number };
@@ -8,6 +9,7 @@ interface MainFeedSidebarProps {
   selectedRegion: string;
   /** 지역별 게시글 수(GET /posts/regions)로 만든 지도 마커 — 게시글이 있는 모든 여행지 */
   regionMarkers: RegionMarker[];
+  isAuthenticated: boolean;
 }
 
 export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
@@ -15,6 +17,7 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
   onRegionSelect,
   selectedRegion,
   regionMarkers,
+  isAuthenticated,
 }) => {
   return (
     <div className="space-y-5 xl:sticky xl:top-[94px]">
@@ -61,6 +64,9 @@ export const MainFeedSidebar: React.FC<MainFeedSidebarProps> = ({
         </div>
 
       </div>
+
+      {/* 사용자 레벨 시스템 */}
+      <UserLevelCard isAuthenticated={isAuthenticated} />
     </div>
   );
 };

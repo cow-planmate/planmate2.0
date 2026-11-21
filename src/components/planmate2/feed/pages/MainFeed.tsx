@@ -230,6 +230,7 @@ export default function MainFeed({ initialRegion = '전체', onNavigate }: MainF
             onRegionSelect={setters.handleRegionSelect}
             selectedRegion={filters.selectedRegion}
             regionMarkers={regionMarkers}
+            isAuthenticated={isAuthenticated()}
           />
         </aside>
       </div>

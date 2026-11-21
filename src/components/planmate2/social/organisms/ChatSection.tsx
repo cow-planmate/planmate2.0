@@ -1,46 +1,54 @@
 import { MessageCircle } from 'lucide-react';
 import React from 'react';
+import { UserAvatar } from '../../common/UserAvatar';
+import { timeAgo } from '../../community/utils/timeAgo';
+import type { ChatRoom, SocialUser } from '../api/socialApi';
 
 interface ChatSectionProps {
-  chatRooms: any[];
-  onOpenChat: (user: any) => void;
+  chatRooms: ChatRoom[];
+  onOpenChat: (user: SocialUser) => void;
 }
+
+const preview = (room: ChatRoom) => {
+  if (room.lastMessage) return room.lastMessage;
+  return room.lastMessageAt ? '삭제된 메시지입니다' : '아직 대화가 없어요';
+};
 
 export const ChatSection: React.FC<ChatSectionProps> = ({ chatRooms, onOpenChat }) => {
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-[500px]">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
-            <MessageCircle className="w-5 h-5 text-purple-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">최근 채팅</h3>
-            <p className="text-xs text-gray-500">대화 중인 방 {chatRooms.length}개</p>
-          </div>
+    <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-[600px]">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
+          <MessageCircle className="w-5 h-5 text-purple-600" />
         </div>
-        <button className="text-gray-400 text-sm font-medium hover:text-gray-600">편집</button>
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">최근 채팅</h3>
+          <p className="text-xs text-gray-500">대화 중인 방 {chatRooms.length}개</p>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
         {chatRooms.map((room) => (
-          <div 
-            key={room.id} 
-            onClick={() => onOpenChat(room.otherUser)}
+          <div
+            key={room.roomId}
+            onClick={() => onOpenChat(room.partner)}
             className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer border border-transparent hover:border-gray-100 group"
           >
-            <img 
-              src={room.otherUser.profileLogo} 
-              alt={room.otherUser.nickName} 
-              className="w-14 h-14 rounded-2xl object-cover shadow-sm group-hover:scale-105 transition-transform"
+            <UserAvatar
+              name={room.partner.nickname}
+              imageUrl={room.partner.profileImageUrl}
+              avatarHash={room.partner.avatarHash}
+              sizeClass="w-14 h-14"
+              shapeClass="rounded-2xl"
+              className="shadow-sm group-hover:scale-105 transition-transform"
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <h4 className="font-bold text-gray-900 truncate group-hover:text-[#1344FF] transition-colors">{room.otherUser.nickName}</h4>
-                <span className="text-[10px] text-gray-400 font-medium">{room.time}</span>
+                <h4 className="font-bold text-gray-900 truncate group-hover:text-[#1344FF] transition-colors">{room.partner.nickname}</h4>
+                {room.lastMessageAt && <span className="text-[10px] text-gray-400 font-medium shrink-0">{timeAgo(room.lastMessageAt)}</span>}
               </div>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-500 truncate font-medium">{room.lastMessage}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm text-gray-500 truncate font-medium">{preview(room)}</p>
                 {room.unreadCount > 0 && (
                   <span className="bg-[#1344FF] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm">
                     {room.unreadCount}
