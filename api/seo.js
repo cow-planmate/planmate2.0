@@ -1,6 +1,6 @@
 // 봇(카카오/페이스북/구글 등) 전용: SPA 껍데기 대신 글별 OG 태그가 든 HTML을 돌려준다. vercel.json 의 UA rewrite 로만 들어온다.
 const SITE = "https://www.planmate.site";
-const API = process.env.VITE_API_URL || "https://api.planmate.site";
+const API = "https://api.planmate.site"; // TEMP-EXPERIMENT
 const DEFAULT_IMAGE = `${SITE}/og-default.png`;
 
 const esc = (s) =>
