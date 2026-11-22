@@ -1,3 +1,50 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
+  "rewrites": [
+    {
+      "source": "/travel/:id(\\d+)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Kk]akao[Tt]alk|[Ff]acebookexternalhit|[Tt]witterbot|[Ss]lackbot|[Dd]iscordbot|[Tt]elegramBot|[Ll]inkedInBot|[Ww]hats[Aa]pp|[Gg]ooglebot|[Bb]ingbot|Yeti|NaverBot|[Dd]aum|Applebot).*"
+        }
+      ],
+      "destination": "/api/seo?id=:id"
+    },
+    {
+      "source": "/community/:category(free|qna|mate)/:id(\\d+)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Kk]akao[Tt]alk|[Ff]acebookexternalhit|[Tt]witterbot|[Ss]lackbot|[Dd]iscordbot|[Tt]elegramBot|[Ll]inkedInBot|[Ww]hats[Aa]pp|[Gg]ooglebot|[Bb]ingbot|Yeti|NaverBot|[Dd]aum|Applebot).*"
+        }
+      ],
+      "destination": "/api/seo?category=:category&id=:id"
+    },
+    {
+      "source": "/complete",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Kk]akao[Tt]alk|[Ff]acebookexternalhit|[Tt]witterbot|[Ss]lackbot|[Dd]iscordbot|[Tt]elegramBot|[Ll]inkedInBot|[Ww]hats[Aa]pp).*"
+        },
+        {
+          "type": "query",
+          "key": "id",
+          "value": "(?<planId>.+)"
+        }
+      ],
+      "destination": "/api/seo?plan=:planId"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
 }

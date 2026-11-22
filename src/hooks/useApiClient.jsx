@@ -32,7 +32,7 @@ const createApiError = async (response, fallbackMessage) => {
  * 토큰 인증이 포함된 fetch 요청을 쉽게 사용할 수 있도록 도와주는 커스텀 훅
  */
 export const useApiClient = () => {
-  const { setNickname, setGravatar } = useNicknameStore();
+  const { setNickname, setGravatar, setProfileImage } = useNicknameStore();
   const { setServerDown } = useServerStatusStore();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -234,6 +234,7 @@ export const useApiClient = () => {
         if (response.email) {
           setGravatar(response.email);
         }
+        setProfileImage(response.profileImageUrl);
 
         return response;
       } catch (err) {
