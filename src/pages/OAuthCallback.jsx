@@ -8,7 +8,7 @@ const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { post, get, setTokens } = useApiClient();
-  const { setNickname, setGravatar } = useNicknameStore();
+  const { setNickname, setGravatar, setProfileImage } = useNicknameStore();
   const [error, setError] = useState(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -34,12 +34,13 @@ const OAuthCallback = () => {
             code,
           });
 
-          const { accessToken, refreshToken, userId, nickname, email } = data;
+          const { accessToken, refreshToken, userId, nickname, email, profileImageUrl } = data;
 
           // 토큰 및 사용자 정보 스토리지/Zustand 저장
           if (setTokens) setTokens(accessToken, refreshToken);
           if (nickname && setNickname) setNickname(nickname);
           if (email && setGravatar) setGravatar(email);
+          if (setProfileImage) setProfileImage(profileImageUrl);
           if (userId) localStorage.setItem("userId", userId.toString());
 
           // userId 전달받지 못했을 경우 프로필 조회를 통한 fallback 처리

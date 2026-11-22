@@ -6,7 +6,7 @@ import useNicknameStore from "../store/Nickname";
 const OAuthAdditionalInfo = () => {
   const navigate = useNavigate();
   const { post, setTokens } = useApiClient();
-  const { setNickname, setGravatar } = useNicknameStore();
+  const { setNickname, setGravatar, setProfileImage } = useNicknameStore();
   const [searchParams] = useSearchParams();
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -83,13 +83,14 @@ const OAuthAdditionalInfo = () => {
         gender: formData.gender, // "MALE" | "FEMALE"
       });
 
-      const { accessToken, refreshToken, userId, nickname, email } = data;
+      const { accessToken, refreshToken, userId, nickname, email, profileImageUrl } = data;
 
       // 로그인 성공 처리
       if (setTokens) setTokens(accessToken, refreshToken);
       if (userId) localStorage.setItem("userId", userId.toString());
       if (nickname && setNickname) setNickname(nickname);
       if (email && setGravatar) setGravatar(email);
+      if (setProfileImage) setProfileImage(profileImageUrl);
 
       const redirectPath = sessionStorage.getItem("redirectAfterLogin") || "/";
       sessionStorage.removeItem("redirectAfterLogin");
