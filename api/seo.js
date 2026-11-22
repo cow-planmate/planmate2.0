@@ -40,10 +40,10 @@ async function sharedPlan(res, planId) {
   let r;
   try {
     r = await fetch(`${API}/api/plan/${planId}/complete`, { headers: UPSTREAM_UA });
-  } catch {
-    return res.status(502).send("upstream error");
+  } catch (e) {
+    return res.status(502).send(`upstream error: ${e.cause?.code ?? e.message}`);
   }
-  if (r.status >= 500) return res.status(502).send("upstream error");
+  if (r.status >= 500) return res.status(502).send(`upstream error: ${r.status}`);
   if (!r.ok) return fallback();
 
   const { planFrame: f, timetables = [], placeBlocks = [] } = await r.json();
@@ -74,11 +74,11 @@ export default async function handler(req, res) {
   let r;
   try {
     r = await fetch(`${API}/api/${category ? "community" : "feed"}/posts/${id}`, { headers: UPSTREAM_UA });
-  } catch {
-    return res.status(502).send("upstream error");
+  } catch (e) {
+    return res.status(502).send(`upstream error: ${e.cause?.code ?? e.message}`);
   }
   if (r.status === 404) return res.status(404).send("not found");
-  if (!r.ok) return res.status(502).send("upstream error"); // 일시 장애는 캐시되지 않게 5xx
+  if (!r.ok) return res.status(502).send(`upstream error: ${r.status}`); // 일시 장애는 캐시되지 않게 5xx
 
   const p = await r.json();
   if (category && p.category !== category) return res.status(404).send("not found"); // 같은 글이 다른 URL 로 중복 색인되지 않게

@@ -19,8 +19,8 @@ export default async function handler(req, res) {
         if (page + 1 >= d.totalPages) break;
       }
     }
-  } catch {
-    return res.status(502).send("upstream error"); // 반쪽짜리 sitemap 을 캐시하지 않는다
+  } catch (e) {
+    return res.status(502).send(`upstream error: ${e.cause?.code ?? e.message}`); // 반쪽짜리 sitemap 을 캐시하지 않는다
   }
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
