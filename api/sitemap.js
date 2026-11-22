@@ -1,5 +1,5 @@
 const SITE = "https://www.planmate.site";
-const API = "https://api.planmate.site"; // TEMP-EXPERIMENT
+const API = process.env.VITE_API_URL || "https://api.planmate.site";
 const MAX_PAGES = 20; // shortcut: 소스당 글 1000개 상한(size 50 x 20쪽), 합계 5만 URL 을 넘으면 sitemap index 로 분할
 
 const SOURCES = [
