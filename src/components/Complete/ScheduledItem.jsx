@@ -70,9 +70,9 @@ export const ScheduledItem = ({ item, START_HOUR, index, isLast }) => {
           </div>
           <div className="flex min-w-0 flex-1 flex-col p-4">
             <div>
-              <div className="mb-2 flex min-w-0 items-center gap-2">
+              <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
                 <span className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold ${category.chip}`}><Icon className="h-3.5 w-3.5" />{category.label}</span>
-                <h3 className="truncate text-[15px] font-black text-[#111318] sm:text-base">{place.name}</h3>
+                <h3 className="order-3 w-full break-words text-[15px] font-black text-[#111318] sm:order-none sm:w-auto sm:min-w-0 sm:flex-1 sm:text-base">{place.name}</h3>
                 <PlaceActionButtons place={place} className="ml-auto shrink-0" />
               </div>
               {place.formatted_address ? <p className="line-clamp-2 text-xs leading-5 text-[#666666]">{place.formatted_address}</p> : null}

@@ -47,7 +47,7 @@ export default function PlanInfoModal({setIsInfoOpen, planFrame}) {
         >
           <div className="space-y-1.5">
             <p className="text-gray-500 text-start font-semibold">이동수단</p>
-            <p className="text text-start max-w-full">{transInfo[planFrame.transportationType]}</p>
+            <p className="text text-start max-w-full">{transInfo[planFrame.transportationType] || "미설정"}</p>
           </div>
         </div>
       </div>

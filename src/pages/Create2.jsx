@@ -17,8 +17,8 @@ import {
 } from "../utils/tempPlanStorage"; // Import util
 import { clearRecentPlan, saveRecentPlan } from "../utils/recentPlanSession";
 import {
-  disconnectStompClient,
-  initStompClient,
+  disconnectSyncClient,
+  initSyncClient,
   sendRedo,
   sendUndo,
 } from "../websocket/client";
@@ -94,8 +94,21 @@ function App() {
   const { setPlacesAll, setPlacesLoading } = usePlacesStore();
   const { lastSelectedDay } = useNicknameStore();
   const { isConnected } = useSocketStore();
+  const [hasConnected, setHasConnected] = useState(false);
+  const [connectionTimedOut, setConnectionTimedOut] = useState(false);
+  const [connectionRetry, setConnectionRetry] = useState(0);
+
+  useEffect(() => { if (isConnected) setHasConnected(true); }, [isConnected]);
   const [noACL, setNoACL] = useState(false);
+  const [planLoadError, setPlanLoadError] = useState("");
+  const [planLoadRetry, setPlanLoadRetry] = useState(0);
   const [hasPlanAccess, setHasPlanAccess] = useState(() => !id);
+  useEffect(() => {
+    setConnectionTimedOut(false);
+    if (!id || !hasPlanAccess || isConnected) return;
+    const timer = setTimeout(() => setConnectionTimedOut(true), 15000);
+    return () => clearTimeout(timer);
+  }, [id, hasPlanAccess, isConnected, connectionRetry]);
   const [showTempPlanPrompt, setShowTempPlanPrompt] = useState(false); // Alert state
   const [isTempLoaded, setIsTempLoaded] = useState(false); // Prevent auto-save until loaded
   const [isPlaceLoading, setIsPlaceLoading] = useState(false);
@@ -128,6 +141,8 @@ function App() {
   // 초기 데이터 로딩
   useEffect(() => {
     const fetchPlanData = async () => {
+      setNoACL(false);
+      setPlanLoadError("");
       if (id && isAuthenticated()) {
         try {
           const planData = await get(`${BASE_URL}/api/plan/${id}`);
@@ -171,8 +186,14 @@ function App() {
           setHasPlanAccess(true);
         } catch (err) {
           console.error("일정 정보를 가져오는데 실패했습니다:", err);
-          if (err.message === "접근 권한이 없습니다.") {
+          if (err.status === 403) {
             setNoACL(true);
+            clearRecentPlan(id);
+          } else {
+            setPlanLoadError(err.status === 404
+              ? "일정이 삭제되었거나 존재하지 않습니다."
+              : "일정을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+            if (err.status === 404) clearRecentPlan(id);
           }
         }
       } else if (id) {
@@ -184,7 +205,7 @@ function App() {
       }
     };
     fetchPlanData();
-  }, []);
+  }, [planLoadRetry]);
 
   useEffect(() => {
     const updatePlace = async () => {
@@ -246,10 +267,10 @@ function App() {
 
   useEffect(() => {
     if (id && hasPlanAccess && isAuthenticated() && planId && planId !== -1) {
-      initStompClient(id);
+      initSyncClient(id);
 
       return () => {
-        disconnectStompClient();
+        disconnectSyncClient();
       };
     }
   }, [hasPlanAccess, id, planId, isAuthenticated]);
@@ -424,9 +445,10 @@ function App() {
 
   if (
     noACL ||
+    planLoadError ||
     !planId ||
     !isPlaceLoading ||
-    (planId !== -1 && isAuthenticated() && !isConnected)
+    (planId !== -1 && isAuthenticated() && !hasConnected)
   ) {
     return (
       <div className="font-pretendard h-screen">
@@ -473,10 +495,10 @@ function App() {
             </div>
             <div className="space-x-3">
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => navigate("/mypage")}
                 className="font-semibold border border-gray-500 text-gray-700 hover:bg-gray-200 py-2 px-4 rounded-lg"
               >
-                새로고침하기
+                내 일정으로
               </button>
               <button
                 onClick={requestEdit}
@@ -485,6 +507,20 @@ function App() {
                 편집 권한 요청하기
               </button>
             </div>
+          </div>
+        ) : planLoadError ? (
+          <div role="alert" className="flex h-[calc(100vh-69px)] flex-col items-center justify-center gap-4 px-6 text-center">
+            <p className="text-lg font-semibold">{planLoadError}</p>
+            <div className="flex gap-3">
+              <button className="rounded-lg border px-4 py-2" onClick={() => navigate("/mypage")}>내 일정으로</button>
+              <button className="rounded-lg bg-main px-4 py-2 text-white" onClick={() => setPlanLoadRetry((value) => value + 1)}>다시 시도</button>
+            </div>
+          </div>
+        ) : connectionTimedOut ? (
+          <div role="alert" className="flex h-[calc(100vh-69px)] flex-col items-center justify-center gap-4 px-6 text-center">
+            <p>실시간 편집 서버에 연결하지 못했습니다.</p>
+            <button className="rounded-lg border px-4 py-2" onClick={() => navigate("/mypage")}>내 일정으로</button>
+            <button className="rounded-lg bg-main px-4 py-2 text-white" onClick={() => { setConnectionTimedOut(false); setConnectionRetry((value) => value + 1); initSyncClient(id); }}>다시 연결</button>
           </div>
         ) : placeLoadError ? (
           <div
@@ -514,7 +550,15 @@ function App() {
       <div>
         <Navbar currentView="schedule-editor" onNavigate={handleNavbarNavigate} />
       </div>
-      <PlanInfo id={id} isOwner={isOwner} />
+      {id && !isConnected ? (
+        <div role="status" className="flex flex-wrap items-center justify-center gap-3 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          <span>실시간 연결을 복구하고 있어요. 연결될 때까지 일정 편집을 잠시 멈춥니다.</span>
+          <button type="button" className="rounded-lg border border-amber-300 px-3 py-1 font-semibold" onClick={() => initSyncClient(id)}>다시 연결</button>
+        </div>
+      ) : null}
+      <div inert={Boolean(id && !isConnected)}>
+        <PlanInfo id={id} isOwner={isOwner} />
+      </div>
       <ChecklistSheet
         planId={checklistPlanId}
         enabled={isAuthenticated()}
@@ -530,6 +574,7 @@ function App() {
       >
         <ChatBot planId={id} enableScheduleDrag />
         <div
+          inert={Boolean(id && !isConnected)}
           className="
             min-[1464px]:w-[1400px] min-[1464px]:px-0
             md:px-8 md:py-6 py-3

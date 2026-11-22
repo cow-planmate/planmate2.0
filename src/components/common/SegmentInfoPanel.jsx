@@ -39,10 +39,10 @@ export const SUBWAY_COLORS = {
 const DEFAULT_SUBWAY_COLOR = "#3B82F6";
 export const BUS_COLOR = "#33B540";
 
-const TRANSIT_API_LIMIT_MESSAGE =
-  "현재 대중교통 경로 조회 한도가 제한되어 있어요.\n이용 한도는 추후 확대될 예정입니다.";
+const TRANSIT_SERVICE_UNAVAILABLE_MESSAGE =
+  "대중교통 경로 제공 서비스에 연결하지 못했어요.\n잠시 후 다시 시도해 주세요.";
 
-const isTransitApiLimitError = (value) => [
+const isTransitAuthenticationError = (value) => [
   value?.code,
   value?.message,
   value?.error,
@@ -537,8 +537,8 @@ const TransitInfo = ({ transit, isLoading, segmentIndex, onShowTransitRoute, act
     : 0;
 
   if (!isLoading && !available) {
-    const unavailableMessage = isTransitApiLimitError(transit)
-      ? TRANSIT_API_LIMIT_MESSAGE
+    const unavailableMessage = isTransitAuthenticationError(transit)
+      ? TRANSIT_SERVICE_UNAVAILABLE_MESSAGE
       : transit?.message || "출발지와 도착지 사이의 대중교통 경로를 찾지 못했어요.";
     return (
       <div
@@ -714,8 +714,8 @@ export default function SegmentInfoPanel({
         foot: footResult.status === "fulfilled" ? footResult.value : null,
         transit: transitResults.map((result) => {
           if (result.status === "fulfilled") return result.value;
-          return isTransitApiLimitError(result.reason)
-            ? { available: false, message: TRANSIT_API_LIMIT_MESSAGE }
+          return isTransitAuthenticationError(result.reason)
+            ? { available: false, message: TRANSIT_SERVICE_UNAVAILABLE_MESSAGE }
             : null;
         }),
         hasError: results.every((result) => result.status === "rejected"),

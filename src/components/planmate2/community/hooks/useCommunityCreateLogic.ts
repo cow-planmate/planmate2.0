@@ -1,3 +1,4 @@
+import { getAuthenticatedUserId } from '../../../../shared/auth/tokenStore';
 import { showWriteError } from '../../../../store/SuspensionNotice';
 import { ko } from "@blocknote/core/locales";
 import { useCreateBlockNote } from "@blocknote/react";
@@ -34,7 +35,8 @@ export const useCommunityCreateLogic = (
   const submitLock = useRef(false);
 
   const isEditMode = editPostId != null;
-  const { data: existingPost } = usePost(isEditMode ? editPostId : undefined);
+  const { data: existingPost, isPending: editLoading, isError: editError } = usePost(isEditMode ? editPostId : undefined);
+  const canEdit = !isEditMode || (!!existingPost && existingPost.userId === getAuthenticatedUserId());
   const createPostMutation = useCreatePost();
   const updatePostMutation = useUpdatePost(Number(editPostId));
 
@@ -66,7 +68,7 @@ export const useCommunityCreateLogic = (
   // 수정 모드: 조회된 게시글을 폼과 에디터에 한 번만 채워 넣는다
   const [isPrefilled, setIsPrefilled] = useState(false);
   useEffect(() => {
-    if (!isEditMode || !existingPost || isPrefilled) return;
+    if (!isEditMode || !canEdit || !existingPost || isPrefilled) return;
 
     setTitle(existingPost.title ?? '');
     if (existingPost.region) setRegion(existingPost.region);
@@ -77,7 +79,7 @@ export const useCommunityCreateLogic = (
       editor.replaceBlocks(editor.document, blocks);
     }
     setIsPrefilled(true);
-  }, [isEditMode, existingPost, isPrefilled, editor]);
+  }, [isEditMode, canEdit, existingPost, isPrefilled, editor]);
 
   const getTips = () => {
     switch (type) {
@@ -103,7 +105,7 @@ export const useCommunityCreateLogic = (
   };
 
   const handleSubmit = async () => {
-    if (submitLock.current) return;
+    if (submitLock.current || !canEdit) return;
     const rawBlocks = editor.document as any[];
     const contentText = blocksToText(rawBlocks);
     // 검증은 업로드 전에 한다 — 유효성 실패 시 이미지가 서버에 올라가 고아가 되는 것을 막는다.
@@ -167,6 +169,9 @@ export const useCommunityCreateLogic = (
     handleSubmit,
     isSubmitting: isSaving || createPostMutation.isPending || updatePostMutation.isPending,
     isEditMode,
+    editLoading: isEditMode && editLoading,
+    editError,
+    canEdit,
     getTips
   };
 };

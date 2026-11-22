@@ -47,7 +47,11 @@ export const saveRecentPlan = ({ planId, planName }) => {
   }
 };
 
-export const clearRecentPlan = () => {
+export const clearRecentPlan = (planId) => {
+  if (planId != null) {
+    const recent = getRecentPlan();
+    if (!recent || recent.path !== `/create?id=${encodeURIComponent(String(planId))}`) return;
+  }
   sessionStorage.removeItem(STORAGE_KEY);
   window.dispatchEvent(new CustomEvent(UPDATED_EVENT));
 };

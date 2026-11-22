@@ -70,7 +70,7 @@ export const FriendSection: React.FC<FriendSectionProps> = ({
                   e.stopPropagation();
                   onRemoveFriend(friend);
                 }}
-                className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all active:scale-95"
+                className="p-2.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all active:scale-95"
                 title="친구 삭제"
                 aria-label={`${friend.nickname}님 친구 삭제`}
               >
@@ -82,7 +82,7 @@ export const FriendSection: React.FC<FriendSectionProps> = ({
                     e.stopPropagation();
                     onOpenChat(friend);
                   }}
-                  className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-[#1344FF] hover:text-white transition-all active:scale-95"
+                  className="p-2.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-[#1344FF] hover:text-white transition-all active:scale-95"
                   title="채팅하기"
                   aria-label={`${friend.nickname}님과 채팅하기`}
                 >

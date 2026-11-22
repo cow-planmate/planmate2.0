@@ -104,6 +104,8 @@ export const usePost = (postId: number | string | undefined, feed = false) =>
   useQuery({
     queryKey: KEYS.post(postId ?? '', feed),
     queryFn: () => fetchPost(postId!, feed),
+    retry: (failureCount, error: Error & { status?: number }) =>
+      ![400, 401, 403, 404, 410].includes(error.status ?? 0) && failureCount < 2,
     enabled: postId !== undefined && postId !== null && postId !== '',
   });
 
