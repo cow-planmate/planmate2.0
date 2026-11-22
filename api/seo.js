@@ -6,7 +6,7 @@ const DEFAULT_IMAGE = `${SITE}/og-default.png`;
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-const UPSTREAM_UA = { "User-Agent": "Mozilla/5.0 (compatible; planmate-seo)" };
+const UPSTREAM_UA = { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 planmate-seo" };
 
 function page(res, { title, desc, url, image, type, h1, meta, body, noindex, maxAge }) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
     return res.status(502).send(`upstream error: ${e.cause?.code ?? e.message}`);
   }
   if (r.status === 404) return res.status(404).send("not found");
-  if (!r.ok) return res.status(502).send(`upstream error: ${r.status}`); // 일시 장애는 캐시되지 않게 5xx
+  if (!r.ok) return res.status(502).send(`upstream error: ${r.status} ${(await r.text()).slice(0, 80)}`); // 일시 장애는 캐시되지 않게 5xx
 
   const p = await r.json();
   if (category && p.category !== category) return res.status(404).send("not found"); // 같은 글이 다른 URL 로 중복 색인되지 않게

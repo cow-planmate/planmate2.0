@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   try {
     for (const [endpoint, toPath] of SOURCES) {
       for (let page = 0; page < MAX_PAGES; page++) {
-        const r = await fetch(`${API}${endpoint}page=${page}&size=50`, { headers: { "User-Agent": "Mozilla/5.0 (compatible; planmate-seo)" } });
+        const r = await fetch(`${API}${endpoint}page=${page}&size=50`, { headers: { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 planmate-seo" } });
         if (!r.ok) throw new Error(String(r.status));
         const d = await r.json();
         urls.push(...d.items.map((p) => `${SITE}${toPath(p)}`));
