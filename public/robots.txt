@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /mypage
+Disallow: /create
+Disallow: /complete
+Disallow: /oauth/
+Disallow: /legacy-home
+Disallow: /logintest
+Disallow: /signuptest
+Disallow: /themetest
+Disallow: /passwordfindtest
+
+Sitemap: https://www.planmate.site/sitemap.xml
